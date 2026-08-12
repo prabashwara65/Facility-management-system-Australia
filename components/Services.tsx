@@ -37,8 +37,8 @@ export default function Services() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.3,
+        staggerChildren: 0.15,
+        delayChildren: 0.2,
       },
     },
   };
@@ -46,8 +46,8 @@ export default function Services() {
   const itemVariants = {
     hidden: { 
       opacity: 0, 
-      y: 50,
-      scale: 0.95,
+      y: 30,
+      scale: 0.97,
     },
     visible: { 
       opacity: 1, 
@@ -55,7 +55,7 @@ export default function Services() {
       scale: 1,
       transition: {
         type: "spring",
-        stiffness: 100,
+        stiffness: 120,
         damping: 15,
       },
     },
@@ -65,30 +65,30 @@ export default function Services() {
     <section
       id="services"
       ref={sectionRef}
-      className="bg-[#faf9f5] px-6 py-20 lg:px-10 lg:py-24"
+      className="bg-[#faf9f5] px-6 py-16 lg:py-20"
     >
-      <div className="mx-auto max-w-[1600px]">
+      <div className="mx-auto max-w-[1400px]">
         {/* Section Heading */}
         <motion.div 
           className="text-center"
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.6 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ duration: 0.5 }}
         >
           <motion.p 
-            className="text-xs font-bold tracking-[0.16em] text-[#c99a32] sm:text-sm"
+            className="text-[10px] font-bold tracking-[0.16em] text-[#c99a32] uppercase sm:text-xs"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+            transition={{ delay: 0.15, duration: 0.4 }}
           >
             OUR SERVICES
           </motion.p>
 
           <motion.h2 
-            className="mt-6 font-serif text-[42px] font-medium leading-tight tracking-tight text-[#1f3152] sm:text-[48px] lg:text-[58px]"
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
+            className="mt-4 font-serif text-[32px] font-medium leading-tight tracking-tight text-[#1f3152] sm:text-[38px] lg:text-[44px]"
+            initial={{ opacity: 0, y: 15 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
           >
             Every clean,{" "}
             <span className="italic text-[#c99a32]">
@@ -97,10 +97,10 @@ export default function Services() {
           </motion.h2>
 
           <motion.p 
-            className="mx-auto mt-4 max-w-2xl text-[16px] text-[#687184]"
+            className="mx-auto mt-3 max-w-2xl text-[14px] text-[#687184]"
             initial={{ opacity: 0 }}
             animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
           >
             Choose from our range of professional cleaning services tailored to your needs
           </motion.p>
@@ -108,18 +108,17 @@ export default function Services() {
 
         {/* Service Cards */}
         <motion.div 
-          className="mt-20 grid gap-8 md:grid-cols-3"
+          className="mt-12 grid gap-6 md:grid-cols-3"
           variants={containerVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
         >
-          {services.map((service, index) => (
+          {services.map((service) => (
             <motion.div
               key={service.title}
               variants={itemVariants}
-              custom={index}
               whileHover={{ 
-                y: -8,
+                y: -6,
                 transition: { type: "spring", stiffness: 300 }
               }}
             >
@@ -135,17 +134,12 @@ export default function Services() {
 
         {/* Service CTA */}
         <motion.div 
-          className="mt-16 text-center"
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
+          className="mt-12 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
         >
-          <Link
-            href="#contact"
-            className="inline-block rounded-md bg-[#d0a037] px-10 py-3.5 text-[15px] font-bold text-white transition-all hover:-translate-y-1 hover:bg-[#dfae45]"
-          >
-            View All Services →
-          </Link>
+       
         </motion.div>
       </div>
     </section>
@@ -164,37 +158,37 @@ function ServiceCard({
   description: string;
 }) {
   return (
-    <div className="flex min-h-[455px] flex-col rounded-xl border border-[#e1e2e5] bg-white p-10 shadow-[0_5px_25px_rgba(30,45,75,0.06)] transition-all duration-300 hover:shadow-[0_12px_35px_rgba(30,45,75,0.1)] lg:p-12">
+    <div className="flex min-h-[380px] flex-col rounded-xl border border-[#e1e2e5] bg-white p-8 shadow-[0_5px_20px_rgba(30,45,75,0.06)] transition-all duration-300 hover:shadow-[0_10px_30px_rgba(30,45,75,0.08)] lg:p-9">
       <motion.div 
-        className="text-[32px]"
+        className="text-[28px]"
         whileHover={{ 
-          scale: 1.2,
+          scale: 1.15,
           rotate: [0, -5, 5, -5, 0],
-          transition: { duration: 0.5 }
+          transition: { duration: 0.4 }
         }}
       >
         {icon}
       </motion.div>
 
-      <h3 className="mt-10 font-serif text-[29px] font-bold leading-tight text-[#1f3152]">
+      <h3 className="mt-8 font-serif text-[24px] font-bold leading-tight text-[#1f3152]">
         {title}
       </h3>
 
       <motion.p 
-        className="mt-5 text-[23px] font-bold text-[#c99a32]"
+        className="mt-3 text-[20px] font-bold text-[#c99a32]"
         whileHover={{ scale: 1.05 }}
         transition={{ type: "spring", stiffness: 300 }}
       >
         {price}
       </motion.p>
 
-      <p className="mt-6 max-w-[430px] text-[16px] font-medium leading-[1.75] text-[#687184]">
+      <p className="mt-4 max-w-[400px] text-[14px] font-medium leading-[1.6] text-[#687184]">
         {description}
       </p>
 
       <Link
         href="#contact"
-        className="mt-auto inline-flex w-fit border-b-[3px] border-[#c99a32] pb-1 text-[16px] font-bold tracking-wide text-[#1f3152] transition-colors hover:text-[#c99a32]"
+        className="mt-auto inline-flex w-fit border-b-[2px] border-[#c99a32] pb-1 text-[14px] font-bold tracking-wide text-[#1f3152] transition-colors hover:text-[#c99a32]"
       >
         LEARN MORE →
       </Link>
