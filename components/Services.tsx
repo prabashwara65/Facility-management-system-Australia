@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, Variants } from "framer-motion";
 import { useRef } from "react";
 
 const services = [
@@ -32,7 +32,7 @@ export default function Services() {
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: false, amount: 0.2 });
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -43,7 +43,7 @@ export default function Services() {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { 
       opacity: 0, 
       y: 30,
@@ -54,7 +54,7 @@ export default function Services() {
       y: 0,
       scale: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 120,
         damping: 15,
       },
@@ -119,7 +119,7 @@ export default function Services() {
               variants={itemVariants}
               whileHover={{ 
                 y: -6,
-                transition: { type: "spring", stiffness: 300 }
+                transition: { type: "spring" as const, stiffness: 300 }
               }}
             >
               <ServiceCard
@@ -177,7 +177,7 @@ function ServiceCard({
       <motion.p 
         className="mt-3 text-[20px] font-bold text-[#c99a32]"
         whileHover={{ scale: 1.05 }}
-        transition={{ type: "spring", stiffness: 300 }}
+        transition={{ type: "spring" as const, stiffness: 300 }}
       >
         {price}
       </motion.p>
@@ -190,7 +190,7 @@ function ServiceCard({
         href="#contact"
         className="mt-auto inline-flex w-fit border-b-[2px] border-[#c99a32] pb-1 text-[14px] font-bold tracking-wide text-[#1f3152] transition-colors hover:text-[#c99a32]"
       >
-        LEARN MORE →
+        LEARN MORE  →
       </Link>
     </div>
   );
