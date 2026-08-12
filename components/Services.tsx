@@ -190,7 +190,7 @@ function ServiceCard({
         href="#contact"
         className="mt-auto inline-flex w-fit border-b-[2px] border-[#c99a32] pb-1 text-[14px] font-bold tracking-wide text-[#1f3152] transition-colors hover:text-[#c99a32]"
       >
-        LEARN MORE →
+        LEARN MORE  →
       </Link>
     </div>
   );
