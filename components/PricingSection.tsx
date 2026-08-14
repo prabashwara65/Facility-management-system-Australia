@@ -38,17 +38,32 @@ export default function PricingSection() {
   const [selectedTier, setSelectedTier] = useState<string>('3 Bed');
 
   return (
-    <section className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans">
+    <section 
+      id="pricing" 
+      className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans"
+      style={{ 
+        backgroundColor: 'var(--theme-primary)',
+        color: 'var(--theme-text)'
+      }}
+    >
       <div className="max-w-6xl mx-auto space-y-12">
         {/* Header */}
         <div className="text-center space-y-3">
-          <span className="font-semibold tracking-widest text-xs uppercase theme-primary">
+          <span 
+            className="font-semibold tracking-widest text-xs uppercase"
+            style={{ color: 'var(--theme-secondary)' }}
+          >
             Transparent Pricing
           </span>
-          <h2 className="text-4xl sm:text-5xl font-serif font-bold tracking-tight" style={{ color: 'var(--theme-text)' }}>
+          <h2 
+            className="text-4xl sm:text-5xl font-serif font-bold tracking-tight text-white"
+          >
             Fixed rates. No surprises.
           </h2>
-          <p className="text-sm sm:text-base max-w-xl mx-auto" style={{ color: 'var(--theme-muted)' }}>
+          <p 
+            className="text-sm sm:text-base max-w-xl mx-auto"
+            style={{ color: 'rgba(255,255,255,0.7)' }}
+          >
             Select your service type and property size below. All prices include GST.
           </p>
         </div>
@@ -58,8 +73,8 @@ export default function PricingSection() {
           <div 
             className="p-1.5 rounded-xl flex space-x-1"
             style={{ 
-              backgroundColor: 'var(--theme-surface)', 
-              border: '1px solid var(--theme-border)' 
+              backgroundColor: 'rgba(255,255,255,0.08)', 
+              border: '1px solid rgba(255,255,255,0.08)' 
             }}
           >
             {serviceTabs.map((tab) => {
@@ -70,8 +85,8 @@ export default function PricingSection() {
                   onClick={() => setActiveTab(tab)}
                   className="relative px-5 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200"
                   style={{
-                    color: isActive ? 'white' : 'var(--theme-muted)',
-                    backgroundColor: isActive ? 'var(--theme-primary)' : 'transparent',
+                    color: isActive ? 'white' : 'rgba(255,255,255,0.6)',
+                    backgroundColor: isActive ? 'var(--theme-secondary)' : 'transparent',
                   }}
                 >
                   {tab}
@@ -81,7 +96,7 @@ export default function PricingSection() {
           </div>
         </div>
 
-        {/* Pricing Tiers */}
+        {/* Pricing Tiers - Using rgba(255,255,255,0.1) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 pt-4">
           {pricingTiers.map((tier) => {
             const isSelected = selectedTier === tier.beds;
@@ -92,11 +107,11 @@ export default function PricingSection() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setSelectedTier(tier.beds)}
-                className="relative cursor-pointer rounded-xl p-6 flex flex-col justify-center items-center text-center transition-all duration-200 border"
+                className="relative cursor-pointer rounded-xl p-6 flex flex-col justify-center items-center text-center transition-all duration-200 border backdrop-blur-sm"
                 style={{
-                  backgroundColor: isSelected ? 'var(--theme-primary)' : 'var(--theme-card)',
-                  borderColor: isSelected ? 'var(--theme-primary)' : 'var(--theme-border)',
-                  boxShadow: isSelected ? '0 8px 32px rgba(26,58,107,0.25)' : 'none',
+                  backgroundColor: isSelected ? 'var(--theme-secondary)' : 'rgba(255,255,255,0.1)',
+                  borderColor: isSelected ? 'var(--theme-secondary)' : 'rgba(255,255,255,0.08)',
+                  boxShadow: isSelected ? '0 8px 32px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.1)',
                 }}
               >
                 {tier.isPopular && (
@@ -114,7 +129,7 @@ export default function PricingSection() {
                 <span 
                   className="text-xs font-medium mb-2"
                   style={{ 
-                    color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--theme-muted)' 
+                    color: isSelected ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.6)' 
                   }}
                 >
                   {tier.beds}
@@ -122,7 +137,7 @@ export default function PricingSection() {
                 <span 
                   className="text-3xl sm:text-4xl font-serif font-bold tracking-tight"
                   style={{ 
-                    color: isSelected ? 'white' : 'var(--theme-text)' 
+                    color: isSelected ? 'white' : 'white' 
                   }}
                 >
                   {tier.price}
@@ -132,18 +147,17 @@ export default function PricingSection() {
           })}
         </div>
 
-        {/* Add-Ons */}
+        {/* Add-Ons - Using rgba(255,255,255,0.1) */}
         <div 
-          className="rounded-2xl p-6 sm:p-10 space-y-8"
+          className="rounded-2xl p-6 sm:p-10 space-y-8 backdrop-blur-sm"
           style={{ 
-            backgroundColor: 'var(--theme-card)', 
-            border: '1px solid var(--theme-border)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+            backgroundColor: 'rgba(255,255,255,0.1)', 
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
           }}
         >
           <h3 
-            className="text-xl font-serif font-semibold"
-            style={{ color: 'var(--theme-text)' }}
+            className="text-xl font-serif font-semibold text-white"
           >
             Optional Add-Ons
           </h3>
@@ -156,13 +170,13 @@ export default function PricingSection() {
                   key={idx} 
                   className="flex items-center justify-between py-3 border-b"
                   style={{ 
-                    borderColor: 'var(--theme-border)',
+                    borderColor: 'rgba(255,255,255,0.08)',
                   }}
                 >
-                  <span style={{ color: 'var(--theme-text)' }}>{item.name}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.8)' }}>{item.name}</span>
                   <span 
                     className="font-bold font-serif text-base"
-                    style={{ color: 'var(--theme-primary)' }}
+                    style={{ color: 'var(--theme-secondary)' }}
                   >
                     {item.price}
                   </span>
@@ -177,13 +191,13 @@ export default function PricingSection() {
                   key={idx} 
                   className="flex items-center justify-between py-3 border-b"
                   style={{ 
-                    borderColor: 'var(--theme-border)',
+                    borderColor: 'rgba(255,255,255,0.08)',
                   }}
                 >
-                  <span style={{ color: 'var(--theme-text)' }}>{item.name}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.8)' }}>{item.name}</span>
                   <span 
                     className="font-bold font-serif text-base"
-                    style={{ color: 'var(--theme-primary)' }}
+                    style={{ color: 'var(--theme-secondary)' }}
                   >
                     {item.price}
                   </span>
@@ -194,7 +208,7 @@ export default function PricingSection() {
 
           <p 
             className="text-xs pt-2"
-            style={{ color: 'var(--theme-muted)' }}
+            style={{ color: 'rgba(255,255,255,0.5)' }}
           >
             * Prices are indicative and may vary based on property condition and size. All prices include GST.
           </p>

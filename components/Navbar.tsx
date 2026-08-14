@@ -54,8 +54,7 @@ export default function Navbar({
     { href: "#pricing", label: "Pricing" },
     { href: "#why-us", label: "Why Us" },
     { href: "#areas", label: "Areas" },
-    { href: "#blog", label: "Blog" },
-    { href: "#contact", label: "Contact" },
+    { href: "#booking", label: "Book Now" },
   ];
 
   // Get current theme colors for preview

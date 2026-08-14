@@ -22,19 +22,19 @@ interface HeroProps {
 export default function Hero({ onScrollTrigger }: HeroProps) {
   return (
     <section className="relative h-screen w-full overflow-hidden">
-      {/* Background */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: "url('/images/cleaning-hero.jpg')",
-        }}
+      {/* Background Image */}
+      <img
+        src="/img/cleaning_lady.avif"
+        alt="Cleaning lady"
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ opacity: 0.6 }}
       />
 
-      {/* Overlay */}
+      {/* Gradient Overlay - with transparency */}
       <div
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(to right, color-mix(in srgb, var(--theme-primary) 95%, black), color-mix(in srgb, var(--theme-secondary) 90%, var(--theme-primary)))',
+          background: 'linear-gradient(to right, color-mix(in srgb, var(--theme-primary) 85%, transparent), color-mix(in srgb, var(--theme-secondary) 75%, transparent))',
         }}
       />
 
@@ -97,17 +97,33 @@ export default function Hero({ onScrollTrigger }: HeroProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}
           >
-            <motion.button 
-              className="rounded-md px-6 py-2.5 text-[14px] font-bold transition-all hover:-translate-y-1"
+            <motion.a
+              href="#booking"
+              onClick={(e) => {
+                e.preventDefault();
+                const section = document.querySelector('#booking');
+                if (section) {
+                  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              className="inline-block rounded-md px-6 py-2.5 text-[14px] font-bold transition-all hover:-translate-y-1 cursor-pointer"
               style={{ backgroundColor: 'var(--theme-card)', color: 'var(--theme-primary)' }}
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.95 }}
             >
               Book Now
-            </motion.button>
+            </motion.a>
 
-            <motion.button 
-              className="rounded-md border-2 px-6 py-2.5 text-[14px] font-bold transition-all"
+            <motion.a
+              href="#booking"
+              onClick={(e) => {
+                e.preventDefault();
+                const section = document.querySelector('#booking');
+                if (section) {
+                  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              className="inline-block rounded-md border-2 px-6 py-2.5 text-[14px] font-bold transition-all cursor-pointer"
               style={{
                 borderColor: 'var(--hero-badge-border)',
                 color: 'var(--hero-text)',
@@ -117,12 +133,12 @@ export default function Hero({ onScrollTrigger }: HeroProps) {
               whileTap={{ scale: 0.95 }}
             >
               Call Us Now
-            </motion.button>
+            </motion.a>
           </motion.div>
         </motion.div>
       </div>
 
-      {/* TRUST BAR - Blue */}
+      {/* TRUST BAR */}
       <div
         className="absolute bottom-0 left-0 right-0 z-20 border-t backdrop-blur-sm"
         style={{
@@ -158,24 +174,6 @@ export default function Hero({ onScrollTrigger }: HeroProps) {
           />
         </div>
       </div>
-
-      {/* Chat */}
-      {/* <motion.button
-        className="absolute bottom-20 right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-lg hover:shadow-xl transition-shadow"
-        aria-label="Open chat"
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.8, duration: 0.5, type: "spring" }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-      >
-        <div
-          className="flex h-5 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white"
-          style={{ backgroundColor: 'var(--theme-primary)' }}
-        >
-          ...
-        </div>
-      </motion.button> */}
     </section>
   );
 }
