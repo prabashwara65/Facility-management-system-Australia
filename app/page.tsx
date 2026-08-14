@@ -11,7 +11,13 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#243453] text-white">
+    <main
+      className="min-h-screen"
+      style={{
+        background: 'var(--theme-bg)',
+        color: 'var(--theme-text)',
+      }}
+    >
       <Navbar />
       <Hero />
       <Services />
@@ -19,7 +25,7 @@ export default function Home() {
       <PricingSection />
       <PromiseSection />
       <TestimonialsSection />
-      <ServiceAreasSection /> 
+      <ServiceAreasSection />
       <BookingSection />
       <Footer />
     </main>

@@ -28,48 +28,33 @@ const suburbs = [
 
 const regions = ['CBD', 'North', 'East', 'South', 'West'];
 
-// Explicitly typed Variants to avoid Framer Motion easing type errors
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.03,
-    },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.03 } },
 };
 
 const pillVariants: Variants = {
   hidden: { opacity: 0, scale: 0.9, y: 10 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { duration: 0.3, ease: 'easeOut' },
-  },
+  visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
 };
 
 export default function ServiceAreasSection() {
   return (
-    <section className="w-full bg-[#FAFAF6] py-20 px-4 sm:px-6 lg:px-8 font-sans">
+    <section className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans" style={{ backgroundColor: 'var(--theme-bg)' }}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        
-        {/* Left Column - Content & Suburb Tags */}
         <div className="lg:col-span-7 space-y-8">
-          {/* Header */}
           <div className="space-y-4">
-            <span className="text-amber-600 font-semibold tracking-widest text-xs uppercase">
+            <span className="font-semibold tracking-widest text-xs uppercase" style={{ color: 'var(--theme-primary)' }}>
               Service Areas
             </span>
-            <h2 className="text-4xl sm:text-5xl font-serif font-bold text-[#1b2a4a] leading-tight">
+            <h2 className="text-4xl sm:text-5xl font-serif font-bold leading-tight" style={{ color: 'var(--theme-text)' }}>
               Melbourne metro &amp; inner suburbs.
             </h2>
-            <p className="text-gray-600 text-sm sm:text-base leading-relaxed max-w-xl">
+            <p className="text-sm sm:text-base leading-relaxed max-w-xl" style={{ color: 'var(--theme-muted)' }}>
               We service all major Melbourne suburbs with no travel fees. If you don't see your area below, give us a call — we're always expanding.
             </p>
           </div>
 
-          {/* Suburbs Pills List */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
@@ -82,54 +67,44 @@ export default function ServiceAreasSection() {
                 key={suburb}
                 variants={pillVariants}
                 whileHover={{ scale: 1.04 }}
-                className="bg-white text-[#1b2a4a] text-xs font-semibold px-4 py-2 rounded-full border border-gray-200/80 shadow-sm cursor-default transition-colors hover:border-[#c29233]"
+                className="text-xs font-semibold px-4 py-2 rounded-full shadow-sm cursor-default transition-colors"
+                style={{ backgroundColor: 'var(--theme-card)', color: 'var(--theme-text)', border: '1px solid var(--theme-border)' }}
               >
                 {suburb}
               </motion.span>
             ))}
           </motion.div>
 
-          {/* Footer Guarantee */}
-          <div className="flex items-center space-x-2 text-[#1e8a56] font-bold text-xs sm:text-sm pt-2">
+          <div className="flex items-center space-x-2 font-bold text-xs sm:text-sm pt-2" style={{ color: 'var(--theme-secondary)' }}>
             <Plane className="w-4 h-4 fill-current stroke-none transform -rotate-45" />
             <span>No travel fees within service area</span>
           </div>
         </div>
 
-        {/* Right Column - Map Banner Card */}
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="lg:col-span-5 bg-[#182642] rounded-3xl p-8 sm:p-12 flex flex-col justify-center items-center text-center text-white shadow-xl min-h-[380px] sm:min-h-[440px] relative overflow-hidden border border-white/5"
+          className="lg:col-span-5 rounded-3xl p-8 sm:p-12 flex flex-col justify-center items-center text-center shadow-xl min-h-[380px] sm:min-h-[440px] relative overflow-hidden"
+          style={{ backgroundColor: 'var(--theme-primary)', border: '1px solid var(--theme-border)' }}
         >
-          {/* Map Graphic Icon */}
-          <div className="text-6xl mb-6 select-none animate-bounce-slow">
-            🗺️
-          </div>
+          <div className="text-6xl mb-6 select-none">🗺️</div>
+          <h3 className="text-2xl sm:text-3xl font-serif font-bold mb-2" style={{ color: 'var(--theme-card)' }}>Melbourne Metro</h3>
+          <span className="font-semibold text-xs tracking-wider uppercase mb-8" style={{ color: 'var(--theme-secondary)' }}>20+ Suburbs Covered</span>
 
-          {/* Card Title & Subtitle */}
-          <h3 className="text-2xl sm:text-3xl font-serif font-bold text-white mb-2">
-            Melbourne Metro
-          </h3>
-          <span className="text-amber-400 font-semibold text-xs tracking-wider uppercase mb-8">
-            20+ Suburbs Covered
-          </span>
-
-          {/* Region Filters Badges */}
           <div className="flex flex-wrap justify-center gap-2">
             {regions.map((region) => (
               <span
                 key={region}
-                className="bg-white/10 backdrop-blur-md text-gray-200 text-xs font-medium px-3.5 py-1.5 rounded-lg border border-white/10"
+                className="text-xs font-medium px-3.5 py-1.5 rounded-lg border"
+                style={{ backgroundColor: 'color-mix(in srgb, var(--theme-primary) 36%, white)', color: 'var(--theme-card)', borderColor: 'var(--theme-border)' }}
               >
                 {region}
               </span>
             ))}
           </div>
         </motion.div>
-
       </div>
     </section>
   );
