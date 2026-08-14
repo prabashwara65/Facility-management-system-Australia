@@ -40,7 +40,7 @@ const pillVariants: Variants = {
 
 export default function ServiceAreasSection() {
   return (
-    <section className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans" style={{ backgroundColor: 'var(--theme-bg)' }}>
+    <section className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans" id="areas" style={{ backgroundColor: 'var(--theme-bg)' }}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-7 space-y-8">
           <div className="space-y-4">

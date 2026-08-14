@@ -54,7 +54,7 @@ const cardVariants: Variants = {
 
 export default function PromiseSection() {
   return (
-    <section className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans" style={{ backgroundColor: 'var(--theme-bg)' }}>
+    <section className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans" id="why-us" style={{ backgroundColor: 'var(--theme-bg)' }}>
       <div className="max-w-6xl mx-auto space-y-12">
         <div className="text-center space-y-3">
           <span className="font-semibold tracking-widest text-xs uppercase" style={{ color: 'var(--theme-primary)' }}>

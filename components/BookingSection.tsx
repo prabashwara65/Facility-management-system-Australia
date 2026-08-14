@@ -62,7 +62,7 @@ export default function BookingSection() {
     <section
       className="w-full py-16 px-4 sm:px-6 lg:px-8 font-sans"
       id="booking"
-      style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-text)' }}
+      style={{ backgroundColor: 'var(--theme-primary)' }}
     >
       <div className="max-w-6xl mx-auto space-y-10">
         {/* Header */}
@@ -98,7 +98,7 @@ export default function BookingSection() {
                     key={index}
                     className="flex items-center space-x-3.5 pb-4 last:border-0"
                     style={{ 
-                      borderBottom: index < contactInfo.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none' 
+                      borderBottom: index < contactInfo.length - 1 ? '1px solid rgba(255,255,255,0.08)' : 'none' 
                     }}
                   >
                     <div
@@ -140,17 +140,17 @@ export default function BookingSection() {
             </motion.button>
 
             <div 
-              className="rounded-2xl p-5 space-y-2"
+              className="rounded-2xl p-5 space-y-2 backdrop-blur-sm"
               style={{ 
                 backgroundColor: 'rgba(255,255,255,0.08)', 
-                border: '1px solid rgba(255,255,255,0.1)' 
+                border: '1px solid rgba(255,255,255,0.08)' 
               }}
             >
               <div className="flex items-center space-x-2 font-bold text-sm" style={{ color: 'var(--theme-secondary)' }}>
                 <Sparkles className="w-4 h-4 fill-current" />
                 <span>Bond-Back Guarantee</span>
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
                 If your property manager isn't satisfied, we return free of charge. That's our promise.
               </p>
             </div>
@@ -159,15 +159,14 @@ export default function BookingSection() {
           {/* Right Column - Booking Form */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-8 rounded-3xl p-6 sm:p-8 shadow-xl"
+            className="lg:col-span-8 rounded-3xl p-6 sm:p-8 shadow-xl backdrop-blur-sm"
             style={{ 
-              backgroundColor: 'var(--theme-card)',
-              border: '1px solid var(--theme-border)'
+              backgroundColor: 'rgba(255,255,255,0.1)', 
+              border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
             <h3 
-              className="text-xl font-serif font-bold mb-6"
-              style={{ color: 'var(--theme-text)' }}
+              className="text-xl font-serif font-bold mb-6 text-white"
             >
               Request a Booking
             </h3>
@@ -177,7 +176,7 @@ export default function BookingSection() {
                 <div className="space-y-1.5">
                   <label 
                     className="text-[11px] font-semibold tracking-wider uppercase"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     First Name
                   </label>
@@ -187,11 +186,11 @@ export default function BookingSection() {
                     placeholder="Sarah"
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
-                      backgroundColor: 'var(--theme-surface)',
-                      border: '1px solid var(--theme-border)',
-                      color: 'var(--theme-text)',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'white',
                     }}
                     required
                   />
@@ -199,7 +198,7 @@ export default function BookingSection() {
                 <div className="space-y-1.5">
                   <label 
                     className="text-[11px] font-semibold tracking-wider uppercase"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     Last Name
                   </label>
@@ -209,11 +208,11 @@ export default function BookingSection() {
                     placeholder="Mitchell"
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
-                      backgroundColor: 'var(--theme-surface)',
-                      border: '1px solid var(--theme-border)',
-                      color: 'var(--theme-text)',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'white',
                     }}
                     required
                   />
@@ -224,7 +223,7 @@ export default function BookingSection() {
                 <div className="space-y-1.5">
                   <label 
                     className="text-[11px] font-semibold tracking-wider uppercase"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     Phone
                   </label>
@@ -234,11 +233,11 @@ export default function BookingSection() {
                     placeholder="0412 345 678"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
-                      backgroundColor: 'var(--theme-surface)',
-                      border: '1px solid var(--theme-border)',
-                      color: 'var(--theme-text)',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'white',
                     }}
                     required
                   />
@@ -246,7 +245,7 @@ export default function BookingSection() {
                 <div className="space-y-1.5">
                   <label 
                     className="text-[11px] font-semibold tracking-wider uppercase"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     Email
                   </label>
@@ -256,11 +255,11 @@ export default function BookingSection() {
                     placeholder="sarah@email.com"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
-                      backgroundColor: 'var(--theme-surface)',
-                      border: '1px solid var(--theme-border)',
-                      color: 'var(--theme-text)',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'white',
                     }}
                     required
                   />
@@ -270,7 +269,7 @@ export default function BookingSection() {
               <div className="space-y-1.5">
                 <label 
                   className="text-[11px] font-semibold tracking-wider uppercase"
-                  style={{ color: 'var(--theme-text)' }}
+                  style={{ color: 'rgba(255,255,255,0.7)' }}
                 >
                   Service Type
                 </label>
@@ -279,26 +278,26 @@ export default function BookingSection() {
                     name="serviceType"
                     value={formData.serviceType}
                     onChange={handleChange}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm appearance-none cursor-pointer transition-colors pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm appearance-none cursor-pointer transition-colors pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)]"
                     style={{
-                      backgroundColor: 'var(--theme-surface)',
-                      border: '1px solid var(--theme-border)',
-                      color: 'var(--theme-text)',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'white',
                     }}
                   >
-                    <option value="End of Lease / Bond Clean" style={{ backgroundColor: 'var(--theme-card)' }}>
+                    <option value="End of Lease / Bond Clean" style={{ backgroundColor: 'var(--theme-primary)' }}>
                       End of Lease / Bond Clean
                     </option>
-                    <option value="Regular Clean" style={{ backgroundColor: 'var(--theme-card)' }}>
+                    <option value="Regular Clean" style={{ backgroundColor: 'var(--theme-primary)' }}>
                       Regular Clean
                     </option>
-                    <option value="Deep Clean" style={{ backgroundColor: 'var(--theme-card)' }}>
+                    <option value="Deep Clean" style={{ backgroundColor: 'var(--theme-primary)' }}>
                       Deep Clean
                     </option>
                   </select>
                   <ChevronDown 
                     className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.6)' }}
                   />
                 </div>
               </div>
@@ -307,28 +306,27 @@ export default function BookingSection() {
                 <div className="space-y-1.5">
                   <label 
                     className="text-[11px] font-semibold tracking-wider uppercase"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     Bedrooms
                   </label>
                   <div 
                     className="flex items-center justify-between rounded-xl px-4 py-2"
                     style={{ 
-                      backgroundColor: 'var(--theme-surface)', 
-                      border: '1px solid var(--theme-border)' 
+                      backgroundColor: 'rgba(255,255,255,0.08)', 
+                      border: '1px solid rgba(255,255,255,0.08)' 
                     }}
                   >
                     <button 
                       type="button" 
                       onClick={() => setBedrooms(Math.max(1, bedrooms - 1))} 
                       className="p-1 hover:opacity-70 transition-opacity"
-                      style={{ color: 'var(--theme-text)' }}
+                      style={{ color: 'rgba(255,255,255,0.8)' }}
                     >
                       <Minus className="w-4 h-4" />
                     </button>
                     <span 
-                      className="text-sm font-bold"
-                      style={{ color: 'var(--theme-text)' }}
+                      className="text-sm font-bold text-white"
                     >
                       {bedrooms}
                     </span>
@@ -336,7 +334,7 @@ export default function BookingSection() {
                       type="button" 
                       onClick={() => setBedrooms(bedrooms + 1)} 
                       className="p-1 hover:opacity-70 transition-opacity"
-                      style={{ color: 'var(--theme-text)' }}
+                      style={{ color: 'rgba(255,255,255,0.8)' }}
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -346,28 +344,27 @@ export default function BookingSection() {
                 <div className="space-y-1.5">
                   <label 
                     className="text-[11px] font-semibold tracking-wider uppercase"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     Bathrooms
                   </label>
                   <div 
                     className="flex items-center justify-between rounded-xl px-4 py-2"
                     style={{ 
-                      backgroundColor: 'var(--theme-surface)', 
-                      border: '1px solid var(--theme-border)' 
+                      backgroundColor: 'rgba(255,255,255,0.08)', 
+                      border: '1px solid rgba(255,255,255,0.08)' 
                     }}
                   >
                     <button 
                       type="button" 
                       onClick={() => setBathrooms(Math.max(1, bathrooms - 1))} 
                       className="p-1 hover:opacity-70 transition-opacity"
-                      style={{ color: 'var(--theme-text)' }}
+                      style={{ color: 'rgba(255,255,255,0.8)' }}
                     >
                       <Minus className="w-4 h-4" />
                     </button>
                     <span 
-                      className="text-sm font-bold"
-                      style={{ color: 'var(--theme-text)' }}
+                      className="text-sm font-bold text-white"
                     >
                       {bathrooms}
                     </span>
@@ -375,7 +372,7 @@ export default function BookingSection() {
                       type="button" 
                       onClick={() => setBathrooms(bathrooms + 1)} 
                       className="p-1 hover:opacity-70 transition-opacity"
-                      style={{ color: 'var(--theme-text)' }}
+                      style={{ color: 'rgba(255,255,255,0.8)' }}
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -387,7 +384,7 @@ export default function BookingSection() {
                 <div className="space-y-1.5">
                   <label 
                     className="text-[11px] font-semibold tracking-wider uppercase"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     Address
                   </label>
@@ -397,18 +394,18 @@ export default function BookingSection() {
                     placeholder="45 Collins Street"
                     value={formData.address}
                     onChange={handleChange}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
-                      backgroundColor: 'var(--theme-surface)',
-                      border: '1px solid var(--theme-border)',
-                      color: 'var(--theme-text)',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'white',
                     }}
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label 
                     className="text-[11px] font-semibold tracking-wider uppercase"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     Suburb
                   </label>
@@ -418,11 +415,11 @@ export default function BookingSection() {
                     placeholder="South Yarra"
                     value={formData.suburb}
                     onChange={handleChange}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
-                      backgroundColor: 'var(--theme-surface)',
-                      border: '1px solid var(--theme-border)',
-                      color: 'var(--theme-text)',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'white',
                     }}
                   />
                 </div>
@@ -431,7 +428,7 @@ export default function BookingSection() {
               <div className="space-y-1.5">
                 <label 
                   className="text-[11px] font-semibold tracking-wider uppercase"
-                  style={{ color: 'var(--theme-text)' }}
+                  style={{ color: 'rgba(255,255,255,0.7)' }}
                 >
                   Preferred Date
                 </label>
@@ -446,16 +443,16 @@ export default function BookingSection() {
                     }}
                     value={formData.preferredDate}
                     onChange={handleChange}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
-                      backgroundColor: 'var(--theme-surface)',
-                      border: '1px solid var(--theme-border)',
-                      color: 'var(--theme-text)',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: 'white',
                     }}
                   />
                   <Calendar 
                     className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ color: 'var(--theme-text)' }}
+                    style={{ color: 'rgba(255,255,255,0.6)' }}
                   />
                 </div>
               </div>
@@ -463,7 +460,7 @@ export default function BookingSection() {
               <div className="space-y-1.5">
                 <label 
                   className="text-[11px] font-semibold tracking-wider uppercase"
-                  style={{ color: 'var(--theme-text)' }}
+                  style={{ color: 'rgba(255,255,255,0.7)' }}
                 >
                   Special Instructions
                 </label>
@@ -473,11 +470,11 @@ export default function BookingSection() {
                   placeholder="e.g. Please focus extra time on oven and bathrooms..."
                   value={formData.specialInstructions}
                   onChange={handleChange}
-                  className="w-full rounded-xl p-4 text-sm transition-colors resize-none focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                  className="w-full rounded-xl p-4 text-sm transition-colors resize-none focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                   style={{
-                    backgroundColor: 'var(--theme-surface)',
-                    border: '1px solid var(--theme-border)',
-                    color: 'var(--theme-text)',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: 'white',
                   }}
                 />
               </div>
@@ -488,7 +485,7 @@ export default function BookingSection() {
                   whileTap={{ scale: 0.99 }}
                   type="submit"
                   className="w-full font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200"
-                  style={{ backgroundColor: 'var(--theme-primary)', color: 'white' }}
+                  style={{ backgroundColor: 'var(--theme-secondary)', color: 'white' }}
                 >
                   <span>Request My Booking</span>
                   <ArrowRight className="w-4 h-4" />
