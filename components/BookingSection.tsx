@@ -2,59 +2,34 @@
 
 import { useState } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Clock, 
-  ArrowRight, 
-  Calendar, 
-  Minus, 
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  ArrowRight,
+  Calendar,
+  Minus,
   Plus,
   Sparkles,
-  ChevronDown
+  ChevronDown,
 } from 'lucide-react';
 
 const contactInfo = [
-  {
-    icon: Phone,
-    label: 'Phone',
-    value: '1800 123 456',
-  },
-  {
-    icon: Mail,
-    label: 'Email',
-    value: 'hello@sparkwell.com.au',
-  },
-  {
-    icon: MapPin,
-    label: 'Service Area',
-    value: 'Melbourne, VIC',
-  },
-  {
-    icon: Clock,
-    label: 'Hours',
-    value: 'Mon–Sat, 7am–6pm',
-  },
+  { icon: Phone, label: 'Phone', value: '1800 123 456' },
+  { icon: Mail, label: 'Email', value: 'hello@sparkwell.com.au' },
+  { icon: MapPin, label: 'Service Area', value: 'Melbourne, VIC' },
+  { icon: Clock, label: 'Hours', value: 'Mon–Sat, 7am–6pm' },
 ];
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: 'easeOut' },
-  },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
 };
 
 export default function BookingSection() {
@@ -84,20 +59,28 @@ export default function BookingSection() {
   };
 
   return (
-    <section className="w-full bg-[#16233b] text-white py-16 px-4 sm:px-6 lg:px-8 font-sans">
+    <section
+      className="w-full py-16 px-4 sm:px-6 lg:px-8 font-sans"
+      id="booking"
+      style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-text)' }}
+    >
       <div className="max-w-6xl mx-auto space-y-10">
-        
         {/* Header */}
         <div className="text-center space-y-2">
-          <span className="text-[#c29233] font-semibold tracking-widest text-xs uppercase">
+          <span
+            className="font-semibold tracking-widest text-xs uppercase"
+            style={{ color: 'var(--theme-secondary)' }}
+          >
             Get In Touch
           </span>
-          <h2 className="text-3xl sm:text-4xl font-serif font-bold tracking-tight">
+          <h2 
+            className="text-3xl sm:text-4xl font-serif font-bold tracking-tight"
+            style={{ color: 'white' }}
+          >
             Book your clean today.
           </h2>
         </div>
 
-        {/* Main Grid Layout */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -105,25 +88,39 @@ export default function BookingSection() {
           viewport={{ once: true, margin: '-50px' }}
           className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
         >
-          {/* Left Sidebar - Contact Details */}
+          {/* Left Column - Contact Info */}
           <motion.div variants={itemVariants} className="lg:col-span-4 space-y-6">
-            {/* Contact Info Items */}
             <div className="space-y-4">
               {contactInfo.map((item, index) => {
                 const Icon = item.icon;
                 return (
                   <div
                     key={index}
-                    className="flex items-center space-x-3.5 pb-4 border-b border-white/10 last:border-0"
+                    className="flex items-center space-x-3.5 pb-4 last:border-0"
+                    style={{ 
+                      borderBottom: index < contactInfo.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none' 
+                    }}
                   >
-                    <div className="p-2 rounded-lg bg-[#21304d] text-gray-300">
+                    <div
+                      className="p-2 rounded-lg"
+                      style={{ 
+                        backgroundColor: 'rgba(255,255,255,0.1)', 
+                        color: 'white' 
+                      }}
+                    >
                       <Icon className="w-4 h-4" />
                     </div>
                     <div>
-                      <span className="block text-[11px] text-gray-400 font-medium">
+                      <span 
+                        className="block text-[11px] font-medium"
+                        style={{ color: 'rgba(255,255,255,0.6)' }}
+                      >
                         {item.label}
                       </span>
-                      <span className="text-sm font-bold text-white">
+                      <span 
+                        className="text-sm font-bold"
+                        style={{ color: 'white' }}
+                      >
                         {item.value}
                       </span>
                     </div>
@@ -132,40 +129,56 @@ export default function BookingSection() {
               })}
             </div>
 
-            {/* Call Us Button */}
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full bg-[#d4a340] hover:bg-[#c29233] text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200"
+              className="w-full font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200"
+              style={{ backgroundColor: 'var(--theme-secondary)', color: 'white' }}
             >
               <span>Call Us Now</span>
               <ArrowRight className="w-4 h-4" />
             </motion.button>
 
-            {/* Bond-Back Guarantee Card */}
-            <div className="bg-[#21304d]/50 border border-white/10 rounded-2xl p-5 space-y-2">
-              <div className="flex items-center space-x-2 text-[#d4a340] font-bold text-sm">
+            <div 
+              className="rounded-2xl p-5 space-y-2"
+              style={{ 
+                backgroundColor: 'rgba(255,255,255,0.08)', 
+                border: '1px solid rgba(255,255,255,0.1)' 
+              }}
+            >
+              <div className="flex items-center space-x-2 font-bold text-sm" style={{ color: 'var(--theme-secondary)' }}>
                 <Sparkles className="w-4 h-4 fill-current" />
                 <span>Bond-Back Guarantee</span>
               </div>
-              <p className="text-xs text-gray-300 leading-relaxed">
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.8)' }}>
                 If your property manager isn't satisfied, we return free of charge. That's our promise.
               </p>
             </div>
           </motion.div>
 
-          {/* Right Form Card */}
+          {/* Right Column - Booking Form */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-8 bg-[#21304d]/70 rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl"
+            className="lg:col-span-8 rounded-3xl p-6 sm:p-8 shadow-xl"
+            style={{ 
+              backgroundColor: 'var(--theme-card)',
+              border: '1px solid var(--theme-border)'
+            }}
           >
-            <h3 className="text-xl font-serif font-bold mb-6">Request a Booking</h3>
+            <h3 
+              className="text-xl font-serif font-bold mb-6"
+              style={{ color: 'var(--theme-text)' }}
+            >
+              Request a Booking
+            </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* First Name & Last Name */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                  <label 
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
                     First Name
                   </label>
                   <input
@@ -174,12 +187,20 @@ export default function BookingSection() {
                     placeholder="Sarah"
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="w-full bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-[#d4a340] transition-colors"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    style={{
+                      backgroundColor: 'var(--theme-surface)',
+                      border: '1px solid var(--theme-border)',
+                      color: 'var(--theme-text)',
+                    }}
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                  <label 
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
                     Last Name
                   </label>
                   <input
@@ -188,16 +209,23 @@ export default function BookingSection() {
                     placeholder="Mitchell"
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="w-full bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-[#d4a340] transition-colors"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    style={{
+                      backgroundColor: 'var(--theme-surface)',
+                      border: '1px solid var(--theme-border)',
+                      color: 'var(--theme-text)',
+                    }}
                     required
                   />
                 </div>
               </div>
 
-              {/* Phone & Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                  <label 
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
                     Phone
                   </label>
                   <input
@@ -206,12 +234,20 @@ export default function BookingSection() {
                     placeholder="0412 345 678"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-[#d4a340] transition-colors"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    style={{
+                      backgroundColor: 'var(--theme-surface)',
+                      border: '1px solid var(--theme-border)',
+                      color: 'var(--theme-text)',
+                    }}
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                  <label 
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
                     Email
                   </label>
                   <input
@@ -220,15 +256,22 @@ export default function BookingSection() {
                     placeholder="sarah@email.com"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-[#d4a340] transition-colors"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    style={{
+                      backgroundColor: 'var(--theme-surface)',
+                      border: '1px solid var(--theme-border)',
+                      color: 'var(--theme-text)',
+                    }}
                     required
                   />
                 </div>
               </div>
 
-              {/* Service Type Dropdown */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                <label 
+                  className="text-[11px] font-semibold tracking-wider uppercase"
+                  style={{ color: 'var(--theme-text)' }}
+                >
                   Service Type
                 </label>
                 <div className="relative">
@@ -236,66 +279,103 @@ export default function BookingSection() {
                     name="serviceType"
                     value={formData.serviceType}
                     onChange={handleChange}
-                    className="w-full bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white appearance-none cursor-pointer focus:outline-none focus:border-[#d4a340] transition-colors pr-10"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm appearance-none cursor-pointer transition-colors pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    style={{
+                      backgroundColor: 'var(--theme-surface)',
+                      border: '1px solid var(--theme-border)',
+                      color: 'var(--theme-text)',
+                    }}
                   >
-                    <option value="End of Lease / Bond Clean" className="bg-[#1b2a4a]">
+                    <option value="End of Lease / Bond Clean" style={{ backgroundColor: 'var(--theme-card)' }}>
                       End of Lease / Bond Clean
                     </option>
-                    <option value="Regular Clean" className="bg-[#1b2a4a]">
+                    <option value="Regular Clean" style={{ backgroundColor: 'var(--theme-card)' }}>
                       Regular Clean
                     </option>
-                    <option value="Deep Clean" className="bg-[#1b2a4a]">
+                    <option value="Deep Clean" style={{ backgroundColor: 'var(--theme-card)' }}>
                       Deep Clean
                     </option>
                   </select>
-                  <ChevronDown className="w-4 h-4 text-gray-300 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown 
+                    className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    style={{ color: 'var(--theme-text)' }}
+                  />
                 </div>
               </div>
 
-              {/* Bedrooms & Bathrooms Counters */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Bedrooms */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                  <label 
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
                     Bedrooms
                   </label>
-                  <div className="flex items-center justify-between bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2">
-                    <button
-                      type="button"
-                      onClick={() => setBedrooms(Math.max(1, bedrooms - 1))}
-                      className="text-gray-300 hover:text-white transition-colors p-1"
+                  <div 
+                    className="flex items-center justify-between rounded-xl px-4 py-2"
+                    style={{ 
+                      backgroundColor: 'var(--theme-surface)', 
+                      border: '1px solid var(--theme-border)' 
+                    }}
+                  >
+                    <button 
+                      type="button" 
+                      onClick={() => setBedrooms(Math.max(1, bedrooms - 1))} 
+                      className="p-1 hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--theme-text)' }}
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="text-sm font-bold text-white">{bedrooms}</span>
-                    <button
-                      type="button"
-                      onClick={() => setBedrooms(bedrooms + 1)}
-                      className="text-gray-300 hover:text-white transition-colors p-1"
+                    <span 
+                      className="text-sm font-bold"
+                      style={{ color: 'var(--theme-text)' }}
+                    >
+                      {bedrooms}
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => setBedrooms(bedrooms + 1)} 
+                      className="p-1 hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--theme-text)' }}
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Bathrooms */}
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                  <label 
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
                     Bathrooms
                   </label>
-                  <div className="flex items-center justify-between bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2">
-                    <button
-                      type="button"
-                      onClick={() => setBathrooms(Math.max(1, bathrooms - 1))}
-                      className="text-gray-300 hover:text-white transition-colors p-1"
+                  <div 
+                    className="flex items-center justify-between rounded-xl px-4 py-2"
+                    style={{ 
+                      backgroundColor: 'var(--theme-surface)', 
+                      border: '1px solid var(--theme-border)' 
+                    }}
+                  >
+                    <button 
+                      type="button" 
+                      onClick={() => setBathrooms(Math.max(1, bathrooms - 1))} 
+                      className="p-1 hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--theme-text)' }}
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="text-sm font-bold text-white">{bathrooms}</span>
-                    <button
-                      type="button"
-                      onClick={() => setBathrooms(bathrooms + 1)}
-                      className="text-gray-300 hover:text-white transition-colors p-1"
+                    <span 
+                      className="text-sm font-bold"
+                      style={{ color: 'var(--theme-text)' }}
+                    >
+                      {bathrooms}
+                    </span>
+                    <button 
+                      type="button" 
+                      onClick={() => setBathrooms(bathrooms + 1)} 
+                      className="p-1 hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--theme-text)' }}
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -303,10 +383,12 @@ export default function BookingSection() {
                 </div>
               </div>
 
-              {/* Address & Suburb */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                  <label 
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
                     Address
                   </label>
                   <input
@@ -315,11 +397,19 @@ export default function BookingSection() {
                     placeholder="45 Collins Street"
                     value={formData.address}
                     onChange={handleChange}
-                    className="w-full bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-[#d4a340] transition-colors"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    style={{
+                      backgroundColor: 'var(--theme-surface)',
+                      border: '1px solid var(--theme-border)',
+                      color: 'var(--theme-text)',
+                    }}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                  <label 
+                    className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: 'var(--theme-text)' }}
+                  >
                     Suburb
                   </label>
                   <input
@@ -328,14 +418,21 @@ export default function BookingSection() {
                     placeholder="South Yarra"
                     value={formData.suburb}
                     onChange={handleChange}
-                    className="w-full bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-[#d4a340] transition-colors"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    style={{
+                      backgroundColor: 'var(--theme-surface)',
+                      border: '1px solid var(--theme-border)',
+                      color: 'var(--theme-text)',
+                    }}
                   />
                 </div>
               </div>
 
-              {/* Preferred Date */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                <label 
+                  className="text-[11px] font-semibold tracking-wider uppercase"
+                  style={{ color: 'var(--theme-text)' }}
+                >
                   Preferred Date
                 </label>
                 <div className="relative">
@@ -349,15 +446,25 @@ export default function BookingSection() {
                     }}
                     value={formData.preferredDate}
                     onChange={handleChange}
-                    className="w-full bg-[#2a3c5e]/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-[#d4a340] transition-colors pr-10"
+                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                    style={{
+                      backgroundColor: 'var(--theme-surface)',
+                      border: '1px solid var(--theme-border)',
+                      color: 'var(--theme-text)',
+                    }}
                   />
-                  <Calendar className="w-4 h-4 text-gray-300 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Calendar 
+                    className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    style={{ color: 'var(--theme-text)' }}
+                  />
                 </div>
               </div>
 
-              {/* Special Instructions */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase">
+                <label 
+                  className="text-[11px] font-semibold tracking-wider uppercase"
+                  style={{ color: 'var(--theme-text)' }}
+                >
                   Special Instructions
                 </label>
                 <textarea
@@ -366,17 +473,22 @@ export default function BookingSection() {
                   placeholder="e.g. Please focus extra time on oven and bathrooms..."
                   value={formData.specialInstructions}
                   onChange={handleChange}
-                  className="w-full bg-[#2a3c5e]/80 border border-white/10 rounded-xl p-4 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-[#d4a340] transition-colors resize-none"
+                  className="w-full rounded-xl p-4 text-sm transition-colors resize-none focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+                  style={{
+                    backgroundColor: 'var(--theme-surface)',
+                    border: '1px solid var(--theme-border)',
+                    color: 'var(--theme-text)',
+                  }}
                 />
               </div>
 
-              {/* Submit Button */}
               <div className="pt-2">
                 <motion.button
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   type="submit"
-                  className="w-full bg-[#d4a340] hover:bg-[#c29233] text-white font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200"
+                  className="w-full font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200"
+                  style={{ backgroundColor: 'var(--theme-primary)', color: 'white' }}
                 >
                   <span>Request My Booking</span>
                   <ArrowRight className="w-4 h-4" />
@@ -385,7 +497,6 @@ export default function BookingSection() {
             </form>
           </motion.div>
         </motion.div>
-
       </div>
     </section>
   );

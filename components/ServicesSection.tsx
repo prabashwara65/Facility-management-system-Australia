@@ -28,14 +28,14 @@ export default function ServicesSection() {
           </div>
 
           {/* Right Side - Content */}
-          <div className="bg-[#1b2a4a] text-white p-8 md:p-12 flex flex-col justify-center items-start space-y-6">
-            <span className="text-amber-500 font-semibold tracking-widest text-xs uppercase">
+          <div className="p-8 md:p-12 flex flex-col justify-center items-start space-y-6" style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-card)' }}>
+            <span className="font-semibold tracking-widest text-xs uppercase" style={{ color: 'var(--theme-secondary)' }}>
               Residential
             </span>
             <h2 className="text-3xl md:text-4xl font-serif font-bold leading-tight">
               Your home deserves more than a once-over.
             </h2>
-            <p className="text-gray-300 text-sm md:text-base leading-relaxed">
+            <p className="text-sm md:text-base leading-relaxed" style={{ color: 'var(--theme-soft)' }}>
               From quick fortnightly visits to thorough move-out cleans, our
               residential team treats your space with care, discretion, and
               professional-grade equipment.
@@ -43,7 +43,8 @@ export default function ServicesSection() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="bg-[#d4a340] hover:bg-[#c29233] text-white font-medium px-8 py-3 rounded-md transition-colors duration-200"
+              className="font-medium px-8 py-3 rounded-md transition-colors duration-200"
+              style={{ backgroundColor: 'var(--theme-secondary)', color: 'white' }}
             >
               Book Now
             </motion.button>
@@ -59,14 +60,14 @@ export default function ServicesSection() {
           className="grid grid-cols-1 md:grid-cols-2 rounded-xl overflow-hidden shadow-lg"
         >
           {/* Left Side - Content */}
-          <div className="bg-[#f5f2eb] text-gray-900 p-8 md:p-12 flex flex-col justify-center items-start space-y-6 order-2 md:order-1">
-            <span className="text-amber-600 font-semibold tracking-widest text-xs uppercase">
+          <div className="p-8 md:p-12 flex flex-col justify-center items-start space-y-6 order-2 md:order-1" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-text)' }}>
+            <span className="font-semibold tracking-widest text-xs uppercase" style={{ color: 'var(--theme-secondary)' }}>
               Commercial
             </span>
-            <h2 className="text-3xl md:text-4xl font-serif font-bold leading-tight text-[#1b2a4a]">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold leading-tight" style={{ color: 'var(--theme-text)' }}>
               First impressions start with a spotless office.
             </h2>
-            <p className="text-gray-600 text-sm md:text-base leading-relaxed">
+            <p className="text-sm md:text-base leading-relaxed" style={{ color: 'var(--theme-muted)' }}>
               Offices, retail spaces, strata buildings — we offer flexible scheduling
               including after-hours and weekend cleans so your business never
               misses a beat.
@@ -74,7 +75,8 @@ export default function ServicesSection() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="bg-[#1b2a4a] hover:bg-[#131f38] text-white font-medium px-8 py-3 rounded-md transition-colors duration-200"
+              className="font-medium px-8 py-3 rounded-md transition-colors duration-200"
+              style={{ backgroundColor: 'var(--theme-primary)', color: 'var(--theme-card)' }}
             >
               Get a Quote
             </motion.button>
