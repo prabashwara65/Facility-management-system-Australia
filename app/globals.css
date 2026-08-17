@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --theme-bg: #ffffff;
+  --theme-primary: #1a3a6b;
+  --theme-secondary: #4a7bc4;
+  --theme-text: #0a1d38;
+  --theme-surface: color-mix(in srgb, var(--theme-secondary) 16%, white);
+  --theme-card: #ffffff;
+  --theme-panel: color-mix(in srgb, var(--theme-primary) 12%, white);
+  --theme-border: color-mix(in srgb, var(--theme-primary) 20%, white);
+  --theme-muted: color-mix(in srgb, var(--theme-text) 64%, white);
+  --theme-soft: color-mix(in srgb, var(--theme-secondary) 20%, white);
+  --hero-text: #ffffff;
+  --hero-text-secondary: #ffffff;
+  --hero-badge: rgba(255, 255, 255, 0.1);
+  --hero-badge-border: rgba(255, 255, 255, 0.3);
+  --primary-blue: #1a3a6b;
+  --primary-blue-dark: #0f274a;
+  --primary-blue-light: #4a7bc4;
+  --primary-blue-lighter: #e8f0fe;   
+  --white: #ffffff;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--theme-bg);
+  color: var(--theme-text);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+section {
+  scroll-margin-top: 82px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--theme-secondary) 18%, white);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--theme-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-text);
+}
+
+.theme-surface {
+  background: var(--theme-surface);
+}
+
+.theme-card {
+  background: var(--theme-card);
+}
+
+.theme-primary {
+  color: var(--theme-primary);
+}
+
+.theme-primary-bg {
+  background: var(--theme-primary);
+}
+
+.theme-secondary-bg {
+  background: var(--theme-secondary);
+}
+
+.theme-ring {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-primary) 18%, transparent);
+}
