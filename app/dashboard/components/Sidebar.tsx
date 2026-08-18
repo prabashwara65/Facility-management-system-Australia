@@ -32,8 +32,6 @@ const navItems: NavItem[] = [
   { icon: Users, label: 'Testimonials' },
   { icon: MapPin, label: 'ServiceAreas' },
   { icon: Calendar, label: 'Bookings' },
-
-
 ];
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
@@ -69,7 +67,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           </div>
           <div>
             <div style={{ fontSize: '1.3rem', fontWeight: 800, letterSpacing: '-0.05em', color: '#f8fafc' }}>
-              Minecloud
+              SparkWell
             </div>
           </div>
         </div>
@@ -105,7 +103,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                   padding: '12px 12px',
                   marginBottom: '8px',
                   background: isActive
-                    ? 'linear-gradient(135deg, rgba(59,130,246,0.22), rgba(124,58,237,0.12))'
+                    ? 'rgba(246, 216, 93, 0.15)'
                     : 'transparent',
                   color: isActive ? '#f8fafc' : '#94a3b8',
                   fontWeight: isActive ? 700 : 500,
@@ -136,52 +134,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                       width: '4px',
                       height: '24px',
                       borderRadius: '4px',
-                      background: 'linear-gradient(180deg, #7c3aed, #3b82f6)',
+                      background: '#F6D85D',
                     }}
                   />
                 )}
               </button>
             );
           })}
-        </div>
-      </div>
-
-      {/* Secure Backup Card */}
-      <div
-        style={{
-          background: 'linear-gradient(180deg, rgba(15,118,110,0.23), rgba(15, 23, 42, 0.8))',
-          border: '1px solid rgba(45,212,191,0.2)',
-          borderRadius: '20px',
-          padding: '18px 16px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: '#99f6e4',
-            fontSize: '0.75rem',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-          }}
-        >
-          <ShieldCheck size={14} />
-          Secure backup
-        </div>
-        <div
-          style={{
-            marginTop: '12px',
-            fontSize: '1.5rem',
-            fontWeight: 800,
-            letterSpacing: '-0.05em',
-            color: '#f0fdfa',
-          }}
-        >
-          1.2 TB
-        </div>
-        <div style={{ marginTop: '6px', color: '#cbd5e1', fontSize: '0.9rem' }}>
-          Protected and mirrored
         </div>
       </div>
     </aside>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Home, 
   Sparkles, 
@@ -8,16 +8,15 @@ import {
   Plus, 
   Edit, 
   Trash2, 
-  Eye,
   Search,
   Filter,
-  MoreHorizontal,
-  ArrowUpRight,
   Package,
-  DollarSign,
-  Clock,
-  Users
+  Users,
+  RefreshCw,
 } from 'lucide-react';
+
+// Storage key for services data
+const SERVICES_STORAGE_KEY = 'sparkwell:services';
 
 // Initial service data
 const initialServices = [
@@ -29,10 +28,8 @@ const initialServices = [
     description: 'Bond-back guarantee with our comprehensive end-of-tenancy deep clean. We cover every corner.',
     category: 'Deep Clean',
     duration: '4-6 hours',
-    popular: true,
     status: 'Active',
     bookings: 156,
-    rating: 4.9,
   },
   {
     id: 2,
@@ -42,10 +39,8 @@ const initialServices = [
     description: 'A thorough top-to-bottom reset — inside appliances, behind furniture, skirting boards, and more.',
     category: 'Deep Clean',
     duration: '3-5 hours',
-    popular: false,
     status: 'Active',
     bookings: 98,
-    rating: 4.8,
   },
   {
     id: 3,
@@ -55,10 +50,8 @@ const initialServices = [
     description: 'Weekly or fortnightly maintenance cleans tailored to your home and schedule.',
     category: 'Maintenance',
     duration: '2-3 hours',
-    popular: true,
     status: 'Active',
     bookings: 234,
-    rating: 4.7,
   },
 ];
 
@@ -70,11 +63,54 @@ const iconMap = {
 };
 
 export default function ServicesContent() {
-  const [services, setServices] = useState(initialServices);
+  const [services, setServices] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingService, setEditingService] = useState<any>(null);
+  const [editingService, setEditingService] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load services from localStorage
+  const loadServices = () => {
+    setIsLoading(true);
+    try {
+      const stored = localStorage.getItem(SERVICES_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setServices(parsed);
+      } else {
+        // Initialize with default services
+        localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(initialServices));
+        setServices(initialServices);
+      }
+    } catch (error) {
+      console.error('Error loading services:', error);
+      setServices(initialServices);
+    }
+    setIsLoading(false);
+  };
+
+  // Save services to localStorage
+  const saveServices = (updatedServices) => {
+    localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(updatedServices));
+    setServices(updatedServices);
+  };
+
+  // Load services on mount
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  // Listen for storage changes (sync across tabs)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === SERVICES_STORAGE_KEY) {
+        loadServices();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Filter services
   const filteredServices = services.filter(service => {
@@ -88,41 +124,61 @@ export default function ServicesContent() {
   const stats = [
     { label: 'Total Services', value: services.length, icon: Package, color: '#3b82f6' },
     { label: 'Active Services', value: services.filter(s => s.status === 'Active').length, icon: Sparkles, color: '#10b981' },
-    { label: 'Total Bookings', value: services.reduce((sum, s) => sum + s.bookings, 0), icon: Users, color: '#8b5cf6' },
-    { label: 'Avg. Rating', value: '4.8', icon: Calendar, color: '#f59e0b' },
+    { label: 'Total Bookings', value: services.reduce((sum, s) => sum + (s.bookings || 0), 0), icon: Users, color: '#8b5cf6' },
   ];
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this service?')) {
-      setServices(services.filter(s => s.id !== id));
+      const updated = services.filter(s => s.id !== id);
+      saveServices(updated);
     }
   };
 
-  const handleEdit = (service: any) => {
+  const handleEdit = (service) => {
     setEditingService(service);
     setShowAddModal(true);
   };
 
-  const handleSave = (serviceData: any) => {
+  const handleSave = (serviceData) => {
+    let updated;
     if (editingService) {
       // Edit existing
-      setServices(services.map(s => 
+      updated = services.map(s => 
         s.id === editingService.id ? { ...s, ...serviceData } : s
-      ));
+      );
     } else {
       // Add new
       const newService = {
         ...serviceData,
         id: services.length + 1,
         bookings: 0,
-        rating: 0,
         status: 'Active',
       };
-      setServices([...services, newService]);
+      updated = [...services, newService];
     }
+    saveServices(updated);
     setShowAddModal(false);
     setEditingService(null);
   };
+
+  const handleRefresh = () => {
+    loadServices();
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px',
+        color: '#94a3b8'
+      }}>
+        <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
+        <span style={{ marginLeft: '12px' }}>Loading services...</span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'grid', gap: '20px' }}>
@@ -142,36 +198,57 @@ export default function ServicesContent() {
               Service Management
             </div>
             <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: '#f8fafc' }}>
-              Our Services
+              Our Services ({services.length})
             </h2>
           </div>
-          <button
-            onClick={() => {
-              setEditingService(null);
-              setShowAddModal(true);
-            }}
-            style={{
-              border: 'none',
-              borderRadius: '14px',
-              padding: '12px 20px',
-              background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-              color: '#ffffff',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-            }}
-          >
-            <Plus size={18} />
-            Add Service
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleRefresh}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '10px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'transparent',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+              }}
+              title="Refresh services"
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+            <button
+              onClick={() => {
+                setEditingService(null);
+                setShowAddModal(true);
+              }}
+              style={{
+                border: 'none',
+                borderRadius: '14px',
+                padding: '12px 20px',
+                background: '#F6D961',
+                color: '#1a1a1a',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
+              }}
+            >
+              <Plus size={18} />
+              Add Service
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -290,7 +367,7 @@ export default function ServicesContent() {
       {/* Services Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
         {filteredServices.map((service) => {
-          const Icon = iconMap[service.icon as keyof typeof iconMap] || Home;
+          const Icon = iconMap[service.icon] || Home;
           
           return (
             <div
@@ -306,27 +383,6 @@ export default function ServicesContent() {
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
             >
-              {/* Popular Badge */}
-              {service.popular && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px',
-                    background: 'linear-gradient(135deg, #f59e0b, #f97316)',
-                    padding: '4px 12px',
-                    borderRadius: '12px',
-                    fontSize: '0.65rem',
-                    fontWeight: 700,
-                    color: '#ffffff',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  Popular
-                </div>
-              )}
-
               <div style={{ display: 'flex', alignItems: 'start', gap: '14px', marginBottom: '12px' }}>
                 <div
                   style={{
@@ -368,11 +424,8 @@ export default function ServicesContent() {
                     {service.price}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                    <span style={{ color: '#10b981', fontSize: '0.8rem' }}>
-                      ★ {service.rating}
-                    </span>
                     <span style={{ color: '#64748b', fontSize: '0.8rem' }}>
-                      • {service.bookings} bookings
+                      {service.bookings} bookings
                     </span>
                   </div>
                 </div>
@@ -423,6 +476,28 @@ export default function ServicesContent() {
         })}
       </div>
 
+      {filteredServices.length === 0 && (
+        <div
+          style={{
+            background: 'rgba(15, 23, 42, 0.82)',
+            border: '1px solid rgba(148,163,184,0.12)',
+            borderRadius: '30px',
+            padding: '60px',
+            textAlign: 'center',
+          }}
+        >
+          <Package size={48} style={{ color: '#64748b', marginBottom: '16px' }} />
+          <h3 style={{ color: '#f8fafc', fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px' }}>
+            No services found
+          </h3>
+          <p style={{ color: '#64748b' }}>
+            {searchQuery || selectedCategory !== 'All' 
+              ? 'Try adjusting your filters or search query.' 
+              : 'Click "Add Service" to create your first service.'}
+          </p>
+        </div>
+      )}
+
       {/* Add/Edit Modal */}
       {showAddModal && (
         <ServiceModal
@@ -439,7 +514,7 @@ export default function ServicesContent() {
 }
 
 // Service Modal Component
-function ServiceModal({ service, onClose, onSave }: any) {
+function ServiceModal({ service, onClose, onSave }) {
   const [formData, setFormData] = useState(
     service || {
       title: '',
@@ -448,13 +523,12 @@ function ServiceModal({ service, onClose, onSave }: any) {
       category: 'Deep Clean',
       duration: '2-3 hours',
       icon: 'Home',
-      popular: false,
     }
   );
 
   const iconOptions = ['Home', 'Sparkles', 'Calendar'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     onSave(formData);
   };
@@ -643,23 +717,6 @@ function ServiceModal({ service, onClose, onSave }: any) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={formData.popular}
-                onChange={(e) => setFormData({ ...formData, popular: e.target.checked })}
-                style={{
-                  width: '18px',
-                  height: '18px',
-                  accentColor: '#3b82f6',
-                  cursor: 'pointer',
-                }}
-              />
-              Mark as Popular
-            </label>
-          </div>
-
           <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
             <button
               type="button"
@@ -684,13 +741,25 @@ function ServiceModal({ service, onClose, onSave }: any) {
                 padding: '12px',
                 borderRadius: '12px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-                color: '#ffffff',
+                background: '#F6D961',
+                color: '#1a1a1a',
                 cursor: 'pointer',
                 fontWeight: 600,
-                boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
+              <Plus size={16} />
               {service ? 'Update Service' : 'Create Service'}
             </button>
           </div>

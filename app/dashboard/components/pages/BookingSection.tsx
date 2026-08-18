@@ -6,72 +6,93 @@ import {
   Mail,
   MapPin,
   Clock,
-  Plus,
   Edit,
   Trash2,
-  Search,
-  Package,
-  Eye,
   X,
   Save,
-  CheckCircle,
-  XCircle,
-  Clock as ClockIcon,
-  ArrowUpDown,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
+import {
+  CONTACT_INFO_STORAGE_KEY,
+  ContactInfo,
+  defaultContactInfo,
+  useSiteContent,
+} from '@/lib/siteContent';
 
-// Initial contact data
-const initialContactInfo = {
-  phone: '1800 123 456',
-  email: 'hello@sparkwell.com.au',
-  serviceArea: 'Melbourne, VIC',
-  hours: 'Mon–Sat, 7am–6pm',
-  guarantee: {
-    title: 'Bond-Back Guarantee',
-    description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
-  },
-};
+type ContactFieldKey = 'phone' | 'email' | 'serviceArea' | 'hours';
+
+interface ContactField {
+  key: ContactFieldKey;
+  label: string;
+  icon: typeof Phone;
+  placeholder: string;
+}
 
 export default function ContactContent() {
-  const [contactInfo, setContactInfo] = useState(initialContactInfo);
-  const [editingField, setEditingField] = useState(null);
+  const [contactInfo, setContactInfo] = useSiteContent<ContactInfo>(
+    CONTACT_INFO_STORAGE_KEY,
+    defaultContactInfo
+  );
+  const [editingField, setEditingField] = useState<ContactFieldKey | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState<Partial<Record<ContactFieldKey, string>>>({});
   const [showGuaranteeModal, setShowGuaranteeModal] = useState(false);
+
+  const contactFields: ContactField[] = [
+    { key: 'phone', label: 'Phone Number', icon: Phone, placeholder: 'e.g. 1800 123 456' },
+    { key: 'email', label: 'Email Address', icon: Mail, placeholder: 'e.g. hello@sparkwell.com.au' },
+    { key: 'serviceArea', label: 'Service Area', icon: MapPin, placeholder: 'e.g. Melbourne, VIC' },
+    { key: 'hours', label: 'Business Hours', icon: Clock, placeholder: 'e.g. Mon-Sat, 7am-6pm' },
+  ];
+
+  const activeContactFields = contactFields.filter((field) => contactInfo[field.key].trim());
 
   // Stats
   const stats = [
-    { label: 'Contact Methods', value: '4', icon: Phone, color: '#3b82f6' },
-    { label: 'Phone', value: contactInfo.phone, icon: Phone, color: '#10b981' },
-    { label: 'Email', value: contactInfo.email, icon: Mail, color: '#8b5cf6' },
-    { label: 'Service Area', value: contactInfo.serviceArea.split(',')[0], icon: MapPin, color: '#f59e0b' },
+    { label: 'Contact Methods', value: activeContactFields.length.toString(), icon: Phone, color: '#3b82f6' },
+    { label: 'Phone', value: contactInfo.phone || 'Not set', icon: Phone, color: '#10b981' },
+    { label: 'Email', value: contactInfo.email || 'Not set', icon: Mail, color: '#8b5cf6' },
+    { label: 'Service Area', value: contactInfo.serviceArea ? contactInfo.serviceArea.split(',')[0] : 'Not set', icon: MapPin, color: '#f59e0b' },
   ];
 
-  const handleEdit = (field, value) => {
+  const handleEdit = (field: ContactFieldKey, value: string) => {
     setEditingField(field);
     setFormData({ [field]: value });
     setShowEditModal(true);
   };
 
   const handleSave = () => {
+    if (!editingField) return;
     setContactInfo({ ...contactInfo, ...formData });
     setShowEditModal(false);
     setEditingField(null);
     setFormData({});
   };
 
+  const handleDelete = (field: ContactFieldKey) => {
+    const fieldLabel = contactFields.find((item) => item.key === field)?.label || 'field';
+
+    if (window.confirm(`Are you sure you want to delete this ${fieldLabel.toLowerCase()}?`)) {
+      setContactInfo({ ...contactInfo, [field]: '' });
+    }
+  };
+
   const handleGuaranteeSave = () => {
     setShowGuaranteeModal(false);
   };
 
-  const contactFields = [
-    { key: 'phone', label: 'Phone Number', icon: Phone, placeholder: 'e.g. 1800 123 456' },
-    { key: 'email', label: 'Email Address', icon: Mail, placeholder: 'e.g. hello@sparkwell.com.au' },
-    { key: 'serviceArea', label: 'Service Area', icon: MapPin, placeholder: 'e.g. Melbourne, VIC' },
-    { key: 'hours', label: 'Business Hours', icon: Clock, placeholder: 'e.g. Mon–Sat, 7am–6pm' },
-  ];
+  const handleGuaranteeDelete = () => {
+    if (window.confirm('Are you sure you want to delete the guarantee content?')) {
+      setContactInfo({
+        ...contactInfo,
+        guarantee: {
+          title: '',
+          description: '',
+        },
+      });
+    }
+  };
 
   return (
     <div style={{ display: 'grid', gap: '20px' }}>
@@ -192,22 +213,48 @@ export default function ContactContent() {
                 >
                   <Icon size={24} />
                 </div>
-                <button
-                  onClick={() => handleEdit(field.key, value)}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(148,163,184,0.12)',
-                    background: 'transparent',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
-                >
-                  <Edit size={16} />
-                </button>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={() => handleEdit(field.key, value)}
+                    title={`Edit ${field.label}`}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(148,163,184,0.12)',
+                      background: 'transparent',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(field.key)}
+                    title={`Delete ${field.label}`}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(148,163,184,0.12)',
+                      background: 'transparent',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#ef4444';
+                      e.currentTarget.style.color = '#ef4444';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)';
+                      e.currentTarget.style.color = '#94a3b8';
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -215,7 +262,7 @@ export default function ContactContent() {
                   {field.label}
                 </div>
                 <div style={{ color: '#f8fafc', fontSize: '1.1rem', fontWeight: 600, wordBreak: 'break-all' }}>
-                  {value}
+                  {value || 'Not set'}
                 </div>
               </div>
             </div>
@@ -241,24 +288,44 @@ export default function ContactContent() {
               This appears on the contact page
             </p>
           </div>
-          <button
-            onClick={() => setShowGuaranteeModal(true)}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '10px',
-              border: '1px solid rgba(148,163,184,0.12)',
-              background: 'rgba(59,130,246,0.12)',
-              color: '#3b82f6',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.85rem',
-            }}
-          >
-            <Edit size={14} />
-            Edit
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setShowGuaranteeModal(true)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '10px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'rgba(59,130,246,0.12)',
+                color: '#3b82f6',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+              }}
+            >
+              <Edit size={14} />
+              Edit
+            </button>
+            <button
+              onClick={handleGuaranteeDelete}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '10px',
+                border: '1px solid rgba(239,68,68,0.24)',
+                background: 'rgba(239,68,68,0.1)',
+                color: '#f87171',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+              }}
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          </div>
         </div>
 
         <div
@@ -272,11 +339,11 @@ export default function ContactContent() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
             <Sparkles size={18} style={{ color: 'var(--theme-secondary)' }} />
             <span style={{ color: '#f8fafc', fontWeight: 600 }}>
-              {contactInfo.guarantee.title}
+              {contactInfo.guarantee.title || 'No guarantee set'}
             </span>
           </div>
           <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.6', paddingLeft: '32px' }}>
-            {contactInfo.guarantee.description}
+            {contactInfo.guarantee.description || 'Use Edit to add guarantee content.'}
           </p>
         </div>
       </div>
@@ -352,8 +419,8 @@ export default function ContactContent() {
                 </label>
                 <input
                   type="text"
-                  value={formData[editingField] || ''}
-                  onChange={(e) => setFormData({ [editingField]: e.target.value })}
+                  value={editingField ? formData[editingField] || '' : ''}
+                  onChange={(e) => editingField && setFormData({ [editingField]: e.target.value })}
                   required
                   placeholder={contactFields.find(f => f.key === editingField)?.placeholder}
                   style={{

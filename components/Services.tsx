@@ -1,39 +1,96 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from "next/link";
-import { motion, useInView, type Variants } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { Home, Sparkles, Calendar, ArrowRight } from "lucide-react";
 
-const services = [
+// Storage key for services data
+const SERVICES_STORAGE_KEY = 'sparkwell:services';
+
+// Default services data
+const defaultServices = [
   {
-    icon: Home,
+    id: 1,
+    icon: 'Home',
     title: "End of Lease Clean",
     price: "From $280",
-    description:
-      "Bond-back guarantee with our comprehensive end-of-tenancy deep clean. We cover every corner.",
+    description: "Bond-back guarantee with our comprehensive end-of-tenancy deep clean. We cover every corner.",
   },
   {
-    icon: Sparkles,
+    id: 2,
+    icon: 'Sparkles',
     title: "Deep / Spring Clean",
     price: "From $199",
-    description:
-      "A thorough top-to-bottom reset — inside appliances, behind furniture, skirting boards, and more.",
+    description: "A thorough top-to-bottom reset — inside appliances, behind furniture, skirting boards, and more.",
   },
   {
-    icon: Calendar,
+    id: 3,
+    icon: 'Calendar',
     title: "Regular Clean",
     price: "From $99",
-    description:
-      "Weekly or fortnightly maintenance cleans tailored to your home and schedule.",
+    description: "Weekly or fortnightly maintenance cleans tailored to your home and schedule.",
   },
 ];
 
+const iconMap = {
+  Home: Home,
+  Sparkles: Sparkles,
+  Calendar: Calendar,
+};
+
 export default function Services() {
-  const sectionRef = useRef<HTMLElement>(null);
+  const [services, setServices] = useState(defaultServices);
+  const [isLoading, setIsLoading] = useState(true);
+  const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: false, amount: 0.2 });
 
-  const containerVariants: Variants = {
+  // Load services from localStorage
+  const loadServices = () => {
+    try {
+      const stored = localStorage.getItem(SERVICES_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Transform stored data to match the expected format
+        const transformed = parsed.map(service => ({
+          id: service.id,
+          icon: service.icon || 'Home',
+          title: service.title,
+          price: service.price,
+          description: service.description,
+        }));
+        setServices(transformed);
+      } else {
+        // Initialize with default services
+        localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(defaultServices));
+        setServices(defaultServices);
+      }
+    } catch (error) {
+      console.error('Error loading services:', error);
+      setServices(defaultServices);
+    }
+    setIsLoading(false);
+  };
+
+  // Load services on mount
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  // Listen for storage changes (sync across tabs)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === SERVICES_STORAGE_KEY) {
+        loadServices();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Container variants for staggered animations
+  const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -44,7 +101,7 @@ export default function Services() {
     },
   };
 
-  const itemVariants: Variants = {
+  const itemVariants = {
     hidden: {
       opacity: 0,
       y: 30,
@@ -61,6 +118,21 @@ export default function Services() {
       },
     },
   };
+
+  if (isLoading) {
+    return (
+      <section
+        id="services"
+        ref={sectionRef}
+        className="px-6 py-16 lg:py-20"
+        style={{ backgroundColor: 'var(--theme-bg)' }}
+      >
+        <div className="mx-auto max-w-[1400px] flex justify-center items-center min-h-[400px]">
+          <div style={{ color: 'var(--theme-muted)' }}>Loading services...</div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -119,10 +191,10 @@ export default function Services() {
           animate={isInView ? "visible" : "hidden"}
         >
           {services.map((service) => {
-            const Icon = service.icon;
+            const Icon = iconMap[service.icon] || Home;
             return (
               <motion.div
-                key={service.title}
+                key={service.id || service.title}
                 variants={itemVariants}
                 whileHover={{ 
                   y: -6,
