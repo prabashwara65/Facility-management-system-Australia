@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Home, 
   Building2,
@@ -8,25 +8,20 @@ import {
   Edit, 
   Trash2, 
   Search,
-  Filter,
   Package,
-  DollarSign,
   Users,
   Star,
   Clock,
   CheckCircle,
   XCircle,
-  Eye,
-  Copy,
-  ArrowUpDown,
   X,
   Save,
   ChevronDown,
   ChevronUp,
-  Sparkles,
-  Calendar,
   HelpCircle,
+  RefreshCw,
 } from 'lucide-react';
+import { useSiteContent, PRICING_STORAGE_KEY, defaultPricingContent, PricingContent as PricingContentType } from '@/lib/siteContent';
 
 type ServiceCategory = 'Residential' | 'Commercial';
 
@@ -57,167 +52,16 @@ interface FAQ {
   category: ServiceCategory;
 }
 
-// Initial Data from PricingSection
-const initialTiers: Tier[] = [
-  {
-    id: 1,
-    label: 'General Clean',
-    price: '$179',
-    description: 'Perfect for regular upkeep. Keep your place feeling fresh, organised, and stress-free every week or fortnight. Member rates apply',
-    isPopular: false,
-    category: 'Residential',
-    bookings: 156,
-    rating: 4.8,
-    status: 'Active',
-  },
-  {
-    id: 2,
-    label: 'Deep Reset Clean',
-    price: '$249',
-    description: 'For when your home needs more than a touch-up. Floors, bathrooms, kitchen, tackled top to bottom. It\'s the reset button for your space.',
-    isPopular: true,
-    category: 'Residential',
-    bookings: 98,
-    rating: 4.9,
-    status: 'Active',
-  },
-  {
-    id: 3,
-    label: 'End of Lease Cleaning',
-    price: '$319',
-    description: '100% BOND RETURN GUARANTEE. Designed to get your bond back. Full vacate clean with checklist compliance. Zero stress, all sparkle.',
-    isPopular: false,
-    category: 'Residential',
-    bookings: 234,
-    rating: 4.7,
-    status: 'Active',
-  },
-  {
-    id: 4,
-    label: 'Office Clean',
-    price: '$199',
-    description: 'Professional office cleaning for workspaces up to 3 rooms. Daily or weekly service available.',
-    isPopular: false,
-    category: 'Commercial',
-    bookings: 67,
-    rating: 4.6,
-    status: 'Active',
-  },
-  {
-    id: 5,
-    label: 'Retail Clean',
-    price: '$299',
-    description: 'Specialised retail space cleaning to keep your shop floor and displays spotless.',
-    isPopular: true,
-    category: 'Commercial',
-    bookings: 45,
-    rating: 4.8,
-    status: 'Active',
-  },
-  {
-    id: 6,
-    label: 'Warehouse Clean',
-    price: '$399',
-    description: 'Complete warehouse and industrial space cleaning with heavy-duty equipment.',
-    isPopular: false,
-    category: 'Commercial',
-    bookings: 23,
-    rating: 4.5,
-    status: 'Draft',
-  },
-];
-
-const initialAddOns: AddOn[] = [
-  { id: 1, name: 'Inside oven', price: '$45', category: 'Residential', side: 'left' },
-  { id: 2, name: 'Inside windows', price: '$60', category: 'Residential', side: 'left' },
-  { id: 3, name: 'Balcony / outdoor area', price: '$50', category: 'Residential', side: 'left' },
-  { id: 4, name: 'Inside fridge', price: '$35', category: 'Residential', side: 'right' },
-  { id: 5, name: 'Carpet steam clean (per room)', price: '$55', category: 'Residential', side: 'right' },
-  { id: 6, name: 'Garage', price: '$70', category: 'Residential', side: 'right' },
-  { id: 7, name: 'Washroom sanitising', price: '$45', category: 'Commercial', side: 'left' },
-  { id: 8, name: 'Window cleaning', price: '$90', category: 'Commercial', side: 'left' },
-  { id: 9, name: 'After-hours clean', price: '$60', category: 'Commercial', side: 'left' },
-  { id: 10, name: 'Carpet treatment', price: '$80', category: 'Commercial', side: 'right' },
-  { id: 11, name: 'Deep kitchen detail', price: '$95', category: 'Commercial', side: 'right' },
-  { id: 12, name: 'Strata common area', price: '$120', category: 'Commercial', side: 'right' },
-];
-
-const initialFAQs: FAQ[] = [
-  {
-    id: 1,
-    question: 'What\'s included in your residential cleaning services?',
-    answer: 'Our residential cleaning services include dusting, vacuuming, mopping, surface wiping, disinfecting high-touch areas, and detailed cleaning of kitchens and bathrooms. You can also request extras like inside window cleaning or oven cleaning, depending on your home\'s needs.',
-    category: 'Residential',
-  },
-  {
-    id: 2,
-    question: 'How do I book residential cleaning services?',
-    answer: 'Booking is quick and easy! Simply select your preferred cleaning package, choose your date and time, and confirm your booking. No payment is required at the time of booking – you only pay after the service is completed to your satisfaction.',
-    category: 'Residential',
-  },
-  {
-    id: 3,
-    question: 'Are your residential cleaning services customisable?',
-    answer: 'Yes! We understand every home is different. You can customise your cleaning package by adding extra services, focusing on specific rooms, or scheduling regular cleans. Our team works with you to create the perfect cleaning plan for your home.',
-    category: 'Residential',
-  },
-  {
-    id: 4,
-    question: 'Do you provide house cleaning for specific rooms only?',
-    answer: 'Absolutely! If you only need certain rooms cleaned, we can tailor our service to focus on those areas. Whether it\'s just the kitchen and bathrooms, or specific bedrooms, we\'ll create a customised plan that meets your needs.',
-    category: 'Residential',
-  },
-  {
-    id: 5,
-    question: 'Are your cleaners insured and background-checked?',
-    answer: 'Yes, all our cleaners are fully insured, police-checked, and professionally trained. We take your safety and trust seriously, ensuring every cleaner who enters your home is reliable, trustworthy, and experienced.',
-    category: 'Residential',
-  },
-  {
-    id: 6,
-    question: 'Do I need to be home during the cleaning?',
-    answer: 'It\'s completely up to you! Many clients prefer to be home to oversee the service, while others provide us with access instructions. We have flexible arrangements to suit your preferences and schedule.',
-    category: 'Residential',
-  },
-  {
-    id: 7,
-    question: 'What commercial cleaning services do you offer?',
-    answer: 'We offer comprehensive commercial cleaning services including office cleaning, retail cleaning, school cleaning, gym cleaning, showroom cleaning, medical centre cleaning, and shopping centre cleaning.',
-    category: 'Commercial',
-  },
-  {
-    id: 8,
-    question: 'How often do you provide commercial cleaning?',
-    answer: 'We offer flexible scheduling options including nightly, weekly, fortnightly, or monthly cleans. We can also accommodate deep cleans and one-time special events.',
-    category: 'Commercial',
-  },
-  {
-    id: 9,
-    question: 'Are your commercial cleaners insured and background-checked?',
-    answer: 'Yes, absolutely. All our cleaners are 100% police checked, insured, and professionally trained. We take security and trust very seriously, ensuring your workplace and assets are always in safe hands.',
-    category: 'Commercial',
-  },
-  {
-    id: 10,
-    question: 'Do you provide cleaning supplies and equipment for commercial spaces?',
-    answer: 'Yes, we come fully equipped with superior cleaning products, professional-grade equipment, and all necessary supplies. We can also replenish cleaning goods and restock toiletries as part of our service.',
-    category: 'Commercial',
-  },
-  {
-    id: 11,
-    question: 'Can I customise my commercial cleaning package?',
-    answer: 'Absolutely! Our commercial cleaning packages are 100% customisable. We work with you to create a tailored cleaning plan that fits your specific needs, schedule, and budget. You can add or remove services as needed.',
-    category: 'Commercial',
-  },
-];
-
 const categories = ['All', 'Residential', 'Commercial'];
 const statusOptions = ['Active', 'Inactive', 'Draft'];
 
 export default function PricingContent() {
-  const [tiers, setTiers] = useState<Tier[]>(initialTiers);
-  const [addOns, setAddOns] = useState<AddOn[]>(initialAddOns);
-  const [faqs, setFaqs] = useState<FAQ[]>(initialFAQs);
+  // Use shared data store
+  const [pricingData, setPricingData] = useSiteContent<PricingContentType>(
+    PRICING_STORAGE_KEY,
+    defaultPricingContent
+  );
+
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'tiers' | 'addons' | 'faqs'>('tiers');
@@ -225,23 +69,33 @@ export default function PricingContent() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [modalType, setModalType] = useState<'tier' | 'addon' | 'faq'>('tier');
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Extract data from pricingData
+  const tiers = pricingData?.tiers || [];
+  const addOns = pricingData?.addOns || [];
+  const faqs = pricingData?.faqs || [];
+
+  // Load data on mount
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
 
   // Filter data
-  const filteredTiers = tiers.filter(tier => {
+  const filteredTiers = tiers.filter((tier: Tier) => {
     const matchesCategory = selectedCategory === 'All' || tier.category === selectedCategory;
     const matchesSearch = tier.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          tier.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  const filteredAddOns = addOns.filter(addon => {
+  const filteredAddOns = addOns.filter((addon: AddOn) => {
     const matchesCategory = selectedCategory === 'All' || addon.category === selectedCategory;
     const matchesSearch = addon.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  const filteredFAQs = faqs.filter(faq => {
+  const filteredFAQs = faqs.filter((faq: FAQ) => {
     const matchesCategory = selectedCategory === 'All' || faq.category === selectedCategory;
     const matchesSearch = faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
@@ -251,32 +105,38 @@ export default function PricingContent() {
   // Stats
   const stats = [
     { label: 'Total Tiers', value: tiers.length, icon: Package, color: '#3b82f6' },
-    { label: 'Active Tiers', value: tiers.filter(t => t.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
+    { label: 'Active Tiers', value: tiers.filter((t: Tier) => t.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
     { label: 'Total Add-Ons', value: addOns.length, icon: Plus, color: '#8b5cf6' },
     { label: 'Total FAQs', value: faqs.length, icon: HelpCircle, color: '#f59e0b' },
   ];
 
   const handleDeleteTier = (id: number) => {
     if (window.confirm('Are you sure you want to delete this tier?')) {
-      setTiers(tiers.filter(t => t.id !== id));
+      const updatedTiers = tiers.filter((t: Tier) => t.id !== id);
+      setPricingData({ ...pricingData, tiers: updatedTiers });
     }
   };
 
   const handleDeleteAddOn = (id: number) => {
     if (window.confirm('Are you sure you want to delete this add-on?')) {
-      setAddOns(addOns.filter(a => a.id !== id));
+      const updatedAddOns = addOns.filter((a: AddOn) => a.id !== id);
+      setPricingData({ ...pricingData, addOns: updatedAddOns });
     }
   };
 
   const handleDeleteFAQ = (id: number) => {
     if (window.confirm('Are you sure you want to delete this FAQ?')) {
-      setFaqs(faqs.filter(f => f.id !== id));
+      const updatedFaqs = faqs.filter((f: FAQ) => f.id !== id);
+      setPricingData({ ...pricingData, faqs: updatedFaqs });
     }
   };
 
   const handleSaveTier = (tierData: any) => {
+    let updatedTiers;
     if (editingItem) {
-      setTiers(tiers.map(t => t.id === editingItem.id ? { ...t, ...tierData } : t));
+      updatedTiers = tiers.map((t: Tier) => 
+        t.id === editingItem.id ? { ...t, ...tierData } : t
+      );
     } else {
       const newTier: Tier = {
         ...tierData,
@@ -285,36 +145,45 @@ export default function PricingContent() {
         rating: 0,
         status: 'Active',
       };
-      setTiers([...tiers, newTier]);
+      updatedTiers = [...tiers, newTier];
     }
+    setPricingData({ ...pricingData, tiers: updatedTiers });
     setShowModal(false);
     setEditingItem(null);
   };
 
   const handleSaveAddOn = (addonData: any) => {
+    let updatedAddOns;
     if (editingItem) {
-      setAddOns(addOns.map(a => a.id === editingItem.id ? { ...a, ...addonData } : a));
+      updatedAddOns = addOns.map((a: AddOn) => 
+        a.id === editingItem.id ? { ...a, ...addonData } : a
+      );
     } else {
       const newAddOn: AddOn = {
         ...addonData,
         id: addOns.length + 1,
       };
-      setAddOns([...addOns, newAddOn]);
+      updatedAddOns = [...addOns, newAddOn];
     }
+    setPricingData({ ...pricingData, addOns: updatedAddOns });
     setShowModal(false);
     setEditingItem(null);
   };
 
   const handleSaveFAQ = (faqData: any) => {
+    let updatedFaqs;
     if (editingItem) {
-      setFaqs(faqs.map(f => f.id === editingItem.id ? { ...f, ...faqData } : f));
+      updatedFaqs = faqs.map((f: FAQ) => 
+        f.id === editingItem.id ? { ...f, ...faqData } : f
+      );
     } else {
       const newFAQ: FAQ = {
         ...faqData,
         id: faqs.length + 1,
       };
-      setFaqs([...faqs, newFAQ]);
+      updatedFaqs = [...faqs, newFAQ];
     }
+    setPricingData({ ...pricingData, faqs: updatedFaqs });
     setShowModal(false);
     setEditingItem(null);
   };
@@ -343,6 +212,28 @@ export default function PricingContent() {
     }
   };
 
+  const handleRefresh = () => {
+    setIsLoading(true);
+    // Force re-read from store
+    setPricingData({ ...pricingData });
+    setIsLoading(false);
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px',
+        color: '#94a3b8'
+      }}>
+        <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
+        <span style={{ marginLeft: '12px' }}>Loading pricing data...</span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'grid', gap: '20px' }}>
       {/* Header */}
@@ -361,32 +252,53 @@ export default function PricingContent() {
               Pricing Management
             </div>
             <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: '#f8fafc' }}>
-              Manage Pricing
+              Manage Pricing ({tiers.length} Tiers)
             </h2>
           </div>
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setModalType('tier');
-              setShowModal(true);
-            }}
-            style={{
-              border: 'none',
-              borderRadius: '14px',
-              padding: '12px 20px',
-              background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-              color: '#ffffff',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-            }}
-          >
-            <Plus size={18} />
-            Add Tier
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleRefresh}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '10px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'transparent',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+              }}
+              title="Refresh data"
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+            <button
+              onClick={() => {
+                setEditingItem(null);
+                setModalType('tier');
+                setShowModal(true);
+              }}
+              style={{
+                border: 'none',
+                borderRadius: '14px',
+                padding: '12px 20px',
+                background: '#F6D961',
+                color: '#1a1a1a',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
+              }}
+            >
+              <Plus size={18} />
+              Add Tier
+            </button>
+          </div>
         </div>
       </div>
 
@@ -449,8 +361,8 @@ export default function PricingContent() {
                   padding: '6px 16px',
                   borderRadius: '10px',
                   border: '1px solid rgba(148,163,184,0.12)',
-                  background: selectedCategory === cat ? 'rgba(59,130,246,0.2)' : 'transparent',
-                  color: selectedCategory === cat ? '#3b82f6' : '#94a3b8',
+                  background: selectedCategory === cat ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
+                  color: selectedCategory === cat ? '#F6D961' : '#94a3b8',
                   cursor: 'pointer',
                   fontSize: '0.85rem',
                   fontWeight: selectedCategory === cat ? 600 : 400,
@@ -502,8 +414,8 @@ export default function PricingContent() {
                   padding: '8px 18px',
                   borderRadius: '10px',
                   border: 'none',
-                  background: activeTab === tab.id ? 'rgba(59,130,246,0.15)' : 'transparent',
-                  color: activeTab === tab.id ? '#3b82f6' : '#94a3b8',
+                  background: activeTab === tab.id ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
+                  color: activeTab === tab.id ? '#F6D961' : '#94a3b8',
                   cursor: 'pointer',
                   fontSize: '0.85rem',
                   fontWeight: activeTab === tab.id ? 600 : 400,
@@ -542,7 +454,7 @@ export default function PricingContent() {
           }}
         >
           <div style={{ display: 'grid', gap: '12px' }}>
-            {filteredTiers.map((tier) => {
+            {filteredTiers.map((tier: Tier) => {
               const isExpanded = expandedItems.includes(tier.id);
 
               return (
@@ -668,7 +580,7 @@ export default function PricingContent() {
           </div>
 
           <div style={{ display: 'grid', gap: '8px' }}>
-            {filteredAddOns.map((addon) => (
+            {filteredAddOns.map((addon: AddOn) => (
               <div
                 key={addon.id}
                 style={{
@@ -734,7 +646,7 @@ export default function PricingContent() {
           </div>
 
           <div style={{ display: 'grid', gap: '10px' }}>
-            {filteredFAQs.map((faq) => (
+            {filteredFAQs.map((faq: FAQ) => (
               <div
                 key={faq.id}
                 style={{
@@ -1232,15 +1144,22 @@ function PricingModal({ type, data, onClose, onSave }: any) {
                 padding: '12px',
                 borderRadius: '12px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-                color: '#ffffff',
+                background: '#F6D961',
+                color: '#1a1a1a',
                 cursor: 'pointer',
                 fontWeight: 600,
+                boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
               <Save size={16} />

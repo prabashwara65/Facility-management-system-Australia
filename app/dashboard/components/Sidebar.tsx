@@ -13,6 +13,8 @@ import {
   MapPin,
   Calendar,
 } from 'lucide-react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 interface SidebarProps {
   activeTab: string;
@@ -49,28 +51,21 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       }}
     >
       <div>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 10px 20px' }}>
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-              boxShadow: '0 10px 22px rgba(99, 102, 241, 0.35)',
-            }}
+        {/* Logo - SparkWell with Star Icon */}
+        <Link href="/dashboard" className="flex items-center gap-2.5 mb-6 px-2">
+          <motion.div 
+            className="flex h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: 'var(--theme-primary, #3b82f6)' }}
+            whileHover={{ rotate: 360 }}
+            transition={{ duration: 0.6 }}
           >
-            <Cloud size={18} color="#ffffff" />
+            <span className="text-lg text-white">✦</span>
+          </motion.div>
+          <div className="font-serif text-[21px] font-bold">
+            <span style={{ color: 'var(--theme-primary, #3b82f6)' }}>Spark</span>
+            <span style={{ color: 'var(--theme-secondary, #8b5cf6)' }}>Well</span>
           </div>
-          <div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, letterSpacing: '-0.05em', color: '#f8fafc' }}>
-              SparkWell
-            </div>
-          </div>
-        </div>
+        </Link>
 
         {/* Navigation */}
         <div style={{ marginTop: '8px' }}>

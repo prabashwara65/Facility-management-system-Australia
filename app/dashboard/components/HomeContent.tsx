@@ -68,10 +68,12 @@ export default function HomeContent() {
         <div
           style={{
             display: 'flex',
+            flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
             gap: '12px',
             marginBottom: '18px',
+            flexWrap: 'wrap',
           }}
         >
           <div>
@@ -88,7 +90,7 @@ export default function HomeContent() {
             <h1
               style={{
                 margin: '8px 0 0',
-                fontSize: 'clamp(2rem, 3vw, 3rem)',
+                fontSize: 'clamp(1.5rem, 3vw, 3rem)',
                 lineHeight: 1.05,
                 letterSpacing: '-0.07em',
                 color: '#f8fafc',
@@ -110,6 +112,8 @@ export default function HomeContent() {
               gap: '8px',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
+              fontSize: 'clamp(0.75rem, 0.9vw, 0.9rem)',
+              whiteSpace: 'nowrap',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
@@ -119,8 +123,14 @@ export default function HomeContent() {
           </button>
         </div>
 
-        {/* Stats Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
+        {/* Stats Cards - Responsive Grid */}
+        <div 
+          style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: '16px',
+          }}
+        >
           {statCards.map((card) => (
             <div
               key={card.label}
@@ -144,7 +154,7 @@ export default function HomeContent() {
               >
                 <div
                   style={{
-                    fontSize: '0.74rem',
+                    fontSize: 'clamp(0.6rem, 0.7vw, 0.74rem)',
                     color: '#94a3b8',
                     textTransform: 'uppercase',
                     letterSpacing: '0.08em',
@@ -158,13 +168,14 @@ export default function HomeContent() {
                     height: '8px',
                     borderRadius: '50%',
                     background: card.tone,
+                    flexShrink: 0,
                   }}
                 />
               </div>
               <div
                 style={{
                   marginTop: '14px',
-                  fontSize: '2rem',
+                  fontSize: 'clamp(1.3rem, 2vw, 2rem)',
                   fontWeight: 800,
                   letterSpacing: '-0.06em',
                   color: '#f8fafc',
@@ -179,7 +190,7 @@ export default function HomeContent() {
                   alignItems: 'center',
                   gap: '6px',
                   color: '#86efac',
-                  fontSize: '0.8rem',
+                  fontSize: 'clamp(0.65rem, 0.7vw, 0.8rem)',
                   fontWeight: 600,
                 }}
               >
@@ -190,8 +201,15 @@ export default function HomeContent() {
           ))}
         </div>
 
-        {/* Service Stats Mini Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginTop: '16px' }}>
+        {/* Service Stats Mini Cards - Responsive Grid */}
+        <div 
+          style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '12px', 
+            marginTop: '16px',
+          }}
+        >
           {serviceStats.map((stat) => {
             const Icon = stat.icon;
             return (
@@ -217,13 +235,14 @@ export default function HomeContent() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
                   <Icon size={16} />
                 </div>
                 <div>
-                  <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>{stat.label}</div>
-                  <div style={{ color: '#f8fafc', fontSize: '1rem', fontWeight: 700 }}>{stat.value}</div>
+                  <div style={{ color: '#94a3b8', fontSize: 'clamp(0.6rem, 0.65vw, 0.7rem)' }}>{stat.label}</div>
+                  <div style={{ color: '#f8fafc', fontSize: 'clamp(0.85rem, 1vw, 1rem)', fontWeight: 700 }}>{stat.value}</div>
                 </div>
               </div>
             );
@@ -245,8 +264,14 @@ export default function HomeContent() {
         </div>
       )}
 
-      {/* Main Content Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr', gap: '20px' }}>
+      {/* Main Content Grid - Responsive */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '20px',
+        }}
+      >
         {/* Left Column - Storage Overview */}
         <div
           style={{
@@ -260,8 +285,11 @@ export default function HomeContent() {
           <div
             style={{
               display: 'flex',
+              flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
               marginBottom: '20px',
             }}
           >
@@ -279,7 +307,7 @@ export default function HomeContent() {
               <h2
                 style={{
                   margin: '8px 0 0',
-                  fontSize: '1.5rem',
+                  fontSize: 'clamp(1.1rem, 1.4vw, 1.5rem)',
                   letterSpacing: '-0.05em',
                   color: '#f8fafc',
                 }}
@@ -299,6 +327,8 @@ export default function HomeContent() {
                 gap: '8px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
+                fontSize: 'clamp(0.75rem, 0.85vw, 0.9rem)',
+                whiteSpace: 'nowrap',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
@@ -308,7 +338,13 @@ export default function HomeContent() {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px' }}>
+          <div 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '24px',
+            }}
+          >
             {/* File List */}
             <div>
               <div style={{ display: 'grid', gap: '12px' }}>
@@ -317,9 +353,8 @@ export default function HomeContent() {
                     key={file.name}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1.2fr 0.7fr 0.6fr 0.7fr',
-                      alignItems: 'center',
-                      gap: '12px',
+                      gridTemplateColumns: '1fr',
+                      gap: '8px',
                       padding: '14px 16px',
                       borderRadius: '16px',
                       background: 'rgba(15, 23, 42, 0.72)',
@@ -340,47 +375,45 @@ export default function HomeContent() {
                           justifyContent: 'center',
                           background: 'rgba(96,165,250,0.14)',
                           color: '#93c5fd',
+                          flexShrink: 0,
                         }}
                       >
                         <FileText size={16} />
                       </div>
                       <div>
-                        <div style={{ fontWeight: 700 }}>{file.name}</div>
+                        <div style={{ fontWeight: 700, fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)' }}>{file.name}</div>
                       </div>
                     </div>
-                    <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{file.size}</div>
-                    <div style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>{file.type}</div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '8px',
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: '0.85rem',
-                          color:
-                            file.status === 'Syncing'
-                              ? '#fbbf24'
-                              : file.status === 'Review'
-                              ? '#a78bfa'
-                              : '#86efac',
-                        }}
-                      >
-                        {file.status}
-                      </span>
-                      <button
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#94a3b8',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <span style={{ color: '#94a3b8', fontSize: 'clamp(0.7rem, 0.75vw, 0.85rem)' }}>{file.size}</span>
+                        <span style={{ color: '#cbd5e1', fontSize: 'clamp(0.7rem, 0.75vw, 0.85rem)' }}>{file.type}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span
+                          style={{
+                            fontSize: 'clamp(0.7rem, 0.75vw, 0.85rem)',
+                            color:
+                              file.status === 'Syncing'
+                                ? '#fbbf24'
+                                : file.status === 'Review'
+                                ? '#a78bfa'
+                                : '#86efac',
+                          }}
+                        >
+                          {file.status}
+                        </span>
+                        <button
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -427,8 +460,9 @@ export default function HomeContent() {
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <div
                   style={{
-                    width: '180px',
-                    height: '180px',
+                    width: 'min(180px, 100%)',
+                    maxWidth: '180px',
+                    aspectRatio: '1/1',
                     borderRadius: '50%',
                     position: 'relative',
                     display: 'grid',
@@ -438,8 +472,8 @@ export default function HomeContent() {
                 >
                   <div
                     style={{
-                      width: '122px',
-                      height: '122px',
+                      width: '68%',
+                      aspectRatio: '1/1',
                       borderRadius: '50%',
                       background: '#0f172a',
                       border: '1px solid rgba(148,163,184,0.12)',
@@ -450,12 +484,12 @@ export default function HomeContent() {
                       color: '#f8fafc',
                     }}
                   >
-                    <div style={{ fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.06em' }}>
+                    <div style={{ fontSize: 'clamp(1.5rem, 2vw, 2rem)', fontWeight: 800, letterSpacing: '-0.06em' }}>
                       68%
                     </div>
                     <div
                       style={{
-                        fontSize: '0.75rem',
+                        fontSize: 'clamp(0.6rem, 0.7vw, 0.75rem)',
                         color: '#94a3b8',
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase',
@@ -474,7 +508,7 @@ export default function HomeContent() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     color: '#e2e8f0',
-                    fontSize: '0.9rem',
+                    fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)',
                   }}
                 >
                   <span>Documents</span>
@@ -502,7 +536,7 @@ export default function HomeContent() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     color: '#e2e8f0',
-                    fontSize: '0.9rem',
+                    fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)',
                   }}
                 >
                   <span>Backups</span>
@@ -546,6 +580,8 @@ export default function HomeContent() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '8px',
                 marginBottom: '18px',
               }}
             >
@@ -563,7 +599,7 @@ export default function HomeContent() {
                 <h2
                   style={{
                     margin: '8px 0 0',
-                    fontSize: '1.5rem',
+                    fontSize: 'clamp(1.1rem, 1.4vw, 1.5rem)',
                     letterSpacing: '-0.05em',
                     color: '#f8fafc',
                   }}
@@ -578,6 +614,7 @@ export default function HomeContent() {
                   gap: '6px',
                   color: '#86efac',
                   fontWeight: 700,
+                  fontSize: 'clamp(0.8rem, 0.9vw, 1rem)',
                 }}
               >
                 <TrendingUp size={15} />
@@ -589,7 +626,7 @@ export default function HomeContent() {
               style={{
                 display: 'flex',
                 alignItems: 'end',
-                gap: '10px',
+                gap: 'clamp(4px, 0.6vw, 10px)',
                 height: '180px',
                 marginTop: '18px',
               }}
@@ -603,6 +640,7 @@ export default function HomeContent() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '8px',
+                    maxWidth: '30px',
                   }}
                 >
                   <div
@@ -619,7 +657,7 @@ export default function HomeContent() {
                       boxShadow: '0 8px 18px rgba(96, 165, 250, 0.25)',
                     }}
                   />
-                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                  <span style={{ fontSize: 'clamp(0.5rem, 0.6vw, 0.7rem)', color: '#94a3b8' }}>
                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}
                   </span>
                 </div>
@@ -641,6 +679,8 @@ export default function HomeContent() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '8px',
                 marginBottom: '18px',
               }}
             >
@@ -658,7 +698,7 @@ export default function HomeContent() {
                 <h2
                   style={{
                     margin: '8px 0 0',
-                    fontSize: '1.5rem',
+                    fontSize: 'clamp(1.1rem, 1.4vw, 1.5rem)',
                     letterSpacing: '-0.05em',
                     color: '#f8fafc',
                   }}
@@ -684,6 +724,7 @@ export default function HomeContent() {
                       border: '1px solid rgba(148,163,184,0.08)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
+                      flexWrap: 'wrap',
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
                     onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)')}
@@ -698,17 +739,18 @@ export default function HomeContent() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        flexShrink: 0,
                       }}
                     >
                       <Icon size={18} />
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: '#f8fafc', fontWeight: 700 }}>{action.label}</div>
-                      <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '2px' }}>
+                    <div style={{ flex: 1, minWidth: '120px' }}>
+                      <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)' }}>{action.label}</div>
+                      <div style={{ color: '#94a3b8', fontSize: 'clamp(0.7rem, 0.75vw, 0.8rem)', marginTop: '2px' }}>
                         {action.detail}
                       </div>
                     </div>
-                    <ArrowUpRight size={16} color="#94a3b8" />
+                    <ArrowUpRight size={16} color="#94a3b8" style={{ flexShrink: 0 }} />
                   </div>
                 );
               })}

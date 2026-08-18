@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Bell, MoonStar, User } from 'lucide-react';
+import { Search, Bell, MoonStar, User, LogOut } from 'lucide-react';
 import { useState } from 'react';
 
 interface NavbarProps {
@@ -82,7 +82,7 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
 
       {/* Right Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {/* User Info */}
+        {/* User Info - Admin Icon with Yellow */}
         <div
           style={{
             display: 'flex',
@@ -99,13 +99,14 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
               width: '32px',
               height: '32px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+              background: '#F6D961',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              boxShadow: '0 2px 10px rgba(246, 217, 97, 0.3)',
             }}
           >
-            <User size={16} color="#ffffff" />
+            <User size={16} color="#1a1a1a" />
           </div>
           <span style={{ fontSize: '0.85rem', color: '#e2e8f0', fontWeight: 500 }}>
             {userEmail.split('@')[0]}
@@ -128,7 +129,7 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
             position: 'relative',
             transition: 'all 0.2s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(246, 217, 97, 0.15)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(15, 23, 42, 0.7)')}
         >
           <Bell size={18} />
@@ -161,29 +162,39 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(246, 217, 97, 0.15)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(15, 23, 42, 0.7)')}
         >
           <MoonStar size={18} />
         </button>
 
-        {/* Logout Button */}
+        {/* Logout Button - Yellow */}
         <button
           onClick={onLogout}
           style={{
             border: 'none',
             borderRadius: '14px',
             padding: '11px 18px',
-            background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-            color: '#ffffff',
+            background: '#F6D961',
+            color: '#1a1a1a',
             fontWeight: 700,
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+            boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 25px rgba(246, 217, 97, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 15px rgba(246, 217, 97, 0.3)';
+          }}
         >
+          <LogOut size={16} />
           Logout
         </button>
       </div>
