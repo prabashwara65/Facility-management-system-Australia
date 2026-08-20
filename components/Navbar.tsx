@@ -5,6 +5,7 @@ import { ReactNode, MouseEvent, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Palette, Check, ChevronDown } from "lucide-react";
 import { useTheme, THEMES } from "@/app/context/ThemeProvider";
+import Image from "next/image";
 
 interface NavLinkProps {
   href: string;
@@ -18,7 +19,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ 
-  logoText = "SparkWell",
+  logoText = "Shining Property Service",
   phoneNumber = "1800 123 456"
 }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
@@ -74,20 +75,26 @@ export default function Navbar({
         borderBottom: '1px solid color-mix(in srgb, var(--theme-primary) 12%, white)',
       }}
     >
-      <div className="mx-auto flex h-[82px] max-w-[1400px] items-center justify-between gap-3 px-6 lg:px-8 xl:px-10">
-        {/* Logo */}
+      <div className="mx-auto flex h-[50px] max-w-[1400px] items-center justify-between gap-3 px-6 lg:px-8 xl:px-10">
+        {/* Logo - Using group.jpg */}
         <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
           <motion.div 
-            className="flex h-10 w-10 items-center justify-center rounded-full"
-            style={{ backgroundColor: 'var(--theme-primary)' }}
+            className="flex h-9 w-9 items-center justify-center rounded-full overflow-hidden"
             whileHover={{ rotate: 360 }}
             transition={{ duration: 0.6 }}
           >
-            <span className="text-lg text-white">✦</span>
+            <Image
+              src="/img/02.png"
+              alt="Shining Property Service"
+              width={48}
+              height={48}
+              className="object-cover"
+              priority
+            />
           </motion.div>
-          <div className="font-serif text-[21px] font-bold">
-            <span style={{ color: 'var(--theme-primary)' }}>Spark</span>
-            <span style={{ color: 'var(--theme-secondary)' }}>Well</span>
+          <div className="font-serif text-[21px] font-bold whitespace-nowrap">
+            <span style={{ color: 'var(--theme-primary)' }}>Shining</span>
+            <span style={{ color: 'var(--theme-secondary)' }}> Property Service</span>
           </div>
         </Link>
 

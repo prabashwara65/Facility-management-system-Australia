@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SparkWell Cleaning",
+  title: "Shining Property Service",
   description: "Premium cleaning services for homes and rentals.",
 };
 
