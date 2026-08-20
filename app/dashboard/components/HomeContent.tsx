@@ -16,42 +16,186 @@ import {
   Building,
   Users,
   Star,
+  RefreshCw,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import PricingSection from '../components/pages/PricingSection';
+
+// Types
+interface BookingStats {
+  total: number;
+  pending: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+  revenue: number;
+}
+
+interface ServiceStats {
+  total: number;
+  residential: number;
+  commercial: number;
+  active: number;
+}
+
+interface PricingStats {
+  totalTiers: number;
+  totalAddOns: number;
+  totalFAQs: number;
+}
 
 export default function HomeContent() {
   const [showPricingPreview, setShowPricingPreview] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [bookingStats, setBookingStats] = useState<BookingStats>({
+    total: 0,
+    pending: 0,
+    confirmed: 0,
+    completed: 0,
+    cancelled: 0,
+    revenue: 0,
+  });
+  const [serviceStats, setServiceStats] = useState<ServiceStats>({
+    total: 0,
+    residential: 0,
+    commercial: 0,
+    active: 0,
+  });
+  const [pricingStats, setPricingStats] = useState<PricingStats>({
+    totalTiers: 0,
+    totalAddOns: 0,
+    totalFAQs: 0,
+  });
+  const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
+  const supabase = createClient();
+
+  // Stats Cards Data
   const statCards = [
-    { label: 'Storage used', value: '4.8 TB', delta: '+12.4%', tone: '#8b5cf6' },
-    { label: 'Active files', value: '18.6K', delta: '+2.1%', tone: '#3b82f6' },
-    { label: 'Shared folders', value: '326', delta: '+18.7%', tone: '#10b981' },
-    { label: 'Sync status', value: '97%', delta: '+0.8%', tone: '#f59e0b' },
+    { label: 'Total Bookings', value: bookingStats.total.toString(), delta: '+12.4%', tone: '#8b5cf6' },
+    { label: 'Pending', value: bookingStats.pending.toString(), delta: '+2.1%', tone: '#f59e0b' },
+    { label: 'Completed', value: bookingStats.completed.toString(), delta: '+18.7%', tone: '#10b981' },
+    { label: 'Revenue', value: `$${bookingStats.revenue.toLocaleString()}`, delta: '+0.8%', tone: '#3b82f6' },
   ];
-
-  const recentFiles = [
-    { name: 'Marketing plan.pdf', size: '2.4 MB', type: 'PDF', status: 'Ready' },
-    { name: 'Brand kit.fig', size: '16.8 MB', type: 'FIG', status: 'Review' },
-    { name: 'Campaign assets.zip', size: '48.2 MB', type: 'ZIP', status: 'Syncing' },
-    { name: 'Q2 dashboard.xlsx', size: '1.1 MB', type: 'XLSX', status: 'Ready' },
-  ];
-
-  const usageBars = [58, 76, 54, 82, 69, 92, 64];
 
   const quickActions = [
     { icon: Database, label: 'Auto backup', detail: 'Every 6 hours', color: '#8b5cf6' },
     { icon: Download, label: 'Download queue', detail: '12 files', color: '#3b82f6' },
     { icon: Link2, label: 'Shared links', detail: '7 active', color: '#10b981' },
-    { icon: DollarSign, label: 'Pricing', detail: 'View pricing plans', color: '#f59e0b' },
+    { icon: DollarSign, label: 'Pricing', detail: `${pricingStats.totalTiers} tiers`, color: '#f59e0b' },
   ];
 
-  const serviceStats = [
-    { label: 'Total Services', value: '6', icon: Home, color: '#3b82f6' },
-    { label: 'Residential', value: '3', icon: Home, color: '#10b981' },
-    { label: 'Commercial', value: '3', icon: Building, color: '#8b5cf6' },
-    { label: 'Avg. Rating', value: '4.8', icon: Star, color: '#f59e0b' },
+  const serviceStatsData = [
+    { label: 'Total Services', value: serviceStats.total.toString(), icon: Home, color: '#3b82f6' },
+    { label: 'Residential', value: serviceStats.residential.toString(), icon: Home, color: '#10b981' },
+    { label: 'Commercial', value: serviceStats.commercial.toString(), icon: Building, color: '#8b5cf6' },
+    { label: 'Active', value: serviceStats.active.toString(), icon: Star, color: '#f59e0b' },
   ];
+
+  // Load all dashboard data
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // 1. Load booking stats
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('*');
+
+      if (bookingsError) {
+        console.error('Error loading bookings:', bookingsError);
+      } else if (bookingsData) {
+        const total = bookingsData.length;
+        const pending = bookingsData.filter(b => b.status === 'Pending').length;
+        const confirmed = bookingsData.filter(b => b.status === 'Confirmed').length;
+        const completed = bookingsData.filter(b => b.status === 'Completed').length;
+        const cancelled = bookingsData.filter(b => b.status === 'Cancelled').length;
+        const revenue = bookingsData.reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+        setBookingStats({
+          total,
+          pending,
+          confirmed,
+          completed,
+          cancelled,
+          revenue,
+        });
+
+        // Get recent 5 bookings
+        setRecentBookings(bookingsData.slice(0, 5));
+      }
+
+      // 2. Load service stats
+      const { data: servicesData, error: servicesError } = await supabase
+        .from('services')
+        .select('*');
+
+      if (servicesError) {
+        console.error('Error loading services:', servicesError);
+      } else if (servicesData) {
+        setServiceStats({
+          total: servicesData.length,
+          residential: servicesData.filter(s => s.category === 'Residential').length,
+          commercial: servicesData.filter(s => s.category === 'Commercial').length,
+          active: servicesData.filter(s => s.status === 'Active').length,
+        });
+      }
+
+      // 3. Load pricing stats
+      const { data: tiersData, error: tiersError } = await supabase
+        .from('pricing_tiers')
+        .select('*');
+
+      const { data: addOnsData, error: addOnsError } = await supabase
+        .from('add_ons')
+        .select('*');
+
+      const { data: faqsData, error: faqsError } = await supabase
+        .from('faqs')
+        .select('*');
+
+      if (!tiersError && tiersData) {
+        setPricingStats({
+          totalTiers: tiersData.length,
+          totalAddOns: addOnsData?.length || 0,
+          totalFAQs: faqsData?.length || 0,
+        });
+      }
+
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const handleRefresh = () => {
+    loadDashboardData();
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px', color: '#94a3b8' }}>
+        <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
+        <span style={{ marginLeft: '12px' }}>Loading dashboard...</span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'grid', gap: '20px' }}>
@@ -85,7 +229,7 @@ export default function HomeContent() {
                 letterSpacing: '0.12em',
               }}
             >
-              Overview
+              Dashboard Overview
             </div>
             <h1
               style={{
@@ -99,31 +243,55 @@ export default function HomeContent() {
               Good morning
             </h1>
           </div>
-          <button
-            onClick={() => setShowPricingPreview(!showPricingPreview)}
-            style={{
-              border: '1px solid rgba(148,163,184,0.18)',
-              background: 'rgba(59,130,246,0.12)',
-              color: '#dbeafe',
-              borderRadius: '12px',
-              padding: '10px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              fontSize: 'clamp(0.75rem, 0.9vw, 0.9rem)',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
-          >
-            <DollarSign size={15} />
-            {showPricingPreview ? 'Hide Pricing' : 'View Pricing'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleRefresh}
+              style={{
+                border: '1px solid rgba(148,163,184,0.18)',
+                background: 'rgba(59,130,246,0.12)',
+                color: '#dbeafe',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontSize: 'clamp(0.75rem, 0.9vw, 0.9rem)',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
+            >
+              <RefreshCw size={15} />
+              Refresh
+            </button>
+            <button
+              onClick={() => setShowPricingPreview(!showPricingPreview)}
+              style={{
+                border: '1px solid rgba(148,163,184,0.18)',
+                background: 'rgba(59,130,246,0.12)',
+                color: '#dbeafe',
+                borderRadius: '12px',
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontSize: 'clamp(0.75rem, 0.9vw, 0.9rem)',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
+            >
+              <DollarSign size={15} />
+              {showPricingPreview ? 'Hide Pricing' : 'View Pricing'}
+            </button>
+          </div>
         </div>
 
-        {/* Stats Cards - Responsive Grid */}
+        {/* Stats Cards */}
         <div 
           style={{ 
             display: 'grid', 
@@ -201,7 +369,7 @@ export default function HomeContent() {
           ))}
         </div>
 
-        {/* Service Stats Mini Cards - Responsive Grid */}
+        {/* Service Stats Mini Cards */}
         <div 
           style={{ 
             display: 'grid', 
@@ -210,7 +378,7 @@ export default function HomeContent() {
             marginTop: '16px',
           }}
         >
-          {serviceStats.map((stat) => {
+          {serviceStatsData.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
@@ -264,7 +432,7 @@ export default function HomeContent() {
         </div>
       )}
 
-      {/* Main Content Grid - Responsive */}
+      {/* Main Content Grid */}
       <div 
         style={{ 
           display: 'grid', 
@@ -272,7 +440,7 @@ export default function HomeContent() {
           gap: '20px',
         }}
       >
-        {/* Left Column - Storage Overview */}
+        {/* Left Column - Recent Bookings */}
         <div
           style={{
             background: 'rgba(15, 23, 42, 0.82)',
@@ -302,7 +470,7 @@ export default function HomeContent() {
                   textTransform: 'uppercase',
                 }}
               >
-                Recent files
+                Recent Activity
               </div>
               <h2
                 style={{
@@ -312,261 +480,97 @@ export default function HomeContent() {
                   color: '#f8fafc',
                 }}
               >
-                Storage overview
+                Recent Bookings
               </h2>
             </div>
-            <button
-              style={{
-                border: '1px solid rgba(148,163,184,0.18)',
-                background: 'rgba(59,130,246,0.12)',
-                color: '#dbeafe',
-                borderRadius: '12px',
-                padding: '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontSize: 'clamp(0.75rem, 0.85vw, 0.9rem)',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
-            >
-              <Plus size={15} />
-              New file
-            </button>
+            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>
+              {bookingStats.total} total
+            </span>
           </div>
 
-          <div 
-            style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '24px',
-            }}
-          >
-            {/* File List */}
-            <div>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {recentFiles.map((file) => (
-                  <div
-                    key={file.name}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr',
-                      gap: '8px',
-                      padding: '14px 16px',
-                      borderRadius: '16px',
-                      background: 'rgba(15, 23, 42, 0.72)',
-                      border: '1px solid rgba(148,163,184,0.08)',
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)')}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#e2e8f0' }}>
-                      <div
-                        style={{
-                          width: '34px',
-                          height: '34px',
-                          borderRadius: '10px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: 'rgba(96,165,250,0.14)',
-                          color: '#93c5fd',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <FileText size={16} />
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)' }}>{file.name}</div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <span style={{ color: '#94a3b8', fontSize: 'clamp(0.7rem, 0.75vw, 0.85rem)' }}>{file.size}</span>
-                        <span style={{ color: '#cbd5e1', fontSize: 'clamp(0.7rem, 0.75vw, 0.85rem)' }}>{file.type}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span
-                          style={{
-                            fontSize: 'clamp(0.7rem, 0.75vw, 0.85rem)',
-                            color:
-                              file.status === 'Syncing'
-                                ? '#fbbf24'
-                                : file.status === 'Review'
-                                ? '#a78bfa'
-                                : '#86efac',
-                          }}
-                        >
-                          {file.status}
-                        </span>
-                        <button
-                          style={{
-                            border: 'none',
-                            background: 'transparent',
-                            color: '#94a3b8',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Storage Chart */}
-            <div
-              style={{
-                background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.96))',
-                border: '1px solid rgba(148,163,184,0.1)',
-                borderRadius: '24px',
-                padding: '20px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                gap: '18px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {recentBookings.length > 0 ? (
+              recentBookings.map((booking) => (
                 <div
+                  key={booking.id}
                   style={{
-                    fontSize: '0.72rem',
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    color: '#94a3b8',
-                  }}
-                >
-                  Storage
-                </div>
-                <button
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    color: '#cbd5e1',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <ChevronDown size={16} />
-                </button>
-              </div>
-
-              {/* Donut Chart */}
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <div
-                  style={{
-                    width: 'min(180px, 100%)',
-                    maxWidth: '180px',
-                    aspectRatio: '1/1',
-                    borderRadius: '50%',
-                    position: 'relative',
                     display: 'grid',
-                    placeItems: 'center',
-                    background: 'conic-gradient(#8b5cf6 0 68%, rgba(148,163,184,0.15) 68% 100%)',
+                    gridTemplateColumns: '1fr',
+                    gap: '8px',
+                    padding: '14px 16px',
+                    borderRadius: '16px',
+                    background: 'rgba(15, 23, 42, 0.72)',
+                    border: '1px solid rgba(148,163,184,0.08)',
+                    transition: 'all 0.2s ease',
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)')}
                 >
-                  <div
-                    style={{
-                      width: '68%',
-                      aspectRatio: '1/1',
-                      borderRadius: '50%',
-                      background: '#0f172a',
-                      border: '1px solid rgba(148,163,184,0.12)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#f8fafc',
-                    }}
-                  >
-                    <div style={{ fontSize: 'clamp(1.5rem, 2vw, 2rem)', fontWeight: 800, letterSpacing: '-0.06em' }}>
-                      68%
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#e2e8f0' }}>
                     <div
                       style={{
-                        fontSize: 'clamp(0.6rem, 0.7vw, 0.75rem)',
-                        color: '#94a3b8',
-                        letterSpacing: '0.08em',
-                        textTransform: 'uppercase',
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(96,165,250,0.14)',
+                        color: '#93c5fd',
+                        flexShrink: 0,
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
                       }}
                     >
-                      used
+                      {booking.first_name?.[0]}{booking.last_name?.[0]}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)' }}>
+                        {booking.first_name} {booking.last_name}
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <span style={{ color: '#94a3b8', fontSize: 'clamp(0.65rem, 0.7vw, 0.75rem)' }}>
+                          {booking.service_type}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 'clamp(0.6rem, 0.65vw, 0.7rem)',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            color: booking.status === 'Pending' ? '#f59e0b' : 
+                                   booking.status === 'Confirmed' ? '#3b82f6' : 
+                                   booking.status === 'Completed' ? '#10b981' : '#ef4444',
+                            background: booking.status === 'Pending' ? 'rgba(245,158,11,0.15)' : 
+                                       booking.status === 'Confirmed' ? 'rgba(59,130,246,0.15)' : 
+                                       booking.status === 'Completed' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                          }}
+                        >
+                          {booking.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ color: '#64748b', fontSize: 'clamp(0.7rem, 0.75vw, 0.8rem)' }}>
+                      {formatDate(booking.preferred_date)}
+                    </span>
+                    <span style={{ color: '#3b82f6', fontWeight: 600, fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)' }}>
+                      ${booking.total_price}
+                    </span>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div style={{ textAlign: 'center', color: '#64748b', padding: '40px 0' }}>
+                No bookings yet
               </div>
-
-              {/* Storage Breakdown */}
-              <div style={{ display: 'grid', gap: '10px' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    color: '#e2e8f0',
-                    fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)',
-                  }}
-                >
-                  <span>Documents</span>
-                  <span>2.3 TB</span>
-                </div>
-                <div
-                  style={{
-                    height: '8px',
-                    borderRadius: '999px',
-                    background: 'rgba(148,163,184,0.12)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '64%',
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #8b5cf6, #60a5fa)',
-                      borderRadius: '999px',
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    color: '#e2e8f0',
-                    fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)',
-                  }}
-                >
-                  <span>Backups</span>
-                  <span>1.5 TB</span>
-                </div>
-                <div
-                  style={{
-                    height: '8px',
-                    borderRadius: '999px',
-                    background: 'rgba(148,163,184,0.12)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '48%',
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #10b981, #34d399)',
-                      borderRadius: '999px',
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
         {/* Right Column */}
         <div style={{ display: 'grid', gap: '20px' }}>
-          {/* Activity / Traffic Chart */}
+          {/* Traffic Chart */}
           <div
             style={{
               background: 'linear-gradient(180deg, rgba(15,23,42,0.82), rgba(20,31,53,0.98))',
@@ -631,7 +635,7 @@ export default function HomeContent() {
                 marginTop: '18px',
               }}
             >
-              {usageBars.map((bar, index) => (
+              {[58, 76, 54, 82, 69, 92, 64].map((bar, index) => (
                 <div
                   key={index}
                   style={{
@@ -651,7 +655,7 @@ export default function HomeContent() {
                       minHeight: '24px',
                       borderRadius: '12px 12px 6px 6px',
                       background:
-                        index === usageBars.length - 1
+                        index === 6
                           ? 'linear-gradient(180deg, #60a5fa, #8b5cf6)'
                           : 'linear-gradient(180deg, rgba(96,165,250,0.7), rgba(59,130,246,0.3))',
                       boxShadow: '0 8px 18px rgba(96, 165, 250, 0.25)',

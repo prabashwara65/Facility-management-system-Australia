@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Phone,
@@ -14,7 +14,26 @@ import {
   Sparkles,
   ChevronDown,
 } from 'lucide-react';
-import { useSiteContent, CONTACT_INFO_STORAGE_KEY, defaultContactInfo } from '@/lib/siteContent';
+import { createClient } from '@/lib/supabase/client';
+
+interface ContactInfo {
+  id: number;
+  phone: string;
+  email: string;
+  service_area: string;
+  hours: string;
+  guarantee_title: string;
+  guarantee_description: string;
+}
+
+const defaultContactInfo = {
+  phone: '1800 123 456',
+  email: 'hello@sparkwell.com.au',
+  service_area: 'Melbourne, VIC',
+  hours: 'Mon–Sat, 7am–6pm',
+  guarantee_title: 'Bond-Back Guarantee',
+  guarantee_description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
+};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -27,11 +46,11 @@ const itemVariants = {
 };
 
 export default function BookingSection() {
-  // Use shared data for contact info
-  const [contactInfo] = useSiteContent(CONTACT_INFO_STORAGE_KEY, defaultContactInfo);
-
+  const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
+  const [loading, setLoading] = useState(true);
   const [bedrooms, setBedrooms] = useState(2);
   const [bathrooms, setBathrooms] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -44,58 +63,108 @@ export default function BookingSection() {
     specialInstructions: '',
   });
 
-  const contactInfoItems = [
+  const supabase = createClient();
+
+  // Fetch contact info from Supabase
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('contact_info')
+          .select('*')
+          .limit(1)
+          .single();
+
+        if (error) {
+          console.error('Error fetching contact info:', error);
+          setContactInfo(defaultContactInfo as any);
+        } else if (data) {
+          setContactInfo(data);
+        } else {
+          setContactInfo(defaultContactInfo as any);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        setContactInfo(defaultContactInfo as any);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContactInfo();
+  }, []);
+
+  const contactInfoItems = contactInfo ? [
     { icon: Phone, label: 'Phone', value: contactInfo.phone },
     { icon: Mail, label: 'Email', value: contactInfo.email },
-    { icon: MapPin, label: 'Service Area', value: contactInfo.serviceArea },
+    { icon: MapPin, label: 'Service Area', value: contactInfo.service_area },
     { icon: Clock, label: 'Hours', value: contactInfo.hours },
-  ];
+  ] : [];
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Create new booking object
-    const newBooking = {
-      id: Date.now(),
-      ...formData,
-      bedrooms,
-      bathrooms,
-      status: 'Pending',
-      createdAt: new Date().toISOString(),
-      totalPrice: calculatePrice(formData.serviceType, bedrooms, bathrooms),
-    };
+    setSubmitting(true);
 
-    // Save to localStorage
-    const existingBookings = JSON.parse(localStorage.getItem('sparkwell:bookings') || '[]');
-    localStorage.setItem('sparkwell:bookings', JSON.stringify([...existingBookings, newBooking]));
-    
-    console.log('Booking Submitted:', newBooking);
-    
-    // Reset form
-    setFormData({
-      firstName: '',
-      lastName: '',
-      phone: '',
-      email: '',
-      serviceType: 'End of Lease / Bond Clean',
-      address: '',
-      suburb: '',
-      preferredDate: '',
-      specialInstructions: '',
-    });
-    setBedrooms(2);
-    setBathrooms(1);
+    try {
+      const newBooking = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone,
+        email: formData.email,
+        service_type: formData.serviceType,
+        bedrooms: bedrooms,
+        bathrooms: bathrooms,
+        address: formData.address || '',
+        suburb: formData.suburb,
+        preferred_date: formData.preferredDate || '',
+        special_instructions: formData.specialInstructions || '',
+        status: 'Pending',
+        total_price: calculatePrice(formData.serviceType, bedrooms, bathrooms),
+      };
 
-    // Show success message
-    alert('Booking submitted successfully! We will contact you shortly.');
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert([newBooking])
+        .select();
+
+      if (error) {
+        console.error('Error creating booking:', error);
+        alert('Failed to submit booking. Please try again.');
+        return;
+      }
+
+      console.log('Booking Submitted:', data);
+      
+      // Reset form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        phone: '',
+        email: '',
+        serviceType: 'End of Lease / Bond Clean',
+        address: '',
+        suburb: '',
+        preferredDate: '',
+        specialInstructions: '',
+      });
+      setBedrooms(2);
+      setBathrooms(1);
+
+      alert('Booking submitted successfully! We will contact you shortly.');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to submit booking. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const calculatePrice = (serviceType, bedrooms, bathrooms) => {
-    const basePrices = {
+  const calculatePrice = (serviceType: string, bedrooms: number, bathrooms: number) => {
+    const basePrices: Record<string, number> = {
       'End of Lease / Bond Clean': 319,
       'Regular Clean': 99,
       'Deep Clean': 249,
@@ -104,6 +173,16 @@ export default function BookingSection() {
     const extraRooms = Math.max(0, (bedrooms + bathrooms) - 3);
     return basePrice + (extraRooms * 25);
   };
+
+  if (loading) {
+    return (
+      <section className="w-full py-16 px-4 sm:px-6 lg:px-8 font-sans" id="booking" style={{ backgroundColor: 'var(--theme-primary)' }}>
+        <div className="max-w-6xl mx-auto text-center">
+          <p style={{ color: 'rgba(255,255,255,0.7)' }}>Loading...</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -177,7 +256,7 @@ export default function BookingSection() {
             </div>
 
             <motion.a
-              href={`tel:${contactInfo.phone.replace(/\s/g, '')}`}
+              href={`tel:${contactInfo?.phone?.replace(/\s/g, '') || ''}`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="w-full font-semibold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200"
@@ -197,10 +276,10 @@ export default function BookingSection() {
             >
               <div className="flex items-center space-x-2 font-bold text-sm" style={{ color: 'var(--theme-secondary)' }}>
                 <Sparkles className="w-4 h-4 fill-current" />
-                <span>{contactInfo.guarantee.title}</span>
+                <span>{contactInfo?.guarantee_title || 'Bond-Back Guarantee'}</span>
               </div>
               <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                {contactInfo.guarantee.description}
+                {contactInfo?.guarantee_description || "If your property manager isn't satisfied, we return free of charge. That's our promise."}
               </p>
             </div>
           </motion.div>
@@ -533,10 +612,11 @@ export default function BookingSection() {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   type="submit"
-                  className="w-full font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200"
+                  disabled={submitting}
+                  className="w-full font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200 disabled:opacity-50"
                   style={{ backgroundColor: 'var(--theme-secondary)', color: 'white' }}
                 >
-                  <span>Request My Booking</span>
+                  <span>{submitting ? 'Submitting...' : 'Request My Booking'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </motion.button>
               </div>

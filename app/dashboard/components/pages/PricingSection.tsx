@@ -21,7 +21,7 @@ import {
   HelpCircle,
   RefreshCw,
 } from 'lucide-react';
-import { useSiteContent, PRICING_STORAGE_KEY, defaultPricingContent, PricingContent as PricingContentType } from '@/lib/siteContent';
+import { createClient } from '@/lib/supabase/client';
 
 type ServiceCategory = 'Residential' | 'Commercial';
 
@@ -55,13 +55,163 @@ interface FAQ {
 const categories = ['All', 'Residential', 'Commercial'];
 const statusOptions = ['Active', 'Inactive', 'Draft'];
 
-export default function PricingContent() {
-  // Use shared data store
-  const [pricingData, setPricingData] = useSiteContent<PricingContentType>(
-    PRICING_STORAGE_KEY,
-    defaultPricingContent
-  );
+const defaultTiers: Tier[] = [
+  {
+    id: 1,
+    label: 'General Clean',
+    price: '$179',
+    description: 'Perfect for regular upkeep. Keep your place feeling fresh, organised, and stress-free every week or fortnight. Member rates apply',
+    isPopular: false,
+    category: 'Residential',
+    bookings: 156,
+    rating: 4.8,
+    status: 'Active',
+  },
+  {
+    id: 2,
+    label: 'Deep Reset Clean',
+    price: '$249',
+    description: 'For when your home needs more than a touch-up. Floors, bathrooms, kitchen, tackled top to bottom. It\'s the reset button for your space.',
+    isPopular: true,
+    category: 'Residential',
+    bookings: 98,
+    rating: 4.9,
+    status: 'Active',
+  },
+  {
+    id: 3,
+    label: 'End of Lease Cleaning',
+    price: '$319',
+    description: '100% BOND RETURN GUARANTEE. Designed to get your bond back. Full vacate clean with checklist compliance. Zero stress, all sparkle.',
+    isPopular: false,
+    category: 'Residential',
+    bookings: 234,
+    rating: 4.7,
+    status: 'Active',
+  },
+  {
+    id: 4,
+    label: 'Office Clean',
+    price: '$199',
+    description: 'Professional office cleaning for workspaces up to 3 rooms. Daily or weekly service available.',
+    isPopular: false,
+    category: 'Commercial',
+    bookings: 67,
+    rating: 4.6,
+    status: 'Active',
+  },
+  {
+    id: 5,
+    label: 'Retail Clean',
+    price: '$299',
+    description: 'Specialised retail space cleaning to keep your shop floor and displays spotless.',
+    isPopular: true,
+    category: 'Commercial',
+    bookings: 45,
+    rating: 4.8,
+    status: 'Active',
+  },
+  {
+    id: 6,
+    label: 'Warehouse Clean',
+    price: '$399',
+    description: 'Complete warehouse and industrial space cleaning with heavy-duty equipment.',
+    isPopular: false,
+    category: 'Commercial',
+    bookings: 23,
+    rating: 4.5,
+    status: 'Draft',
+  },
+];
 
+const defaultAddOns: AddOn[] = [
+  { id: 1, name: 'Inside oven', price: '$45', category: 'Residential', side: 'left' },
+  { id: 2, name: 'Inside windows', price: '$60', category: 'Residential', side: 'left' },
+  { id: 3, name: 'Balcony / outdoor area', price: '$50', category: 'Residential', side: 'left' },
+  { id: 4, name: 'Inside fridge', price: '$35', category: 'Residential', side: 'right' },
+  { id: 5, name: 'Carpet steam clean (per room)', price: '$55', category: 'Residential', side: 'right' },
+  { id: 6, name: 'Garage', price: '$70', category: 'Residential', side: 'right' },
+  { id: 7, name: 'Washroom sanitising', price: '$45', category: 'Commercial', side: 'left' },
+  { id: 8, name: 'Window cleaning', price: '$90', category: 'Commercial', side: 'left' },
+  { id: 9, name: 'After-hours clean', price: '$60', category: 'Commercial', side: 'left' },
+  { id: 10, name: 'Carpet treatment', price: '$80', category: 'Commercial', side: 'right' },
+  { id: 11, name: 'Deep kitchen detail', price: '$95', category: 'Commercial', side: 'right' },
+  { id: 12, name: 'Strata common area', price: '$120', category: 'Commercial', side: 'right' },
+];
+
+const defaultFAQs: FAQ[] = [
+  {
+    id: 1,
+    question: 'What\'s included in your residential cleaning services?',
+    answer: 'Our residential cleaning services include dusting, vacuuming, mopping, surface wiping, disinfecting high-touch areas, and detailed cleaning of kitchens and bathrooms. You can also request extras like inside window cleaning or oven cleaning, depending on your home\'s needs.',
+    category: 'Residential',
+  },
+  {
+    id: 2,
+    question: 'How do I book residential cleaning services?',
+    answer: 'Booking is quick and easy! Simply select your preferred cleaning package, choose your date and time, and confirm your booking. No payment is required at the time of booking - you only pay after the service is completed to your satisfaction.',
+    category: 'Residential',
+  },
+  {
+    id: 3,
+    question: 'Are your residential cleaning services customisable?',
+    answer: 'Yes! We understand every home is different. You can customise your cleaning package by adding extra services, focusing on specific rooms, or scheduling regular cleans. Our team works with you to create the perfect cleaning plan for your home.',
+    category: 'Residential',
+  },
+  {
+    id: 4,
+    question: 'Do you provide house cleaning for specific rooms only?',
+    answer: 'Absolutely! If you only need certain rooms cleaned, we can tailor our service to focus on those areas. Whether it\'s just the kitchen and bathrooms, or specific bedrooms, we\'ll create a customised plan that meets your needs.',
+    category: 'Residential',
+  },
+  {
+    id: 5,
+    question: 'Are your cleaners insured and background-checked?',
+    answer: 'Yes, all our cleaners are fully insured, police-checked, and professionally trained. We take your safety and trust seriously, ensuring every cleaner who enters your home is reliable, trustworthy, and experienced.',
+    category: 'Residential',
+  },
+  {
+    id: 6,
+    question: 'Do I need to be home during the cleaning?',
+    answer: 'It\'s completely up to you! Many clients prefer to be home to oversee the service, while others provide us with access instructions. We have flexible arrangements to suit your preferences and schedule.',
+    category: 'Residential',
+  },
+  {
+    id: 7,
+    question: 'What commercial cleaning services do you offer?',
+    answer: 'We offer comprehensive commercial cleaning services including office cleaning, retail cleaning, school cleaning, gym cleaning, showroom cleaning, medical centre cleaning, and shopping centre cleaning.',
+    category: 'Commercial',
+  },
+  {
+    id: 8,
+    question: 'How often do you provide commercial cleaning?',
+    answer: 'We offer flexible scheduling options including nightly, weekly, fortnightly, or monthly cleans. We can also accommodate deep cleans and one-time special events.',
+    category: 'Commercial',
+  },
+  {
+    id: 9,
+    question: 'Are your commercial cleaners insured and background-checked?',
+    answer: 'Yes, absolutely. All our cleaners are 100% police checked, insured, and professionally trained. We take security and trust very seriously, ensuring your workplace and assets are always in safe hands.',
+    category: 'Commercial',
+  },
+  {
+    id: 10,
+    question: 'Do you provide cleaning supplies and equipment for commercial spaces?',
+    answer: 'Yes, we come fully equipped with superior cleaning products, professional-grade equipment, and all necessary supplies. We can also replenish cleaning goods and restock toiletries as part of our service.',
+    category: 'Commercial',
+  },
+  {
+    id: 11,
+    question: 'Can I customise my commercial cleaning package?',
+    answer: 'Absolutely! Our commercial cleaning packages are 100% customisable. We work with you to create a tailored cleaning plan that fits your specific needs, schedule, and budget. You can add or remove services as needed.',
+    category: 'Commercial',
+  },
+];
+
+export default function PricingContent() {
+  const [tiers, setTiers] = useState<Tier[]>([]);
+  const [addOns, setAddOns] = useState<AddOn[]>([]);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'tiers' | 'addons' | 'faqs'>('tiers');
@@ -70,15 +220,102 @@ export default function PricingContent() {
   const [modalType, setModalType] = useState<'tier' | 'addon' | 'faq'>('tier');
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Extract data from pricingData
-  const tiers = pricingData?.tiers || [];
-  const addOns = pricingData?.addOns || [];
-  const faqs = pricingData?.faqs || [];
+  const supabase = createClient();
 
-  // Load data on mount
+  // Load all pricing data from Supabase
+  const loadPricingData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Load tiers
+      const { data: tiersData, error: tiersError } = await supabase
+        .from('pricing_tiers')
+        .select('*')
+        .order('id');
+
+      if (tiersError) {
+        console.error('Error loading tiers:', tiersError);
+        setTiers(defaultTiers);
+      } else if (tiersData && tiersData.length > 0) {
+        setTiers(tiersData);
+      } else {
+        // Insert default tiers if none exist
+        const { data: inserted, error: insertError } = await supabase
+          .from('pricing_tiers')
+          .insert(defaultTiers)
+          .select();
+
+        if (insertError) {
+          console.error('Error inserting default tiers:', insertError);
+          setTiers(defaultTiers);
+        } else {
+          setTiers(inserted || defaultTiers);
+        }
+      }
+
+      // Load add-ons
+      const { data: addOnsData, error: addOnsError } = await supabase
+        .from('add_ons')
+        .select('*')
+        .order('id');
+
+      if (addOnsError) {
+        console.error('Error loading add-ons:', addOnsError);
+        setAddOns(defaultAddOns);
+      } else if (addOnsData && addOnsData.length > 0) {
+        setAddOns(addOnsData);
+      } else {
+        const { data: inserted, error: insertError } = await supabase
+          .from('add_ons')
+          .insert(defaultAddOns)
+          .select();
+
+        if (insertError) {
+          console.error('Error inserting default add-ons:', insertError);
+          setAddOns(defaultAddOns);
+        } else {
+          setAddOns(inserted || defaultAddOns);
+        }
+      }
+
+      // Load FAQs
+      const { data: faqsData, error: faqsError } = await supabase
+        .from('faqs')
+        .select('*')
+        .order('id');
+
+      if (faqsError) {
+        console.error('Error loading FAQs:', faqsError);
+        setFaqs(defaultFAQs);
+      } else if (faqsData && faqsData.length > 0) {
+        setFaqs(faqsData);
+      } else {
+        const { data: inserted, error: insertError } = await supabase
+          .from('faqs')
+          .insert(defaultFAQs)
+          .select();
+
+        if (insertError) {
+          console.error('Error inserting default FAQs:', insertError);
+          setFaqs(defaultFAQs);
+        } else {
+          setFaqs(inserted || defaultFAQs);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading pricing data:', error);
+      setTiers(defaultTiers);
+      setAddOns(defaultAddOns);
+      setFaqs(defaultFAQs);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setIsLoading(false);
+    loadPricingData();
   }, []);
 
   // Filter data
@@ -110,82 +347,242 @@ export default function PricingContent() {
     { label: 'Total FAQs', value: faqs.length, icon: HelpCircle, color: '#f59e0b' },
   ];
 
-  const handleDeleteTier = (id: number) => {
+  const handleDeleteTier = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this tier?')) {
-      const updatedTiers = tiers.filter((t: Tier) => t.id !== id);
-      setPricingData({ ...pricingData, tiers: updatedTiers });
+      try {
+        const { error } = await supabase
+          .from('pricing_tiers')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error deleting tier:', error);
+          alert('Failed to delete tier');
+          return;
+        }
+
+        setTiers(tiers.filter((t: Tier) => t.id !== id));
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to delete tier');
+      }
     }
   };
 
-  const handleDeleteAddOn = (id: number) => {
+  const handleDeleteAddOn = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this add-on?')) {
-      const updatedAddOns = addOns.filter((a: AddOn) => a.id !== id);
-      setPricingData({ ...pricingData, addOns: updatedAddOns });
+      try {
+        const { error } = await supabase
+          .from('add_ons')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error deleting add-on:', error);
+          alert('Failed to delete add-on');
+          return;
+        }
+
+        setAddOns(addOns.filter((a: AddOn) => a.id !== id));
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to delete add-on');
+      }
     }
   };
 
-  const handleDeleteFAQ = (id: number) => {
+  const handleDeleteFAQ = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this FAQ?')) {
-      const updatedFaqs = faqs.filter((f: FAQ) => f.id !== id);
-      setPricingData({ ...pricingData, faqs: updatedFaqs });
+      try {
+        const { error } = await supabase
+          .from('faqs')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error deleting FAQ:', error);
+          alert('Failed to delete FAQ');
+          return;
+        }
+
+        setFaqs(faqs.filter((f: FAQ) => f.id !== id));
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to delete FAQ');
+      }
     }
   };
 
-  const handleSaveTier = (tierData: any) => {
-    let updatedTiers;
-    if (editingItem) {
-      updatedTiers = tiers.map((t: Tier) => 
-        t.id === editingItem.id ? { ...t, ...tierData } : t
-      );
-    } else {
-      const newTier: Tier = {
-        ...tierData,
-        id: tiers.length + 1,
-        bookings: 0,
-        rating: 0,
-        status: 'Active',
-      };
-      updatedTiers = [...tiers, newTier];
+  const handleSaveTier = async (tierData: any) => {
+    setSaving(true);
+    try {
+      let result;
+      if (editingItem) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('pricing_tiers')
+          .update({
+            label: tierData.label,
+            price: tierData.price,
+            description: tierData.description,
+            is_popular: tierData.isPopular,
+            category: tierData.category,
+            status: tierData.status,
+          })
+          .eq('id', editingItem.id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error updating tier:', error);
+          alert('Failed to update tier');
+          return;
+        }
+
+        setTiers(tiers.map((t: Tier) => t.id === editingItem.id ? { ...t, ...tierData } : t));
+      } else {
+        // Create new
+        const { data, error } = await supabase
+          .from('pricing_tiers')
+          .insert({
+            label: tierData.label,
+            price: tierData.price,
+            description: tierData.description,
+            is_popular: tierData.isPopular || false,
+            category: tierData.category,
+            status: tierData.status || 'Active',
+            bookings: 0,
+            rating: 0,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating tier:', error);
+          alert('Failed to create tier');
+          return;
+        }
+
+        setTiers([...tiers, data]);
+      }
+      setShowModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to save tier');
+    } finally {
+      setSaving(false);
     }
-    setPricingData({ ...pricingData, tiers: updatedTiers });
-    setShowModal(false);
-    setEditingItem(null);
   };
 
-  const handleSaveAddOn = (addonData: any) => {
-    let updatedAddOns;
-    if (editingItem) {
-      updatedAddOns = addOns.map((a: AddOn) => 
-        a.id === editingItem.id ? { ...a, ...addonData } : a
-      );
-    } else {
-      const newAddOn: AddOn = {
-        ...addonData,
-        id: addOns.length + 1,
-      };
-      updatedAddOns = [...addOns, newAddOn];
+  const handleSaveAddOn = async (addonData: any) => {
+    setSaving(true);
+    try {
+      let result;
+      if (editingItem) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('add_ons')
+          .update({
+            name: addonData.name,
+            price: addonData.price,
+            category: addonData.category,
+            side: addonData.side,
+          })
+          .eq('id', editingItem.id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error updating add-on:', error);
+          alert('Failed to update add-on');
+          return;
+        }
+
+        setAddOns(addOns.map((a: AddOn) => a.id === editingItem.id ? { ...a, ...addonData } : a));
+      } else {
+        // Create new
+        const { data, error } = await supabase
+          .from('add_ons')
+          .insert({
+            name: addonData.name,
+            price: addonData.price,
+            category: addonData.category,
+            side: addonData.side || 'left',
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating add-on:', error);
+          alert('Failed to create add-on');
+          return;
+        }
+
+        setAddOns([...addOns, data]);
+      }
+      setShowModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to save add-on');
+    } finally {
+      setSaving(false);
     }
-    setPricingData({ ...pricingData, addOns: updatedAddOns });
-    setShowModal(false);
-    setEditingItem(null);
   };
 
-  const handleSaveFAQ = (faqData: any) => {
-    let updatedFaqs;
-    if (editingItem) {
-      updatedFaqs = faqs.map((f: FAQ) => 
-        f.id === editingItem.id ? { ...f, ...faqData } : f
-      );
-    } else {
-      const newFAQ: FAQ = {
-        ...faqData,
-        id: faqs.length + 1,
-      };
-      updatedFaqs = [...faqs, newFAQ];
+  const handleSaveFAQ = async (faqData: any) => {
+    setSaving(true);
+    try {
+      let result;
+      if (editingItem) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('faqs')
+          .update({
+            question: faqData.question,
+            answer: faqData.answer,
+            category: faqData.category,
+          })
+          .eq('id', editingItem.id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error updating FAQ:', error);
+          alert('Failed to update FAQ');
+          return;
+        }
+
+        setFaqs(faqs.map((f: FAQ) => f.id === editingItem.id ? { ...f, ...faqData } : f));
+      } else {
+        // Create new
+        const { data, error } = await supabase
+          .from('faqs')
+          .insert({
+            question: faqData.question,
+            answer: faqData.answer,
+            category: faqData.category,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating FAQ:', error);
+          alert('Failed to create FAQ');
+          return;
+        }
+
+        setFaqs([...faqs, data]);
+      }
+      setShowModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to save FAQ');
+    } finally {
+      setSaving(false);
     }
-    setPricingData({ ...pricingData, faqs: updatedFaqs });
-    setShowModal(false);
-    setEditingItem(null);
   };
 
   const toggleExpand = (id: number) => {
@@ -213,10 +610,7 @@ export default function PricingContent() {
   };
 
   const handleRefresh = () => {
-    setIsLoading(true);
-    // Force re-read from store
-    setPricingData({ ...pricingData });
-    setIsLoading(false);
+    loadPricingData();
   };
 
   if (isLoading) {
@@ -443,7 +837,7 @@ export default function PricingContent() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content - Tiers */}
       {activeTab === 'tiers' && (
         <div
           style={{
@@ -560,6 +954,7 @@ export default function PricingContent() {
         </div>
       )}
 
+      {/* Content - Add-Ons */}
       {activeTab === 'addons' && (
         <div
           style={{
@@ -626,6 +1021,7 @@ export default function PricingContent() {
         </div>
       )}
 
+      {/* Content - FAQs */}
       {activeTab === 'faqs' && (
         <div
           style={{
@@ -703,6 +1099,7 @@ export default function PricingContent() {
             else if (modalType === 'addon') handleSaveAddOn(data);
             else if (modalType === 'faq') handleSaveFAQ(data);
           }}
+          saving={saving}
         />
       )}
     </div>
@@ -710,7 +1107,7 @@ export default function PricingContent() {
 }
 
 // Modal Component
-function PricingModal({ type, data, onClose, onSave }: any) {
+function PricingModal({ type, data, onClose, onSave, saving }: any) {
   const [formData, setFormData] = useState(
     data || {
       label: '',
@@ -1139,6 +1536,7 @@ function PricingModal({ type, data, onClose, onSave }: any) {
             </button>
             <button
               type="submit"
+              disabled={saving}
               style={{
                 flex: 2,
                 padding: '12px',
@@ -1154,16 +1552,21 @@ function PricingModal({ type, data, onClose, onSave }: any) {
                 justifyContent: 'center',
                 gap: '8px',
                 transition: 'all 0.2s ease',
+                opacity: saving ? 0.7 : 1,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.02)';
+                if (!saving) {
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
+                if (!saving) {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }
               }}
             >
               <Save size={16} />
-              {data ? 'Update' : 'Create'}
+              {saving ? 'Saving...' : (data ? 'Update' : 'Create')}
             </button>
           </div>
         </form>

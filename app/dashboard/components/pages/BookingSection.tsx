@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Phone,
   Mail,
@@ -12,15 +12,11 @@ import {
   Save,
   ShieldCheck,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react';
-import {
-  CONTACT_INFO_STORAGE_KEY,
-  ContactInfo,
-  defaultContactInfo,
-  useSiteContent,
-} from '@/lib/siteContent';
+import { createClient } from '@/lib/supabase/client';
 
-type ContactFieldKey = 'phone' | 'email' | 'serviceArea' | 'hours';
+type ContactFieldKey = 'phone' | 'email' | 'service_area' | 'hours';
 
 interface ContactField {
   key: ContactFieldKey;
@@ -29,31 +25,102 @@ interface ContactField {
   placeholder: string;
 }
 
+interface ContactInfo {
+  id: number;
+  phone: string;
+  email: string;
+  service_area: string;
+  hours: string;
+  guarantee_title: string;
+  guarantee_description: string;
+}
+
+const defaultContactInfo = {
+  phone: '1800 123 456',
+  email: 'hello@sparkwell.com.au',
+  service_area: 'Melbourne, VIC',
+  hours: 'Mon–Sat, 7am–6pm',
+  guarantee_title: 'Bond-Back Guarantee',
+  guarantee_description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
+};
+
 export default function ContactContent() {
-  const [contactInfo, setContactInfo] = useSiteContent<ContactInfo>(
-    CONTACT_INFO_STORAGE_KEY,
-    defaultContactInfo
-  );
+  const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
   const [editingField, setEditingField] = useState<ContactFieldKey | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [formData, setFormData] = useState<Partial<Record<ContactFieldKey, string>>>({});
   const [showGuaranteeModal, setShowGuaranteeModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const supabase = createClient();
 
   const contactFields: ContactField[] = [
     { key: 'phone', label: 'Phone Number', icon: Phone, placeholder: 'e.g. 1800 123 456' },
     { key: 'email', label: 'Email Address', icon: Mail, placeholder: 'e.g. hello@sparkwell.com.au' },
-    { key: 'serviceArea', label: 'Service Area', icon: MapPin, placeholder: 'e.g. Melbourne, VIC' },
+    { key: 'service_area', label: 'Service Area', icon: MapPin, placeholder: 'e.g. Melbourne, VIC' },
     { key: 'hours', label: 'Business Hours', icon: Clock, placeholder: 'e.g. Mon-Sat, 7am-6pm' },
   ];
 
-  const activeContactFields = contactFields.filter((field) => contactInfo[field.key].trim());
+  // Load contact info from Supabase
+  const loadContactInfo = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('contact_info')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error loading contact info:', error);
+        // If no data exists, insert default
+        const { data: inserted, error: insertError } = await supabase
+          .from('contact_info')
+          .insert([defaultContactInfo])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error inserting default:', insertError);
+          setContactInfo(defaultContactInfo as ContactInfo);
+        } else {
+          setContactInfo(inserted);
+        }
+      } else {
+        setContactInfo(data);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setContactInfo(defaultContactInfo as ContactInfo);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadContactInfo();
+  }, []);
+
+  const getValue = (key: ContactFieldKey) => {
+    if (!contactInfo) return '';
+    const map: Record<ContactFieldKey, string> = {
+      phone: contactInfo.phone,
+      email: contactInfo.email,
+      service_area: contactInfo.service_area,
+      hours: contactInfo.hours,
+    };
+    return map[key] || '';
+  };
+
+  const activeContactFields = contactFields.filter((field) => getValue(field.key).trim());
 
   // Stats
   const stats = [
     { label: 'Contact Methods', value: activeContactFields.length.toString(), icon: Phone, color: '#3b82f6' },
-    { label: 'Phone', value: contactInfo.phone || 'Not set', icon: Phone, color: '#10b981' },
-    { label: 'Email', value: contactInfo.email || 'Not set', icon: Mail, color: '#8b5cf6' },
-    { label: 'Service Area', value: contactInfo.serviceArea ? contactInfo.serviceArea.split(',')[0] : 'Not set', icon: MapPin, color: '#f59e0b' },
+    { label: 'Phone', value: contactInfo?.phone || 'Not set', icon: Phone, color: '#10b981' },
+    { label: 'Email', value: contactInfo?.email || 'Not set', icon: Mail, color: '#8b5cf6' },
+    { label: 'Service Area', value: contactInfo?.service_area ? contactInfo.service_area.split(',')[0] : 'Not set', icon: MapPin, color: '#f59e0b' },
   ];
 
   const handleEdit = (field: ContactFieldKey, value: string) => {
@@ -62,37 +129,140 @@ export default function ContactContent() {
     setShowEditModal(true);
   };
 
-  const handleSave = () => {
-    if (!editingField) return;
-    setContactInfo({ ...contactInfo, ...formData });
-    setShowEditModal(false);
-    setEditingField(null);
-    setFormData({});
+  const handleSave = async () => {
+    if (!editingField || !contactInfo) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('contact_info')
+        .update({ [editingField]: formData[editingField] })
+        .eq('id', contactInfo.id);
+
+      if (error) {
+        console.error('Error updating:', error);
+        alert('Failed to update contact info');
+        return;
+      }
+
+      // Update local state
+      setContactInfo({ ...contactInfo, [editingField]: formData[editingField] || '' });
+      setShowEditModal(false);
+      setEditingField(null);
+      setFormData({});
+      alert('Contact info updated successfully!');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to update contact info');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = (field: ContactFieldKey) => {
+  const handleDelete = async (field: ContactFieldKey) => {
     const fieldLabel = contactFields.find((item) => item.key === field)?.label || 'field';
 
     if (window.confirm(`Are you sure you want to delete this ${fieldLabel.toLowerCase()}?`)) {
-      setContactInfo({ ...contactInfo, [field]: '' });
+      if (!contactInfo) return;
+
+      try {
+        const { error } = await supabase
+          .from('contact_info')
+          .update({ [field]: '' })
+          .eq('id', contactInfo.id);
+
+        if (error) {
+          console.error('Error deleting:', error);
+          alert('Failed to delete field');
+          return;
+        }
+
+        setContactInfo({ ...contactInfo, [field]: '' });
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to delete field');
+      }
     }
   };
 
-  const handleGuaranteeSave = () => {
-    setShowGuaranteeModal(false);
+  const handleGuaranteeSave = async () => {
+    if (!contactInfo) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('contact_info')
+        .update({
+          guarantee_title: contactInfo.guarantee_title,
+          guarantee_description: contactInfo.guarantee_description,
+        })
+        .eq('id', contactInfo.id);
+
+      if (error) {
+        console.error('Error updating guarantee:', error);
+        alert('Failed to update guarantee');
+        return;
+      }
+
+      setShowGuaranteeModal(false);
+      alert('Guarantee updated successfully!');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to update guarantee');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleGuaranteeDelete = () => {
+  const handleGuaranteeDelete = async () => {
     if (window.confirm('Are you sure you want to delete the guarantee content?')) {
-      setContactInfo({
-        ...contactInfo,
-        guarantee: {
-          title: '',
-          description: '',
-        },
-      });
+      if (!contactInfo) return;
+
+      try {
+        const { error } = await supabase
+          .from('contact_info')
+          .update({
+            guarantee_title: '',
+            guarantee_description: '',
+          })
+          .eq('id', contactInfo.id);
+
+        if (error) {
+          console.error('Error deleting guarantee:', error);
+          alert('Failed to delete guarantee');
+          return;
+        }
+
+        setContactInfo({
+          ...contactInfo,
+          guarantee_title: '',
+          guarantee_description: '',
+        });
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to delete guarantee');
+      }
     }
   };
+
+  const handleRefresh = () => {
+    loadContactInfo();
+  };
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px',
+        color: '#94a3b8'
+      }}>
+        <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
+        <span style={{ marginLeft: '12px' }}>Loading contact information...</span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'grid', gap: '20px' }}>
@@ -115,25 +285,45 @@ export default function ContactContent() {
               Contact Information
             </h2>
           </div>
-          <button
-            onClick={() => setShowGuaranteeModal(true)}
-            style={{
-              border: 'none',
-              borderRadius: '14px',
-              padding: '12px 20px',
-              background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-              color: '#ffffff',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-            }}
-          >
-            <ShieldCheck size={18} />
-            Edit Guarantee
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleRefresh}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '10px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'transparent',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+              }}
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+            <button
+              onClick={() => setShowGuaranteeModal(true)}
+              style={{
+                border: 'none',
+                borderRadius: '14px',
+                padding: '12px 20px',
+                background: '#F6D961',
+                color: '#1a1a1a',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
+              }}
+            >
+              <ShieldCheck size={18} />
+              Edit Guarantee
+            </button>
+          </div>
         </div>
       </div>
 
@@ -183,7 +373,7 @@ export default function ContactContent() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
         {contactFields.map((field) => {
           const Icon = field.icon;
-          const value = contactInfo[field.key];
+          const value = getValue(field.key);
 
           return (
             <div
@@ -339,11 +529,11 @@ export default function ContactContent() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
             <Sparkles size={18} style={{ color: 'var(--theme-secondary)' }} />
             <span style={{ color: '#f8fafc', fontWeight: 600 }}>
-              {contactInfo.guarantee.title || 'No guarantee set'}
+              {contactInfo?.guarantee_title || 'No guarantee set'}
             </span>
           </div>
           <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.6', paddingLeft: '32px' }}>
-            {contactInfo.guarantee.description || 'Use Edit to add guarantee content.'}
+            {contactInfo?.guarantee_description || 'Use Edit to add guarantee content.'}
           </p>
         </div>
       </div>
@@ -459,24 +649,26 @@ export default function ContactContent() {
                 </button>
                 <button
                   type="submit"
+                  disabled={saving}
                   style={{
                     flex: 2,
                     padding: '12px',
                     borderRadius: '12px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-                    color: '#ffffff',
+                    background: '#F6D961',
+                    color: '#1a1a1a',
                     cursor: 'pointer',
                     fontWeight: 600,
+                    boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                    opacity: saving ? 0.7 : 1,
                   }}
                 >
                   <Save size={16} />
-                  Save Changes
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -547,10 +739,10 @@ export default function ContactContent() {
                 </label>
                 <input
                   type="text"
-                  value={contactInfo.guarantee.title}
+                  value={contactInfo?.guarantee_title || ''}
                   onChange={(e) => setContactInfo({
-                    ...contactInfo,
-                    guarantee: { ...contactInfo.guarantee, title: e.target.value }
+                    ...contactInfo!,
+                    guarantee_title: e.target.value,
                   })}
                   required
                   style={{
@@ -572,10 +764,10 @@ export default function ContactContent() {
                   Description *
                 </label>
                 <textarea
-                  value={contactInfo.guarantee.description}
+                  value={contactInfo?.guarantee_description || ''}
                   onChange={(e) => setContactInfo({
-                    ...contactInfo,
-                    guarantee: { ...contactInfo.guarantee, description: e.target.value }
+                    ...contactInfo!,
+                    guarantee_description: e.target.value,
                   })}
                   required
                   rows={4}
@@ -614,24 +806,26 @@ export default function ContactContent() {
                 </button>
                 <button
                   type="submit"
+                  disabled={saving}
                   style={{
                     flex: 2,
                     padding: '12px',
                     borderRadius: '12px',
                     border: 'none',
-                    background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-                    color: '#ffffff',
+                    background: '#F6D961',
+                    color: '#1a1a1a',
                     cursor: 'pointer',
                     fontWeight: 600,
+                    boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                    opacity: saving ? 0.7 : 1,
                   }}
                 >
                   <Save size={16} />
-                  Save Changes
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
