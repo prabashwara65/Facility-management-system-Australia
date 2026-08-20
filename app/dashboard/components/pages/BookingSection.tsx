@@ -7,23 +7,13 @@ import {
   MapPin,
   Clock,
   Edit,
-  Trash2,
   X,
   Save,
-  ShieldCheck,
-  Sparkles,
   RefreshCw,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-
-type ContactFieldKey = 'phone' | 'email' | 'service_area' | 'hours';
-
-interface ContactField {
-  key: ContactFieldKey;
-  label: string;
-  icon: typeof Phone;
-  placeholder: string;
-}
 
 interface ContactInfo {
   id: number;
@@ -31,8 +21,11 @@ interface ContactInfo {
   email: string;
   service_area: string;
   hours: string;
-  guarantee_title: string;
-  guarantee_description: string;
+}
+
+interface ToastMessage {
+  type: 'success' | 'error' | 'info';
+  message: string;
 }
 
 const defaultContactInfo = {
@@ -40,59 +33,92 @@ const defaultContactInfo = {
   email: 'hello@sparkwell.com.au',
   service_area: 'Melbourne, VIC',
   hours: 'Mon–Sat, 7am–6pm',
-  guarantee_title: 'Bond-Back Guarantee',
-  guarantee_description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
 };
 
 export default function ContactContent() {
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
-  const [editingField, setEditingField] = useState<ContactFieldKey | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [formData, setFormData] = useState<Partial<Record<ContactFieldKey, string>>>({});
-  const [showGuaranteeModal, setShowGuaranteeModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   const supabase = createClient();
 
-  const contactFields: ContactField[] = [
+  const contactFields = [
     { key: 'phone', label: 'Phone Number', icon: Phone, placeholder: 'e.g. 1800 123 456' },
     { key: 'email', label: 'Email Address', icon: Mail, placeholder: 'e.g. hello@sparkwell.com.au' },
     { key: 'service_area', label: 'Service Area', icon: MapPin, placeholder: 'e.g. Melbourne, VIC' },
     { key: 'hours', label: 'Business Hours', icon: Clock, placeholder: 'e.g. Mon-Sat, 7am-6pm' },
   ];
 
-  // Load contact info from Supabase
+  const showToast = (type: ToastMessage['type'], message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // READ: Load contact info
   const loadContactInfo = async () => {
     try {
       setLoading(true);
+      console.log('🔵 Loading contact info...');
+
+      // Try to get existing record
       const { data, error } = await supabase
-        .from('contact_info')
-        .select('*')
-        .limit(1)
-        .single();
+        .from('bookings')
+        .select('id, phone, email, service_area, hours')
+        .limit(1);
+
+      console.log('📊 Data:', data);
+      console.log('❌ Error:', error);
 
       if (error) {
-        console.error('Error loading contact info:', error);
-        // If no data exists, insert default
+        console.error('Error loading:', error);
+        // If no data exists, create default
+        if (error.code === 'PGRST116' || !data || data.length === 0) {
+          console.log('📝 No record found, creating default...');
+          const { data: inserted, error: insertError } = await supabase
+            .from('bookings')
+            .insert([defaultContactInfo])
+            .select('id, phone, email, service_area, hours');
+
+          console.log('📊 Insert result:', inserted);
+          console.log('❌ Insert error:', insertError);
+
+          if (insertError) {
+            console.error('Insert error:', insertError);
+            setContactInfo({ id: 0, ...defaultContactInfo });
+          } else if (inserted && inserted.length > 0) {
+            setContactInfo(inserted[0]);
+          } else {
+            setContactInfo({ id: 0, ...defaultContactInfo });
+          }
+        } else {
+          setContactInfo({ id: 0, ...defaultContactInfo });
+        }
+      } else if (data && data.length > 0) {
+        console.log('✅ Data loaded:', data[0]);
+        setContactInfo(data[0]);
+      } else {
+        console.log('📝 No data found, creating default...');
         const { data: inserted, error: insertError } = await supabase
-          .from('contact_info')
+          .from('bookings')
           .insert([defaultContactInfo])
-          .select()
-          .single();
+          .select('id, phone, email, service_area, hours');
 
         if (insertError) {
-          console.error('Error inserting default:', insertError);
-          setContactInfo(defaultContactInfo as ContactInfo);
+          console.error('Insert error:', insertError);
+          setContactInfo({ id: 0, ...defaultContactInfo });
+        } else if (inserted && inserted.length > 0) {
+          setContactInfo(inserted[0]);
         } else {
-          setContactInfo(inserted);
+          setContactInfo({ id: 0, ...defaultContactInfo });
         }
-      } else {
-        setContactInfo(data);
       }
     } catch (error) {
-      console.error('Error:', error);
-      setContactInfo(defaultContactInfo as ContactInfo);
+      console.error('❌ Error:', error);
+      setContactInfo({ id: 0, ...defaultContactInfo });
     } finally {
       setLoading(false);
     }
@@ -102,146 +128,85 @@ export default function ContactContent() {
     loadContactInfo();
   }, []);
 
-  const getValue = (key: ContactFieldKey) => {
+  const getValue = (key: string) => {
     if (!contactInfo) return '';
-    const map: Record<ContactFieldKey, string> = {
-      phone: contactInfo.phone,
-      email: contactInfo.email,
-      service_area: contactInfo.service_area,
-      hours: contactInfo.hours,
+    const map: Record<string, string> = {
+      phone: contactInfo.phone || '',
+      email: contactInfo.email || '',
+      service_area: contactInfo.service_area || '',
+      hours: contactInfo.hours || '',
     };
     return map[key] || '';
   };
 
-  const activeContactFields = contactFields.filter((field) => getValue(field.key).trim());
-
-  // Stats
-  const stats = [
-    { label: 'Contact Methods', value: activeContactFields.length.toString(), icon: Phone, color: '#3b82f6' },
-    { label: 'Phone', value: contactInfo?.phone || 'Not set', icon: Phone, color: '#10b981' },
-    { label: 'Email', value: contactInfo?.email || 'Not set', icon: Mail, color: '#8b5cf6' },
-    { label: 'Service Area', value: contactInfo?.service_area ? contactInfo.service_area.split(',')[0] : 'Not set', icon: MapPin, color: '#f59e0b' },
-  ];
-
-  const handleEdit = (field: ContactFieldKey, value: string) => {
+  const handleEdit = (field: string) => {
     setEditingField(field);
-    setFormData({ [field]: value });
+    setFormData({ [field]: getValue(field) });
     setShowEditModal(true);
   };
 
   const handleSave = async () => {
-    if (!editingField || !contactInfo) return;
-    
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('contact_info')
-        .update({ [editingField]: formData[editingField] })
-        .eq('id', contactInfo.id);
+    if (!editingField || !contactInfo) {
+      console.log('❌ No field or contact info');
+      return;
+    }
+
+    console.log(`🟡 Updating ${editingField} to:`, formData[editingField]);
+
+    // If no id, insert new record
+    if (contactInfo.id === 0) {
+      console.log('📝 Creating new record...');
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert([{ [editingField]: formData[editingField] }])
+        .select('id, phone, email, service_area, hours');
 
       if (error) {
-        console.error('Error updating:', error);
-        alert('Failed to update contact info');
+        console.error('❌ Error creating:', error);
+        showToast('error', 'Failed to create record');
         return;
       }
 
-      // Update local state
-      setContactInfo({ ...contactInfo, [editingField]: formData[editingField] || '' });
+      if (data && data.length > 0) {
+        setContactInfo(data[0]);
+        showToast('success', 'Record created successfully!');
+      }
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .update({ [editingField]: formData[editingField] })
+        .eq('id', contactInfo.id)
+        .select('id, phone, email, service_area, hours');
+
+      if (error) {
+        console.error('❌ Error updating:', error);
+        showToast('error', 'Failed to update');
+        return;
+      }
+
+      console.log('✅ Update successful:', data);
+
+      if (data && data.length > 0) {
+        setContactInfo(data[0]);
+      } else {
+        setContactInfo({ ...contactInfo, [editingField]: formData[editingField] });
+      }
+
       setShowEditModal(false);
       setEditingField(null);
       setFormData({});
-      alert('Contact info updated successfully!');
+
+      const fieldLabel = contactFields.find(f => f.key === editingField)?.label || 'Field';
+      showToast('success', `${fieldLabel} updated successfully!`);
     } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to update contact info');
+      console.error('❌ Error:', error);
+      showToast('error', 'Failed to update');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleDelete = async (field: ContactFieldKey) => {
-    const fieldLabel = contactFields.find((item) => item.key === field)?.label || 'field';
-
-    if (window.confirm(`Are you sure you want to delete this ${fieldLabel.toLowerCase()}?`)) {
-      if (!contactInfo) return;
-
-      try {
-        const { error } = await supabase
-          .from('contact_info')
-          .update({ [field]: '' })
-          .eq('id', contactInfo.id);
-
-        if (error) {
-          console.error('Error deleting:', error);
-          alert('Failed to delete field');
-          return;
-        }
-
-        setContactInfo({ ...contactInfo, [field]: '' });
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to delete field');
-      }
-    }
-  };
-
-  const handleGuaranteeSave = async () => {
-    if (!contactInfo) return;
-
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('contact_info')
-        .update({
-          guarantee_title: contactInfo.guarantee_title,
-          guarantee_description: contactInfo.guarantee_description,
-        })
-        .eq('id', contactInfo.id);
-
-      if (error) {
-        console.error('Error updating guarantee:', error);
-        alert('Failed to update guarantee');
-        return;
-      }
-
-      setShowGuaranteeModal(false);
-      alert('Guarantee updated successfully!');
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to update guarantee');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleGuaranteeDelete = async () => {
-    if (window.confirm('Are you sure you want to delete the guarantee content?')) {
-      if (!contactInfo) return;
-
-      try {
-        const { error } = await supabase
-          .from('contact_info')
-          .update({
-            guarantee_title: '',
-            guarantee_description: '',
-          })
-          .eq('id', contactInfo.id);
-
-        if (error) {
-          console.error('Error deleting guarantee:', error);
-          alert('Failed to delete guarantee');
-          return;
-        }
-
-        setContactInfo({
-          ...contactInfo,
-          guarantee_title: '',
-          guarantee_description: '',
-        });
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to delete guarantee');
-      }
     }
   };
 
@@ -251,29 +216,63 @@ export default function ContactContent() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '400px',
         color: '#94a3b8'
       }}>
         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
-        <span style={{ marginLeft: '12px' }}>Loading contact information...</span>
+        <span style={{ marginLeft: '12px' }}>Loading...</span>
       </div>
     );
   }
 
   return (
     <div style={{ display: 'grid', gap: '20px' }}>
+      {/* Toast */}
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 9999,
+            padding: '16px 24px',
+            borderRadius: '16px',
+            background: toast.type === 'success' ? '#10b981' : '#ef4444',
+            color: 'white',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          {toast.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              opacity: 0.7,
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div
         style={{
           background: 'rgba(15, 23, 42, 0.82)',
           border: '1px solid rgba(148,163,184,0.12)',
-          borderRadius: '30px',
+          borderRadius: '20px',
           padding: '24px',
-          boxShadow: '0 20px 50px rgba(2, 6, 23, 0.28)',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
@@ -281,95 +280,31 @@ export default function ContactContent() {
             <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
               Contact Management
             </div>
-            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: '#f8fafc' }}>
+            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: '#f8fafc' }}>
               Contact Information
             </h2>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={handleRefresh}
-              style={{
-                padding: '8px 14px',
-                borderRadius: '10px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'transparent',
-                color: '#94a3b8',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.85rem',
-              }}
-            >
-              <RefreshCw size={16} />
-              Refresh
-            </button>
-            <button
-              onClick={() => setShowGuaranteeModal(true)}
-              style={{
-                border: 'none',
-                borderRadius: '14px',
-                padding: '12px 20px',
-                background: '#F6D961',
-                color: '#1a1a1a',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
-              }}
-            >
-              <ShieldCheck size={18} />
-              Edit Guarantee
-            </button>
-          </div>
+          <button
+            onClick={handleRefresh}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '12px',
+              border: '1px solid rgba(148,163,184,0.12)',
+              background: 'transparent',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
-                borderRadius: '16px',
-                padding: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              <div
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  background: `${stat.color}22`,
-                  color: stat.color,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Icon size={20} />
-              </div>
-              <div>
-                <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{stat.label}</div>
-                <div style={{ color: '#f8fafc', fontSize: '1.1rem', fontWeight: 700, wordBreak: 'break-all' }}>
-                  {stat.value}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Contact Cards Grid */}
+      {/* Contact Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
         {contactFields.map((field) => {
           const Icon = field.icon;
@@ -380,13 +315,11 @@ export default function ContactContent() {
               key={field.key}
               style={{
                 background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
-                borderRadius: '24px',
+                border: `1px solid ${value ? 'rgba(148,163,184,0.12)' : 'rgba(239,68,68,0.15)'}`,
+                borderRadius: '20px',
                 padding: '24px',
                 transition: 'all 0.2s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
             >
               <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <div
@@ -394,8 +327,8 @@ export default function ContactContent() {
                     width: '48px',
                     height: '48px',
                     borderRadius: '14px',
-                    background: 'rgba(59,130,246,0.12)',
-                    color: '#3b82f6',
+                    background: value ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.08)',
+                    color: value ? '#3b82f6' : '#ef4444',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -403,139 +336,50 @@ export default function ContactContent() {
                 >
                   <Icon size={24} />
                 </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    onClick={() => handleEdit(field.key, value)}
-                    title={`Edit ${field.label}`}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(148,163,184,0.12)',
-                      background: 'transparent',
-                      color: '#94a3b8',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(field.key)}
-                    title={`Delete ${field.label}`}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(148,163,184,0.12)',
-                      background: 'transparent',
-                      color: '#94a3b8',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#ef4444';
-                      e.currentTarget.style.color = '#ef4444';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)';
-                      e.currentTarget.style.color = '#94a3b8';
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleEdit(field.key)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(148,163,184,0.12)',
+                    background: 'transparent',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.85rem',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.color = '#3b82f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)';
+                    e.currentTarget.style.color = '#94a3b8';
+                  }}
+                >
+                  <Edit size={16} />
+                  Edit
+                </button>
               </div>
 
               <div>
                 <div style={{ color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
                   {field.label}
                 </div>
-                <div style={{ color: '#f8fafc', fontSize: '1.1rem', fontWeight: 600, wordBreak: 'break-all' }}>
+                <div style={{
+                  color: value ? '#f8fafc' : '#ef4444',
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  opacity: value ? 1 : 0.7,
+                }}>
                   {value || 'Not set'}
                 </div>
               </div>
             </div>
           );
         })}
-      </div>
-
-      {/* Guarantee Section */}
-      <div
-        style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
-          borderRadius: '30px',
-          padding: '24px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <h3 style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1.1rem' }}>
-              Bond-Back Guarantee
-            </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-              This appears on the contact page
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => setShowGuaranteeModal(true)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '10px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(59,130,246,0.12)',
-                color: '#3b82f6',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.85rem',
-              }}
-            >
-              <Edit size={14} />
-              Edit
-            </button>
-            <button
-              onClick={handleGuaranteeDelete}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '10px',
-                border: '1px solid rgba(239,68,68,0.24)',
-                background: 'rgba(239,68,68,0.1)',
-                color: '#f87171',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: '0.85rem',
-              }}
-            >
-              <Trash2 size={14} />
-              Delete
-            </button>
-          </div>
-        </div>
-
-        <div
-          style={{
-            padding: '16px 20px',
-            borderRadius: '16px',
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <Sparkles size={18} style={{ color: 'var(--theme-secondary)' }} />
-            <span style={{ color: '#f8fafc', fontWeight: 600 }}>
-              {contactInfo?.guarantee_title || 'No guarantee set'}
-            </span>
-          </div>
-          <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.6', paddingLeft: '32px' }}>
-            {contactInfo?.guarantee_description || 'Use Edit to add guarantee content.'}
-          </p>
-        </div>
       </div>
 
       {/* Edit Modal */}
@@ -565,12 +409,10 @@ export default function ContactContent() {
             style={{
               background: 'rgba(15, 23, 42, 0.98)',
               border: '1px solid rgba(148,163,184,0.12)',
-              borderRadius: '32px',
+              borderRadius: '28px',
               padding: '32px',
               maxWidth: '500px',
               width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
               boxShadow: '0 30px 70px rgba(0,0,0,0.5)',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -615,14 +457,16 @@ export default function ContactContent() {
                   placeholder={contactFields.find(f => f.key === editingField)?.placeholder}
                   style={{
                     width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
+                    padding: '14px 18px',
+                    borderRadius: '14px',
                     border: '1px solid rgba(148,163,184,0.12)',
                     background: 'rgba(15, 23, 42, 0.72)',
                     color: '#e2e8f0',
-                    fontSize: '0.95rem',
+                    fontSize: '1rem',
                     outline: 'none',
                   }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
                 />
               </div>
 
@@ -636,8 +480,8 @@ export default function ContactContent() {
                   }}
                   style={{
                     flex: 1,
-                    padding: '12px',
-                    borderRadius: '12px',
+                    padding: '14px',
+                    borderRadius: '14px',
                     border: '1px solid rgba(148,163,184,0.12)',
                     background: 'transparent',
                     color: '#94a3b8',
@@ -652,12 +496,12 @@ export default function ContactContent() {
                   disabled={saving}
                   style={{
                     flex: 2,
-                    padding: '12px',
-                    borderRadius: '12px',
+                    padding: '14px',
+                    borderRadius: '14px',
                     border: 'none',
                     background: '#F6D961',
                     color: '#1a1a1a',
-                    cursor: 'pointer',
+                    cursor: saving ? 'not-allowed' : 'pointer',
                     fontWeight: 600,
                     boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
                     display: 'flex',
@@ -667,7 +511,7 @@ export default function ContactContent() {
                     opacity: saving ? 0.7 : 1,
                   }}
                 >
-                  <Save size={16} />
+                  <Save size={18} />
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -676,162 +520,11 @@ export default function ContactContent() {
         </div>
       )}
 
-      {/* Guarantee Edit Modal */}
-      {showGuaranteeModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.7)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={() => setShowGuaranteeModal(false)}
-        >
-          <div
-            style={{
-              background: 'rgba(15, 23, 42, 0.98)',
-              border: '1px solid rgba(148,163,184,0.12)',
-              borderRadius: '32px',
-              padding: '32px',
-              maxWidth: '600px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 30px 70px rgba(0,0,0,0.5)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <div>
-                <h3 style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>
-                  Edit Guarantee
-                </h3>
-                <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '4px' }}>
-                  Update the guarantee text displayed on the contact page
-                </p>
-              </div>
-              <button
-                onClick={() => setShowGuaranteeModal(false)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  padding: '4px',
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={(e) => { e.preventDefault(); handleGuaranteeSave(); }}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  value={contactInfo?.guarantee_title || ''}
-                  onChange={(e) => setContactInfo({
-                    ...contactInfo!,
-                    guarantee_title: e.target.value,
-                  })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(148,163,184,0.12)',
-                    background: 'rgba(15, 23, 42, 0.72)',
-                    color: '#e2e8f0',
-                    fontSize: '0.95rem',
-                    outline: 'none',
-                  }}
-                  placeholder="e.g. Bond-Back Guarantee"
-                />
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-                  Description *
-                </label>
-                <textarea
-                  value={contactInfo?.guarantee_description || ''}
-                  onChange={(e) => setContactInfo({
-                    ...contactInfo!,
-                    guarantee_description: e.target.value,
-                  })}
-                  required
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(148,163,184,0.12)',
-                    background: 'rgba(15, 23, 42, 0.72)',
-                    color: '#e2e8f0',
-                    fontSize: '0.95rem',
-                    outline: 'none',
-                    resize: 'vertical',
-                    fontFamily: 'inherit',
-                  }}
-                  placeholder="Describe the guarantee..."
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowGuaranteeModal(false)}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(148,163,184,0.12)',
-                    background: 'transparent',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    flex: 2,
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: '#F6D961',
-                    color: '#1a1a1a',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    opacity: saving ? 0.7 : 1,
-                  }}
-                >
-                  <Save size={16} />
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
