@@ -1,44 +1,69 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { ShieldCheck, FileCheck2, UserCheck, Tag, Leaf, Plane } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface PromiseFeature {
-  icon: React.ElementType;
+  id: number;
+  icon: string;
   title: string;
   description: string;
+  status: string;
 }
 
-const features: PromiseFeature[] = [
+const iconMap: Record<string, any> = {
+  ShieldCheck: ShieldCheck,
+  FileCheck2: FileCheck2,
+  UserCheck: UserCheck,
+  Tag: Tag,
+  Leaf: Leaf,
+  Plane: Plane,
+};
+
+const defaultFeatures = [
   {
-    icon: ShieldCheck,
+    id: 1,
+    icon: 'ShieldCheck',
     title: '48-Hour Re-Clean Guarantee',
     description: 'Not happy? We return within 48 hours at no extra cost, no questions asked.',
+    status: 'Active',
   },
   {
-    icon: FileCheck2,
+    id: 2,
+    icon: 'FileCheck2',
     title: 'Fully Insured & Bonded',
     description: 'All cleaners carry $10M public liability insurance for complete peace of mind.',
+    status: 'Active',
   },
   {
-    icon: UserCheck,
+    id: 3,
+    icon: 'UserCheck',
     title: 'Vetted & Background-Checked',
     description: 'Every team member passes a national police check before joining our crew.',
+    status: 'Active',
   },
   {
-    icon: Tag,
+    id: 4,
+    icon: 'Tag',
     title: 'Fixed, Transparent Pricing',
     description: 'No hidden fees. Your quoted price is what you pay — always.',
+    status: 'Active',
   },
   {
-    icon: Leaf,
+    id: 5,
+    icon: 'Leaf',
     title: 'Eco-Friendly Products',
     description: 'We use hospital-grade, biodegradable cleaning products safe for kids and pets.',
+    status: 'Active',
   },
   {
-    icon: Plane,
+    id: 6,
+    icon: 'Plane',
     title: 'No Travel Fees',
     description: 'Free travel within our service area — Melbourne metro and inner suburbs.',
+    status: 'Active',
   },
 ];
 
@@ -53,6 +78,58 @@ const cardVariants: Variants = {
 };
 
 export default function PromiseSection() {
+  const [features, setFeatures] = useState<PromiseFeature[]>(defaultFeatures);
+  const [loading, setLoading] = useState(true);
+
+  const supabase = createClient();
+
+  // Load features from Supabase
+  useEffect(() => {
+    const loadFeatures = async () => {
+      try {
+        setLoading(true);
+        console.log('🔵 Loading promise features from Supabase...');
+
+        const { data, error } = await supabase
+          .from('promise_features')
+          .select('*')
+          .eq('status', 'Active')
+          .order('id', { ascending: true });
+
+        if (error) {
+          console.error('❌ Error loading features:', error);
+          setFeatures(defaultFeatures);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          console.log('✅ Features loaded:', data.length);
+          setFeatures(data);
+        } else {
+          console.log('📝 No features found, using defaults');
+          setFeatures(defaultFeatures);
+        }
+      } catch (error) {
+        console.error('❌ Error:', error);
+        setFeatures(defaultFeatures);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFeatures();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans" id="why-us" style={{ backgroundColor: 'var(--theme-bg)' }}>
+        <div className="max-w-6xl mx-auto text-center">
+          <p style={{ color: 'var(--theme-muted)' }}>Loading promise features...</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans" id="why-us" style={{ backgroundColor: 'var(--theme-bg)' }}>
       <div className="max-w-6xl mx-auto space-y-12">
@@ -72,11 +149,11 @@ export default function PromiseSection() {
           viewport={{ once: true, margin: '-50px' }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {features.map((feature, index) => {
-            const Icon = feature.icon;
+          {features.map((feature) => {
+            const Icon = iconMap[feature.icon] || ShieldCheck;
             return (
               <motion.div
-                key={index}
+                key={feature.id}
                 variants={cardVariants}
                 whileHover={{ y: -4 }}
                 className="rounded-xl p-6 sm:p-8 flex items-start space-x-4 transition-all duration-200"
