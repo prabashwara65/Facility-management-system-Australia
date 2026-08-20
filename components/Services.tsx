@@ -5,11 +5,15 @@ import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { Home, Sparkles, Calendar, ArrowRight } from "lucide-react";
+import { createClient } from '@/lib/supabase/client';
 
-// Storage key for services data
-const SERVICES_STORAGE_KEY = 'sparkwell:services';
+const iconMap = {
+  Home: Home,
+  Sparkles: Sparkles,
+  Calendar: Calendar,
+};
 
-// Default services data
+// Default fallback data (only used if Supabase fails)
 const defaultServices = [
   {
     id: 1,
@@ -34,26 +38,36 @@ const defaultServices = [
   },
 ];
 
-const iconMap = {
-  Home: Home,
-  Sparkles: Sparkles,
-  Calendar: Calendar,
-};
-
 export default function Services() {
   const [services, setServices] = useState(defaultServices);
   const [isLoading, setIsLoading] = useState(true);
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: false, amount: 0.2 });
 
-  // Load services from localStorage
-  const loadServices = () => {
+  const supabase = createClient();
+
+  // Load services from Supabase
+  const loadServices = async () => {
     try {
-      const stored = localStorage.getItem(SERVICES_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Transform stored data to match the expected format
-        const transformed = parsed.map(service => ({
+      setIsLoading(true);
+      console.log('🔵 Loading services from Supabase...');
+
+      const { data, error } = await supabase
+        .from('services')
+        .select('id, icon, title, price, description')
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error loading services:', error);
+        // Fallback to default services
+        setServices(defaultServices);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        console.log('✅ Services loaded:', data.length);
+        // Transform data to match component format
+        const transformed = data.map(service => ({
           id: service.id,
           icon: service.icon || 'Home',
           title: service.title,
@@ -62,31 +76,19 @@ export default function Services() {
         }));
         setServices(transformed);
       } else {
-        // Initialize with default services
-        localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(defaultServices));
+        console.log('📝 No services found, using defaults');
         setServices(defaultServices);
       }
     } catch (error) {
-      console.error('Error loading services:', error);
+      console.error('❌ Error:', error);
       setServices(defaultServices);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
-  // Load services on mount
   useEffect(() => {
     loadServices();
-  }, []);
-
-  // Listen for storage changes (sync across tabs)
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === SERVICES_STORAGE_KEY) {
-        loadServices();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Container variants for staggered animations

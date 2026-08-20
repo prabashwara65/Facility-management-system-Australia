@@ -9,108 +9,179 @@ import {
   Edit, 
   Trash2, 
   Search,
-  Filter,
   Package,
   Users,
   RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  X,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
-// Storage key for services data
-const SERVICES_STORAGE_KEY = 'sparkwell:services';
-
-// Initial service data
-const initialServices = [
-  {
-    id: 1,
-    icon: 'Home',
-    title: 'End of Lease Clean',
-    price: '$280',
-    description: 'Bond-back guarantee with our comprehensive end-of-tenancy deep clean. We cover every corner.',
-    category: 'Deep Clean',
-    duration: '4-6 hours',
-    status: 'Active',
-    bookings: 156,
-  },
-  {
-    id: 2,
-    icon: 'Sparkles',
-    title: 'Deep / Spring Clean',
-    price: '$199',
-    description: 'A thorough top-to-bottom reset — inside appliances, behind furniture, skirting boards, and more.',
-    category: 'Deep Clean',
-    duration: '3-5 hours',
-    status: 'Active',
-    bookings: 98,
-  },
-  {
-    id: 3,
-    icon: 'Calendar',
-    title: 'Regular Clean',
-    price: '$99',
-    description: 'Weekly or fortnightly maintenance cleans tailored to your home and schedule.',
-    category: 'Maintenance',
-    duration: '2-3 hours',
-    status: 'Active',
-    bookings: 234,
-  },
-];
-
-const categories = ['All', 'Deep Clean', 'Maintenance', 'Specialized'];
 const iconMap = {
   Home: Home,
   Sparkles: Sparkles,
   Calendar: Calendar,
 };
 
+const iconOptions = ['Home', 'Sparkles', 'Calendar'];
+const categories = ['All', 'Deep Clean', 'Maintenance', 'Specialized'];
+
+interface Service {
+  id: number;
+  icon: string;
+  title: string;
+  price: string;
+  description: string;
+  category: string;
+  duration: string;
+  status: string;
+  bookings: number;
+}
+
+interface ToastMessage {
+  type: 'success' | 'error' | 'info';
+  message: string;
+}
+
 export default function ServicesContent() {
-  const [services, setServices] = useState([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingService, setEditingService] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
-  // Load services from localStorage
-  const loadServices = () => {
-    setIsLoading(true);
+  const supabase = createClient();
+
+  const showToast = (type: ToastMessage['type'], message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // Load services from Supabase
+  const loadServices = async () => {
     try {
-      const stored = localStorage.getItem(SERVICES_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setServices(parsed);
-      } else {
-        // Initialize with default services
-        localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(initialServices));
-        setServices(initialServices);
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        console.error('Error loading services:', error);
+        showToast('error', 'Failed to load services');
+        return;
       }
+
+      setServices(data || []);
     } catch (error) {
-      console.error('Error loading services:', error);
-      setServices(initialServices);
+      console.error('Error:', error);
+      showToast('error', 'Error loading services');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
-  // Save services to localStorage
-  const saveServices = (updatedServices) => {
-    localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(updatedServices));
-    setServices(updatedServices);
-  };
-
-  // Load services on mount
   useEffect(() => {
     loadServices();
   }, []);
 
-  // Listen for storage changes (sync across tabs)
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === SERVICES_STORAGE_KEY) {
-        loadServices();
+  // Create service
+  const handleCreate = async (data: Partial<Service>) => {
+    setSaving(true);
+    try {
+      const { data: inserted, error } = await supabase
+        .from('services')
+        .insert([{
+          ...data,
+          status: 'Active',
+          bookings: 0,
+          sort_order: services.length + 1,
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        showToast('error', 'Failed to create service');
+        return;
       }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+
+      setServices([...services, inserted]);
+      showToast('success', 'Service created!');
+      setShowModal(false);
+    } catch (error) {
+      showToast('error', 'Failed to create service');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Update service
+  const handleUpdate = async (data: Partial<Service>) => {
+    if (!editingService) return;
+
+    setSaving(true);
+    try {
+      const { data: updated, error } = await supabase
+        .from('services')
+        .update(data)
+        .eq('id', editingService.id)
+        .select()
+        .single();
+
+      if (error) {
+        showToast('error', 'Failed to update service');
+        return;
+      }
+
+      setServices(services.map(s => s.id === updated.id ? updated : s));
+      showToast('success', 'Service updated!');
+      setShowModal(false);
+      setEditingService(null);
+    } catch (error) {
+      showToast('error', 'Failed to update service');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Delete service
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this service?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        showToast('error', 'Failed to delete');
+        return;
+      }
+
+      setServices(services.filter(s => s.id !== id));
+      showToast('success', 'Service deleted!');
+    } catch (error) {
+      showToast('error', 'Failed to delete');
+    }
+  };
+
+  const handleEdit = (service: Service) => {
+    setEditingService(service);
+    setShowModal(true);
+  };
+
+  const handleSave = (data: Partial<Service>) => {
+    if (editingService) {
+      handleUpdate(data);
+    } else {
+      handleCreate(data);
+    }
+  };
 
   // Filter services
   const filteredServices = services.filter(service => {
@@ -123,87 +194,57 @@ export default function ServicesContent() {
   // Stats
   const stats = [
     { label: 'Total Services', value: services.length, icon: Package, color: '#3b82f6' },
-    { label: 'Active Services', value: services.filter(s => s.status === 'Active').length, icon: Sparkles, color: '#10b981' },
-    { label: 'Total Bookings', value: services.reduce((sum, s) => sum + (s.bookings || 0), 0), icon: Users, color: '#8b5cf6' },
+    { label: 'Active', value: services.filter(s => s.status === 'Active').length, icon: Sparkles, color: '#10b981' },
+    { label: 'Bookings', value: services.reduce((sum, s) => sum + (s.bookings || 0), 0), icon: Users, color: '#8b5cf6' },
   ];
-
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this service?')) {
-      const updated = services.filter(s => s.id !== id);
-      saveServices(updated);
-    }
-  };
-
-  const handleEdit = (service) => {
-    setEditingService(service);
-    setShowAddModal(true);
-  };
-
-  const handleSave = (serviceData) => {
-    let updated;
-    if (editingService) {
-      // Edit existing
-      updated = services.map(s => 
-        s.id === editingService.id ? { ...s, ...serviceData } : s
-      );
-    } else {
-      // Add new
-      const newService = {
-        ...serviceData,
-        id: services.length + 1,
-        bookings: 0,
-        status: 'Active',
-      };
-      updated = [...services, newService];
-    }
-    saveServices(updated);
-    setShowAddModal(false);
-    setEditingService(null);
-  };
-
-  const handleRefresh = () => {
-    loadServices();
-  };
 
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '400px',
-        color: '#94a3b8'
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px', color: '#94a3b8' }}>
         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
-        <span style={{ marginLeft: '12px' }}>Loading services...</span>
+        <span style={{ marginLeft: '12px' }}>Loading...</span>
       </div>
     );
   }
 
   return (
     <div style={{ display: 'grid', gap: '20px' }}>
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: '20px', right: '20px', zIndex: 9999,
+          padding: '16px 24px', borderRadius: '16px',
+          background: toast.type === 'success' ? '#10b981' : '#ef4444',
+          color: 'white', boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+          display: 'flex', alignItems: 'center', gap: '12px',
+        }}>
+          {toast.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+          <span>{toast.message}</span>
+          <button onClick={() => setToast(null)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
-      <div
-        style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
-          borderRadius: '30px',
-          padding: '24px',
-          boxShadow: '0 20px 50px rgba(2, 6, 23, 0.28)',
-        }}
-      >
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.82)',
+        border: '1px solid rgba(148,163,184,0.12)',
+        borderRadius: '30px',
+        padding: '24px',
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-              Service Management
+              Services
             </div>
-            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: '#f8fafc' }}>
+            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: '#f8fafc' }}>
               Our Services ({services.length})
             </h2>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
-              onClick={handleRefresh}
+              onClick={loadServices}
               style={{
                 padding: '8px 14px',
                 borderRadius: '10px',
@@ -216,16 +257,11 @@ export default function ServicesContent() {
                 gap: '6px',
                 fontSize: '0.85rem',
               }}
-              title="Refresh services"
             >
-              <RefreshCw size={16} />
-              Refresh
+              <RefreshCw size={16} /> Refresh
             </button>
             <button
-              onClick={() => {
-                setEditingService(null);
-                setShowAddModal(true);
-              }}
+              onClick={() => { setEditingService(null); setShowModal(true); }}
               style={{
                 border: 'none',
                 borderRadius: '14px',
@@ -240,8 +276,7 @@ export default function ServicesContent() {
                 boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
               }}
             >
-              <Plus size={18} />
-              Add Service
+              <Plus size={18} /> Add Service
             </button>
           </div>
         </div>
@@ -252,30 +287,20 @@ export default function ServicesContent() {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div
-              key={stat.label}
-              style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
-                borderRadius: '16px',
-                padding: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              <div
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '12px',
-                  background: `${stat.color}22`,
-                  color: stat.color,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+            <div key={stat.label} style={{
+              background: 'rgba(15, 23, 42, 0.82)',
+              border: '1px solid rgba(148,163,184,0.12)',
+              borderRadius: '16px',
+              padding: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+            }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '12px',
+                background: `${stat.color}22`, color: stat.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
                 <Icon size={20} />
               </div>
               <div>
@@ -287,80 +312,58 @@ export default function ServicesContent() {
         })}
       </div>
 
-      {/* Filters */}
-      <div
-        style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
-          borderRadius: '20px',
-          padding: '16px 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
+      {/* Search & Filter */}
+      <div style={{
+        background: 'rgba(15, 23, 42, 0.82)',
+        border: '1px solid rgba(148,163,184,0.12)',
+        borderRadius: '20px',
+        padding: '16px 20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '12px',
+      }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {categories.map((category) => (
+          {categories.map((cat) => (
             <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
               style={{
                 padding: '6px 14px',
                 borderRadius: '10px',
                 border: '1px solid rgba(148,163,184,0.12)',
-                background: selectedCategory === category ? 'rgba(59,130,246,0.2)' : 'transparent',
-                color: selectedCategory === category ? '#3b82f6' : '#94a3b8',
+                background: selectedCategory === cat ? 'rgba(59,130,246,0.2)' : 'transparent',
+                color: selectedCategory === cat ? '#3b82f6' : '#94a3b8',
                 cursor: 'pointer',
                 fontSize: '0.85rem',
-                fontWeight: selectedCategory === category ? 600 : 400,
-                transition: 'all 0.2s ease',
+                fontWeight: selectedCategory === cat ? 600 : 400,
               }}
             >
-              {category}
+              {cat}
             </button>
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-            <input
-              type="text"
-              placeholder="Search services..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                height: '38px',
-                borderRadius: '10px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#cbd5e1',
-                padding: '0 16px 0 36px',
-                fontSize: '0.9rem',
-                outline: 'none',
-                width: '200px',
-              }}
-            />
-          </div>
-          <button
+        <div style={{ position: 'relative' }}>
+          <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          <input
+            type="text"
+            placeholder="Search services..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             style={{
-              padding: '6px 14px',
+              height: '38px',
               borderRadius: '10px',
               border: '1px solid rgba(148,163,184,0.12)',
-              background: 'transparent',
-              color: '#94a3b8',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.85rem',
+              background: 'rgba(15, 23, 42, 0.72)',
+              color: '#cbd5e1',
+              padding: '0 16px 0 36px',
+              fontSize: '0.9rem',
+              outline: 'none',
+              width: '200px',
             }}
-          >
-            <Filter size={16} />
-            Filter
-          </button>
+          />
         </div>
       </div>
 
@@ -368,7 +371,6 @@ export default function ServicesContent() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
         {filteredServices.map((service) => {
           const Icon = iconMap[service.icon] || Home;
-          
           return (
             <div
               key={service.id}
@@ -378,25 +380,16 @@ export default function ServicesContent() {
                 borderRadius: '24px',
                 padding: '20px',
                 transition: 'all 0.2s ease',
-                position: 'relative',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
             >
               <div style={{ display: 'flex', alignItems: 'start', gap: '14px', marginBottom: '12px' }}>
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '14px',
-                    background: 'rgba(59,130,246,0.12)',
-                    color: '#3b82f6',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '14px',
+                  background: 'rgba(59,130,246,0.12)', color: '#3b82f6',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
                   <Icon size={24} />
                 </div>
                 <div style={{ flex: 1 }}>
@@ -404,12 +397,8 @@ export default function ServicesContent() {
                     {service.title}
                   </h3>
                   <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
-                      {service.category}
-                    </span>
-                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>
-                      • {service.duration}
-                    </span>
+                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{service.category}</span>
+                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>• {service.duration}</span>
                   </div>
                 </div>
               </div>
@@ -418,15 +407,19 @@ export default function ServicesContent() {
                 {service.description}
               </p>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: '12px',
+                borderTop: '1px solid rgba(148,163,184,0.08)',
+              }}>
                 <div>
                   <span style={{ color: '#3b82f6', fontSize: '1.3rem', fontWeight: 700 }}>
                     {service.price}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.8rem' }}>
-                      {service.bookings} bookings
-                    </span>
+                  <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '2px' }}>
+                    {service.bookings} bookings
                   </div>
                 </div>
 
@@ -440,7 +433,6 @@ export default function ServicesContent() {
                       background: 'transparent',
                       color: '#94a3b8',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
                     onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
@@ -456,7 +448,6 @@ export default function ServicesContent() {
                       background: 'transparent',
                       color: '#94a3b8',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = '#ef4444';
@@ -477,44 +468,44 @@ export default function ServicesContent() {
       </div>
 
       {filteredServices.length === 0 && (
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.82)',
-            border: '1px solid rgba(148,163,184,0.12)',
-            borderRadius: '30px',
-            padding: '60px',
-            textAlign: 'center',
-          }}
-        >
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.82)',
+          border: '1px solid rgba(148,163,184,0.12)',
+          borderRadius: '30px',
+          padding: '60px',
+          textAlign: 'center',
+        }}>
           <Package size={48} style={{ color: '#64748b', marginBottom: '16px' }} />
           <h3 style={{ color: '#f8fafc', fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px' }}>
             No services found
           </h3>
           <p style={{ color: '#64748b' }}>
             {searchQuery || selectedCategory !== 'All' 
-              ? 'Try adjusting your filters or search query.' 
-              : 'Click "Add Service" to create your first service.'}
+              ? 'Try adjusting your filters.' 
+              : 'Click "Add Service" to create one.'}
           </p>
         </div>
       )}
 
-      {/* Add/Edit Modal */}
-      {showAddModal && (
+      {/* Modal */}
+      {showModal && (
         <ServiceModal
           service={editingService}
-          onClose={() => {
-            setShowAddModal(false);
-            setEditingService(null);
-          }}
+          onClose={() => { setShowModal(false); setEditingService(null); }}
           onSave={handleSave}
+          saving={saving}
         />
       )}
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }
 
-// Service Modal Component
-function ServiceModal({ service, onClose, onSave }) {
+// Modal Component
+function ServiceModal({ service, onClose, onSave, saving }: any) {
   const [formData, setFormData] = useState(
     service || {
       title: '',
@@ -526,9 +517,7 @@ function ServiceModal({ service, onClose, onSave }) {
     }
   );
 
-  const iconOptions = ['Home', 'Sparkles', 'Calendar'];
-
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: any) => {
     e.preventDefault();
     onSave(formData);
   };
@@ -537,10 +526,7 @@ function ServiceModal({ service, onClose, onSave }) {
     <div
       style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        top: 0, left: 0, right: 0, bottom: 0,
         background: 'rgba(0,0,0,0.7)',
         backdropFilter: 'blur(8px)',
         display: 'flex',
@@ -557,25 +543,23 @@ function ServiceModal({ service, onClose, onSave }) {
           border: '1px solid rgba(148,163,184,0.12)',
           borderRadius: '32px',
           padding: '32px',
-          maxWidth: '600px',
+          maxWidth: '500px',
           width: '100%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
           boxShadow: '0 30px 70px rgba(0,0,0,0.5)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <h3 style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700, marginBottom: '8px' }}>
-          {service ? 'Edit Service' : 'Add New Service'}
+          {service ? 'Edit Service' : 'Add Service'}
         </h3>
         <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '24px' }}>
-          {service ? 'Update the service details below' : 'Fill in the details to create a new service'}
+          {service ? 'Update the service details' : 'Create a new service'}
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
           <div>
             <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-              Service Title *
+              Title *
             </label>
             <input
               type="text"
@@ -592,54 +576,29 @@ function ServiceModal({ service, onClose, onSave }) {
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
-              placeholder="Enter service title"
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-                Price *
-              </label>
-              <input
-                type="text"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
-                  fontSize: '0.95rem',
-                  outline: 'none',
-                }}
-                placeholder="e.g. $199"
-              />
-            </div>
-            <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-                Duration
-              </label>
-              <input
-                type="text"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
-                  fontSize: '0.95rem',
-                  outline: 'none',
-                }}
-                placeholder="e.g. 2-3 hours"
-              />
-            </div>
+          <div>
+            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              Price *
+            </label>
+            <input
+              type="text"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              required
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'rgba(15, 23, 42, 0.72)',
+                color: '#e2e8f0',
+                fontSize: '0.95rem',
+                outline: 'none',
+              }}
+            />
           </div>
 
           <div>
@@ -663,19 +622,17 @@ function ServiceModal({ service, onClose, onSave }) {
                 resize: 'vertical',
                 fontFamily: 'inherit',
               }}
-              placeholder="Describe the service..."
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-                Category *
+                Category
               </label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                required
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -694,11 +651,12 @@ function ServiceModal({ service, onClose, onSave }) {
             </div>
             <div>
               <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-                Icon
+                Duration
               </label>
-              <select
-                value={formData.icon}
-                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+              <input
+                type="text"
+                value={formData.duration}
+                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -709,12 +667,32 @@ function ServiceModal({ service, onClose, onSave }) {
                   fontSize: '0.95rem',
                   outline: 'none',
                 }}
-              >
-                {iconOptions.map((icon) => (
-                  <option key={icon} value={icon}>{icon}</option>
-                ))}
-              </select>
+              />
             </div>
+          </div>
+
+          <div>
+            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              Icon
+            </label>
+            <select
+              value={formData.icon}
+              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'rgba(15, 23, 42, 0.72)',
+                color: '#e2e8f0',
+                fontSize: '0.95rem',
+                outline: 'none',
+              }}
+            >
+              {iconOptions.map((icon) => (
+                <option key={icon} value={icon}>{icon}</option>
+              ))}
+            </select>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
@@ -736,6 +714,7 @@ function ServiceModal({ service, onClose, onSave }) {
             </button>
             <button
               type="submit"
+              disabled={saving}
               style={{
                 flex: 2,
                 padding: '12px',
@@ -743,24 +722,18 @@ function ServiceModal({ service, onClose, onSave }) {
                 border: 'none',
                 background: '#F6D961',
                 color: '#1a1a1a',
-                cursor: 'pointer',
+                cursor: saving ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
                 boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
+                opacity: saving ? 0.7 : 1,
               }}
             >
               <Plus size={16} />
-              {service ? 'Update Service' : 'Create Service'}
+              {saving ? 'Saving...' : service ? 'Update' : 'Create'}
             </button>
           </div>
         </form>
