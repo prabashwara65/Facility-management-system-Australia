@@ -18,14 +18,6 @@ interface Tier {
   status: string;
 }
 
-interface AddOn {
-  id: number;
-  name: string;
-  price: string;
-  category: ServiceCategory;
-  side: 'left' | 'right';
-}
-
 interface FAQ {
   id: number;
   question: string;
@@ -102,21 +94,6 @@ const defaultTiers: Tier[] = [
   },
 ];
 
-const defaultAddOns: AddOn[] = [
-  { id: 1, name: 'Inside oven', price: '$45', category: 'Residential', side: 'left' },
-  { id: 2, name: 'Inside windows', price: '$60', category: 'Residential', side: 'left' },
-  { id: 3, name: 'Balcony / outdoor area', price: '$50', category: 'Residential', side: 'left' },
-  { id: 4, name: 'Inside fridge', price: '$35', category: 'Residential', side: 'right' },
-  { id: 5, name: 'Carpet steam clean (per room)', price: '$55', category: 'Residential', side: 'right' },
-  { id: 6, name: 'Garage', price: '$70', category: 'Residential', side: 'right' },
-  { id: 7, name: 'Washroom sanitising', price: '$45', category: 'Commercial', side: 'left' },
-  { id: 8, name: 'Window cleaning', price: '$90', category: 'Commercial', side: 'left' },
-  { id: 9, name: 'After-hours clean', price: '$60', category: 'Commercial', side: 'left' },
-  { id: 10, name: 'Carpet treatment', price: '$80', category: 'Commercial', side: 'right' },
-  { id: 11, name: 'Deep kitchen detail', price: '$95', category: 'Commercial', side: 'right' },
-  { id: 12, name: 'Strata common area', price: '$120', category: 'Commercial', side: 'right' },
-];
-
 const defaultFAQs: FAQ[] = [
   {
     id: 1,
@@ -189,11 +166,9 @@ const defaultFAQs: FAQ[] = [
 export default function PricingSection() {
   const [pricingData, setPricingData] = useState<{
     tiers: Tier[];
-    addOns: AddOn[];
     faqs: FAQ[];
   }>({
     tiers: [],
-    addOns: [],
     faqs: [],
   });
   const [loading, setLoading] = useState(true);
@@ -216,31 +191,20 @@ export default function PricingSection() {
           .from('pricing_tiers')
           .select('*')
           .eq('status', 'Active')
-          .order('id');
+          .order('sort_order', { ascending: true });
 
         if (tiersError) {
           console.error('Error loading tiers:', tiersError);
           setPricingData({
             tiers: defaultTiers,
-            addOns: defaultAddOns,
             faqs: defaultFAQs,
           });
         } else {
-          // Load add-ons
-          const { data: addOnsData, error: addOnsError } = await supabase
-            .from('add_ons')
-            .select('*')
-            .order('id');
-
-          if (addOnsError) {
-            console.error('Error loading add-ons:', addOnsError);
-          }
-
           // Load FAQs
           const { data: faqsData, error: faqsError } = await supabase
             .from('faqs')
             .select('*')
-            .order('id');
+            .order('sort_order', { ascending: true });
 
           if (faqsError) {
             console.error('Error loading FAQs:', faqsError);
@@ -248,7 +212,6 @@ export default function PricingSection() {
 
           setPricingData({
             tiers: tiersData && tiersData.length > 0 ? tiersData : defaultTiers,
-            addOns: addOnsData && addOnsData.length > 0 ? addOnsData : defaultAddOns,
             faqs: faqsData && faqsData.length > 0 ? faqsData : defaultFAQs,
           });
         }
@@ -256,7 +219,6 @@ export default function PricingSection() {
         console.error('Error loading pricing data:', error);
         setPricingData({
           tiers: defaultTiers,
-          addOns: defaultAddOns,
           faqs: defaultFAQs,
         });
       } finally {
@@ -309,11 +271,9 @@ export default function PricingSection() {
   // Get filtered data for current category
   const getCategoryData = (category: ServiceCategory) => {
     const tiers = pricingData.tiers.filter(t => t.category === category && t.status === 'Active');
-    const addOnsLeft = pricingData.addOns.filter(a => a.category === category && a.side === 'left');
-    const addOnsRight = pricingData.addOns.filter(a => a.category === category && a.side === 'right');
     const faqs = pricingData.faqs.filter(f => f.category === category);
     
-    return { tiers, addOnsLeft, addOnsRight, faqs };
+    return { tiers, faqs };
   };
 
   const residentialData = getCategoryData('Residential');
@@ -511,67 +471,6 @@ function ResidentialContent({
             </motion.div>
           );
         })}
-      </div>
-
-      {/* Add-Ons Section */}
-      <div
-        className="rounded-2xl p-6 sm:p-8 space-y-6 backdrop-blur-sm"
-        style={{
-          backgroundColor: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
-      >
-        <h3 className="text-xl font-serif font-semibold text-white text-center">Optional Add-Ons</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-          <div className="space-y-3">
-            {data.addOnsLeft.map((item: any, idx: number) => (
-              <motion.div
-                key={`${item.name}-${idx}`}
-                className="flex items-center justify-between py-3 px-4 rounded-lg border-b transition-all duration-200"
-                style={{ 
-                  borderColor: 'rgba(255,255,255,0.06)',
-                  backgroundColor: 'rgba(255,255,255,0.02)',
-                }}
-                whileHover={{ 
-                  backgroundColor: 'rgba(255,255,255,0.06)',
-                  paddingLeft: '20px',
-                }}
-              >
-                <span style={{ color: 'rgba(255,255,255,0.8)' }}>{item.name}</span>
-                <span className="font-bold font-serif text-base" style={{ color: 'var(--theme-secondary)' }}>
-                  {item.price}
-                </span>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="space-y-3">
-            {data.addOnsRight.map((item: any, idx: number) => (
-              <motion.div
-                key={`${item.name}-${idx}`}
-                className="flex items-center justify-between py-3 px-4 rounded-lg border-b transition-all duration-200"
-                style={{ 
-                  borderColor: 'rgba(255,255,255,0.06)',
-                  backgroundColor: 'rgba(255,255,255,0.02)',
-                }}
-                whileHover={{ 
-                  backgroundColor: 'rgba(255,255,255,0.06)',
-                  paddingLeft: '20px',
-                }}
-              >
-                <span style={{ color: 'rgba(255,255,255,0.8)' }}>{item.name}</span>
-                <span className="font-bold font-serif text-base" style={{ color: 'var(--theme-secondary)' }}>
-                  {item.price}
-                </span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        <p className="text-xs text-center pt-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          * Prices are indicative and may vary based on property condition and size. All prices include GST.
-        </p>
       </div>
 
       {/* FAQ Section */}

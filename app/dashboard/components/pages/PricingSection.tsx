@@ -37,14 +37,6 @@ interface Tier {
   status: 'Active' | 'Inactive' | 'Draft';
 }
 
-interface AddOn {
-  id: number;
-  name: string;
-  price: string;
-  category: ServiceCategory;
-  side: 'left' | 'right';
-}
-
 interface FAQ {
   id: number;
   question: string;
@@ -55,177 +47,23 @@ interface FAQ {
 const categories = ['All', 'Residential', 'Commercial'];
 const statusOptions = ['Active', 'Inactive', 'Draft'];
 
-const defaultTiers: Tier[] = [
-  {
-    id: 1,
-    label: 'General Clean',
-    price: '$179',
-    description: 'Perfect for regular upkeep. Keep your place feeling fresh, organised, and stress-free every week or fortnight. Member rates apply',
-    isPopular: false,
-    category: 'Residential',
-    bookings: 156,
-    rating: 4.8,
-    status: 'Active',
-  },
-  {
-    id: 2,
-    label: 'Deep Reset Clean',
-    price: '$249',
-    description: 'For when your home needs more than a touch-up. Floors, bathrooms, kitchen, tackled top to bottom. It\'s the reset button for your space.',
-    isPopular: true,
-    category: 'Residential',
-    bookings: 98,
-    rating: 4.9,
-    status: 'Active',
-  },
-  {
-    id: 3,
-    label: 'End of Lease Cleaning',
-    price: '$319',
-    description: '100% BOND RETURN GUARANTEE. Designed to get your bond back. Full vacate clean with checklist compliance. Zero stress, all sparkle.',
-    isPopular: false,
-    category: 'Residential',
-    bookings: 234,
-    rating: 4.7,
-    status: 'Active',
-  },
-  {
-    id: 4,
-    label: 'Office Clean',
-    price: '$199',
-    description: 'Professional office cleaning for workspaces up to 3 rooms. Daily or weekly service available.',
-    isPopular: false,
-    category: 'Commercial',
-    bookings: 67,
-    rating: 4.6,
-    status: 'Active',
-  },
-  {
-    id: 5,
-    label: 'Retail Clean',
-    price: '$299',
-    description: 'Specialised retail space cleaning to keep your shop floor and displays spotless.',
-    isPopular: true,
-    category: 'Commercial',
-    bookings: 45,
-    rating: 4.8,
-    status: 'Active',
-  },
-  {
-    id: 6,
-    label: 'Warehouse Clean',
-    price: '$399',
-    description: 'Complete warehouse and industrial space cleaning with heavy-duty equipment.',
-    isPopular: false,
-    category: 'Commercial',
-    bookings: 23,
-    rating: 4.5,
-    status: 'Draft',
-  },
-];
-
-const defaultAddOns: AddOn[] = [
-  { id: 1, name: 'Inside oven', price: '$45', category: 'Residential', side: 'left' },
-  { id: 2, name: 'Inside windows', price: '$60', category: 'Residential', side: 'left' },
-  { id: 3, name: 'Balcony / outdoor area', price: '$50', category: 'Residential', side: 'left' },
-  { id: 4, name: 'Inside fridge', price: '$35', category: 'Residential', side: 'right' },
-  { id: 5, name: 'Carpet steam clean (per room)', price: '$55', category: 'Residential', side: 'right' },
-  { id: 6, name: 'Garage', price: '$70', category: 'Residential', side: 'right' },
-  { id: 7, name: 'Washroom sanitising', price: '$45', category: 'Commercial', side: 'left' },
-  { id: 8, name: 'Window cleaning', price: '$90', category: 'Commercial', side: 'left' },
-  { id: 9, name: 'After-hours clean', price: '$60', category: 'Commercial', side: 'left' },
-  { id: 10, name: 'Carpet treatment', price: '$80', category: 'Commercial', side: 'right' },
-  { id: 11, name: 'Deep kitchen detail', price: '$95', category: 'Commercial', side: 'right' },
-  { id: 12, name: 'Strata common area', price: '$120', category: 'Commercial', side: 'right' },
-];
-
-const defaultFAQs: FAQ[] = [
-  {
-    id: 1,
-    question: 'What\'s included in your residential cleaning services?',
-    answer: 'Our residential cleaning services include dusting, vacuuming, mopping, surface wiping, disinfecting high-touch areas, and detailed cleaning of kitchens and bathrooms. You can also request extras like inside window cleaning or oven cleaning, depending on your home\'s needs.',
-    category: 'Residential',
-  },
-  {
-    id: 2,
-    question: 'How do I book residential cleaning services?',
-    answer: 'Booking is quick and easy! Simply select your preferred cleaning package, choose your date and time, and confirm your booking. No payment is required at the time of booking - you only pay after the service is completed to your satisfaction.',
-    category: 'Residential',
-  },
-  {
-    id: 3,
-    question: 'Are your residential cleaning services customisable?',
-    answer: 'Yes! We understand every home is different. You can customise your cleaning package by adding extra services, focusing on specific rooms, or scheduling regular cleans. Our team works with you to create the perfect cleaning plan for your home.',
-    category: 'Residential',
-  },
-  {
-    id: 4,
-    question: 'Do you provide house cleaning for specific rooms only?',
-    answer: 'Absolutely! If you only need certain rooms cleaned, we can tailor our service to focus on those areas. Whether it\'s just the kitchen and bathrooms, or specific bedrooms, we\'ll create a customised plan that meets your needs.',
-    category: 'Residential',
-  },
-  {
-    id: 5,
-    question: 'Are your cleaners insured and background-checked?',
-    answer: 'Yes, all our cleaners are fully insured, police-checked, and professionally trained. We take your safety and trust seriously, ensuring every cleaner who enters your home is reliable, trustworthy, and experienced.',
-    category: 'Residential',
-  },
-  {
-    id: 6,
-    question: 'Do I need to be home during the cleaning?',
-    answer: 'It\'s completely up to you! Many clients prefer to be home to oversee the service, while others provide us with access instructions. We have flexible arrangements to suit your preferences and schedule.',
-    category: 'Residential',
-  },
-  {
-    id: 7,
-    question: 'What commercial cleaning services do you offer?',
-    answer: 'We offer comprehensive commercial cleaning services including office cleaning, retail cleaning, school cleaning, gym cleaning, showroom cleaning, medical centre cleaning, and shopping centre cleaning.',
-    category: 'Commercial',
-  },
-  {
-    id: 8,
-    question: 'How often do you provide commercial cleaning?',
-    answer: 'We offer flexible scheduling options including nightly, weekly, fortnightly, or monthly cleans. We can also accommodate deep cleans and one-time special events.',
-    category: 'Commercial',
-  },
-  {
-    id: 9,
-    question: 'Are your commercial cleaners insured and background-checked?',
-    answer: 'Yes, absolutely. All our cleaners are 100% police checked, insured, and professionally trained. We take security and trust very seriously, ensuring your workplace and assets are always in safe hands.',
-    category: 'Commercial',
-  },
-  {
-    id: 10,
-    question: 'Do you provide cleaning supplies and equipment for commercial spaces?',
-    answer: 'Yes, we come fully equipped with superior cleaning products, professional-grade equipment, and all necessary supplies. We can also replenish cleaning goods and restock toiletries as part of our service.',
-    category: 'Commercial',
-  },
-  {
-    id: 11,
-    question: 'Can I customise my commercial cleaning package?',
-    answer: 'Absolutely! Our commercial cleaning packages are 100% customisable. We work with you to create a tailored cleaning plan that fits your specific needs, schedule, and budget. You can add or remove services as needed.',
-    category: 'Commercial',
-  },
-];
-
 export default function PricingContent() {
   const [tiers, setTiers] = useState<Tier[]>([]);
-  const [addOns, setAddOns] = useState<AddOn[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'tiers' | 'addons' | 'faqs'>('tiers');
+  const [activeTab, setActiveTab] = useState<'tiers' | 'faqs'>('tiers');
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [modalType, setModalType] = useState<'tier' | 'addon' | 'faq'>('tier');
+  const [modalType, setModalType] = useState<'tier' | 'faq'>('tier');
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const supabase = createClient();
 
-  // Load all pricing data from Supabase
-  const loadPricingData = async () => {
+  // Load all data from Supabase
+  const loadData = async () => {
     try {
       setIsLoading(true);
       
@@ -233,89 +71,34 @@ export default function PricingContent() {
       const { data: tiersData, error: tiersError } = await supabase
         .from('pricing_tiers')
         .select('*')
-        .order('id');
+        .order('sort_order', { ascending: true });
 
       if (tiersError) {
         console.error('Error loading tiers:', tiersError);
-        setTiers(defaultTiers);
-      } else if (tiersData && tiersData.length > 0) {
+      } else if (tiersData) {
         setTiers(tiersData);
-      } else {
-        // Insert default tiers if none exist
-        const { data: inserted, error: insertError } = await supabase
-          .from('pricing_tiers')
-          .insert(defaultTiers)
-          .select();
-
-        if (insertError) {
-          console.error('Error inserting default tiers:', insertError);
-          setTiers(defaultTiers);
-        } else {
-          setTiers(inserted || defaultTiers);
-        }
-      }
-
-      // Load add-ons
-      const { data: addOnsData, error: addOnsError } = await supabase
-        .from('add_ons')
-        .select('*')
-        .order('id');
-
-      if (addOnsError) {
-        console.error('Error loading add-ons:', addOnsError);
-        setAddOns(defaultAddOns);
-      } else if (addOnsData && addOnsData.length > 0) {
-        setAddOns(addOnsData);
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from('add_ons')
-          .insert(defaultAddOns)
-          .select();
-
-        if (insertError) {
-          console.error('Error inserting default add-ons:', insertError);
-          setAddOns(defaultAddOns);
-        } else {
-          setAddOns(inserted || defaultAddOns);
-        }
       }
 
       // Load FAQs
       const { data: faqsData, error: faqsError } = await supabase
         .from('faqs')
         .select('*')
-        .order('id');
+        .order('sort_order', { ascending: true });
 
       if (faqsError) {
         console.error('Error loading FAQs:', faqsError);
-        setFaqs(defaultFAQs);
-      } else if (faqsData && faqsData.length > 0) {
+      } else if (faqsData) {
         setFaqs(faqsData);
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from('faqs')
-          .insert(defaultFAQs)
-          .select();
-
-        if (insertError) {
-          console.error('Error inserting default FAQs:', insertError);
-          setFaqs(defaultFAQs);
-        } else {
-          setFaqs(inserted || defaultFAQs);
-        }
       }
     } catch (error) {
-      console.error('Error loading pricing data:', error);
-      setTiers(defaultTiers);
-      setAddOns(defaultAddOns);
-      setFaqs(defaultFAQs);
+      console.error('Error loading data:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadPricingData();
+    loadData();
   }, []);
 
   // Filter data
@@ -323,12 +106,6 @@ export default function PricingContent() {
     const matchesCategory = selectedCategory === 'All' || tier.category === selectedCategory;
     const matchesSearch = tier.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          tier.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const filteredAddOns = addOns.filter((addon: AddOn) => {
-    const matchesCategory = selectedCategory === 'All' || addon.category === selectedCategory;
-    const matchesSearch = addon.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -343,82 +120,62 @@ export default function PricingContent() {
   const stats = [
     { label: 'Total Tiers', value: tiers.length, icon: Package, color: '#3b82f6' },
     { label: 'Active Tiers', value: tiers.filter((t: Tier) => t.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
-    { label: 'Total Add-Ons', value: addOns.length, icon: Plus, color: '#8b5cf6' },
     { label: 'Total FAQs', value: faqs.length, icon: HelpCircle, color: '#f59e0b' },
+    { label: 'Total Bookings', value: tiers.reduce((sum, t) => sum + (t.bookings || 0), 0), icon: Users, color: '#8b5cf6' },
   ];
 
+  // CRUD: Delete Tier
   const handleDeleteTier = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this tier?')) {
-      try {
-        const { error } = await supabase
-          .from('pricing_tiers')
-          .delete()
-          .eq('id', id);
+    if (!confirm('Are you sure you want to delete this tier?')) return;
 
-        if (error) {
-          console.error('Error deleting tier:', error);
-          alert('Failed to delete tier');
-          return;
-        }
+    try {
+      const { error } = await supabase
+        .from('pricing_tiers')
+        .delete()
+        .eq('id', id);
 
-        setTiers(tiers.filter((t: Tier) => t.id !== id));
-      } catch (error) {
-        console.error('Error:', error);
+      if (error) {
+        console.error('Error deleting tier:', error);
         alert('Failed to delete tier');
+        return;
       }
+
+      setTiers(tiers.filter((t: Tier) => t.id !== id));
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to delete tier');
     }
   };
 
-  const handleDeleteAddOn = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this add-on?')) {
-      try {
-        const { error } = await supabase
-          .from('add_ons')
-          .delete()
-          .eq('id', id);
-
-        if (error) {
-          console.error('Error deleting add-on:', error);
-          alert('Failed to delete add-on');
-          return;
-        }
-
-        setAddOns(addOns.filter((a: AddOn) => a.id !== id));
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to delete add-on');
-      }
-    }
-  };
-
+  // CRUD: Delete FAQ
   const handleDeleteFAQ = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this FAQ?')) {
-      try {
-        const { error } = await supabase
-          .from('faqs')
-          .delete()
-          .eq('id', id);
+    if (!confirm('Are you sure you want to delete this FAQ?')) return;
 
-        if (error) {
-          console.error('Error deleting FAQ:', error);
-          alert('Failed to delete FAQ');
-          return;
-        }
+    try {
+      const { error } = await supabase
+        .from('faqs')
+        .delete()
+        .eq('id', id);
 
-        setFaqs(faqs.filter((f: FAQ) => f.id !== id));
-      } catch (error) {
-        console.error('Error:', error);
+      if (error) {
+        console.error('Error deleting FAQ:', error);
         alert('Failed to delete FAQ');
+        return;
       }
+
+      setFaqs(faqs.filter((f: FAQ) => f.id !== id));
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to delete FAQ');
     }
   };
 
+  // CRUD: Save Tier
   const handleSaveTier = async (tierData: any) => {
     setSaving(true);
     try {
-      let result;
       if (editingItem) {
-        // Update existing
+        // Update
         const { data, error } = await supabase
           .from('pricing_tiers')
           .update({
@@ -441,7 +198,7 @@ export default function PricingContent() {
 
         setTiers(tiers.map((t: Tier) => t.id === editingItem.id ? { ...t, ...tierData } : t));
       } else {
-        // Create new
+        // Create
         const { data, error } = await supabase
           .from('pricing_tiers')
           .insert({
@@ -453,6 +210,7 @@ export default function PricingContent() {
             status: tierData.status || 'Active',
             bookings: 0,
             rating: 0,
+            sort_order: tiers.length + 1,
           })
           .select()
           .single();
@@ -475,68 +233,12 @@ export default function PricingContent() {
     }
   };
 
-  const handleSaveAddOn = async (addonData: any) => {
-    setSaving(true);
-    try {
-      let result;
-      if (editingItem) {
-        // Update existing
-        const { data, error } = await supabase
-          .from('add_ons')
-          .update({
-            name: addonData.name,
-            price: addonData.price,
-            category: addonData.category,
-            side: addonData.side,
-          })
-          .eq('id', editingItem.id)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error updating add-on:', error);
-          alert('Failed to update add-on');
-          return;
-        }
-
-        setAddOns(addOns.map((a: AddOn) => a.id === editingItem.id ? { ...a, ...addonData } : a));
-      } else {
-        // Create new
-        const { data, error } = await supabase
-          .from('add_ons')
-          .insert({
-            name: addonData.name,
-            price: addonData.price,
-            category: addonData.category,
-            side: addonData.side || 'left',
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error creating add-on:', error);
-          alert('Failed to create add-on');
-          return;
-        }
-
-        setAddOns([...addOns, data]);
-      }
-      setShowModal(false);
-      setEditingItem(null);
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to save add-on');
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  // CRUD: Save FAQ
   const handleSaveFAQ = async (faqData: any) => {
     setSaving(true);
     try {
-      let result;
       if (editingItem) {
-        // Update existing
+        // Update
         const { data, error } = await supabase
           .from('faqs')
           .update({
@@ -556,13 +258,14 @@ export default function PricingContent() {
 
         setFaqs(faqs.map((f: FAQ) => f.id === editingItem.id ? { ...f, ...faqData } : f));
       } else {
-        // Create new
+        // Create
         const { data, error } = await supabase
           .from('faqs')
           .insert({
             question: faqData.question,
             answer: faqData.answer,
             category: faqData.category,
+            sort_order: faqs.length + 1,
           })
           .select()
           .single();
@@ -610,7 +313,7 @@ export default function PricingContent() {
   };
 
   const handleRefresh = () => {
-    loadPricingData();
+    loadData();
   };
 
   if (isLoading) {
@@ -623,7 +326,7 @@ export default function PricingContent() {
         color: '#94a3b8'
       }}>
         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
-        <span style={{ marginLeft: '12px' }}>Loading pricing data...</span>
+        <span style={{ marginLeft: '12px' }}>Loading...</span>
       </div>
     );
   }
@@ -646,7 +349,7 @@ export default function PricingContent() {
               Pricing Management
             </div>
             <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: '#f8fafc' }}>
-              Manage Pricing ({tiers.length} Tiers)
+              Pricing ({tiers.length} Tiers)
             </h2>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -664,7 +367,6 @@ export default function PricingContent() {
                 gap: '6px',
                 fontSize: '0.85rem',
               }}
-              title="Refresh data"
             >
               <RefreshCw size={16} />
               Refresh
@@ -760,7 +462,6 @@ export default function PricingContent() {
                   cursor: 'pointer',
                   fontSize: '0.85rem',
                   fontWeight: selectedCategory === cat ? 600 : 400,
-                  transition: 'all 0.2s ease',
                 }}
               >
                 {cat}
@@ -768,76 +469,78 @@ export default function PricingContent() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  height: '38px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#cbd5e1',
-                  padding: '0 16px 0 36px',
-                  fontSize: '0.9rem',
-                  outline: 'none',
-                  width: '180px',
-                }}
-              />
-            </div>
+          <div style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                height: '38px',
+                borderRadius: '10px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'rgba(15, 23, 42, 0.72)',
+                color: '#cbd5e1',
+                padding: '0 16px 0 36px',
+                fontSize: '0.9rem',
+                outline: 'none',
+                width: '180px',
+              }}
+            />
           </div>
         </div>
 
         {/* Tab Navigation */}
         <div style={{ display: 'flex', gap: '4px', marginTop: '16px', borderTop: '1px solid rgba(148,163,184,0.08)', paddingTop: '14px' }}>
-          {[
-            { id: 'tiers', label: 'Service Tiers', count: filteredTiers.length, icon: Package },
-            { id: 'addons', label: 'Add-Ons', count: filteredAddOns.length, icon: Plus },
-            { id: 'faqs', label: 'FAQs', count: filteredFAQs.length, icon: HelpCircle },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: activeTab === tab.id ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
-                  color: activeTab === tab.id ? '#F6D961' : '#94a3b8',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  fontWeight: activeTab === tab.id ? 600 : 400,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Icon size={16} />
-                {tab.label}
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    padding: '1px 8px',
-                    borderRadius: '10px',
-                    background: 'rgba(148,163,184,0.12)',
-                    color: '#94a3b8',
-                  }}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+          <button
+            onClick={() => setActiveTab('tiers')}
+            style={{
+              padding: '8px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              background: activeTab === 'tiers' ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
+              color: activeTab === 'tiers' ? '#F6D961' : '#94a3b8',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: activeTab === 'tiers' ? 600 : 400,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Package size={16} />
+            Tiers
+            <span style={{ fontSize: '0.7rem', padding: '1px 8px', borderRadius: '10px', background: 'rgba(148,163,184,0.12)', color: '#94a3b8' }}>
+              {filteredTiers.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('faqs')}
+            style={{
+              padding: '8px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              background: activeTab === 'faqs' ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
+              color: activeTab === 'faqs' ? '#F6D961' : '#94a3b8',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: activeTab === 'faqs' ? 600 : 400,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <HelpCircle size={16} />
+            FAQs
+            <span style={{ fontSize: '0.7rem', padding: '1px 8px', borderRadius: '10px', background: 'rgba(148,163,184,0.12)', color: '#94a3b8' }}>
+              {filteredFAQs.length}
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* Content - Tiers */}
+      {/* Tiers Tab */}
       {activeTab === 'tiers' && (
         <div
           style={{
@@ -859,7 +562,6 @@ export default function PricingContent() {
                     border: tier.isPopular ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(148,163,184,0.08)',
                     background: 'rgba(15, 23, 42, 0.72)',
                     overflow: 'hidden',
-                    transition: 'all 0.2s ease',
                   }}
                 >
                   <div
@@ -908,9 +610,7 @@ export default function PricingContent() {
                       </div>
                     </div>
 
-                    <div style={{ color: '#64748b', fontSize: '0.8rem' }}>
-                      {tier.category}
-                    </div>
+                    <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{tier.category}</div>
 
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
@@ -937,9 +637,6 @@ export default function PricingContent() {
                       <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '12px' }}>
                         {tier.description}
                       </p>
-                      <div style={{ display: 'flex', gap: '16px', marginTop: '10px' }}>
-                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>ID: #{tier.id}</span>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -947,81 +644,14 @@ export default function PricingContent() {
             })}
             {filteredTiers.length === 0 && (
               <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                No service tiers found. Click "Add Tier" to create one.
+                No tiers found. Click "Add Tier" to create one.
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Content - Add-Ons */}
-      {activeTab === 'addons' && (
-        <div
-          style={{
-            background: 'rgba(15, 23, 42, 0.82)',
-            border: '1px solid rgba(148,163,184,0.12)',
-            borderRadius: '30px',
-            padding: '24px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>Add-Ons</h3>
-            <button
-              onClick={() => { setEditingItem(null); setModalType('addon'); setShowModal(true); }}
-              style={{ padding: '6px 14px', borderRadius: '10px', border: '1px solid rgba(148,163,184,0.12)', background: 'rgba(59,130,246,0.12)', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
-            >
-              <Plus size={14} /> Add Add-On
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gap: '8px' }}>
-            {filteredAddOns.map((addon: AddOn) => (
-              <div
-                key={addon.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  border: '1px solid rgba(148,163,184,0.08)',
-                }}
-              >
-                <div>
-                  <span style={{ color: '#e2e8f0' }}>{addon.name}</span>
-                  <span style={{ color: '#64748b', fontSize: '0.8rem', marginLeft: '12px' }}>{addon.category}</span>
-                  <span style={{ color: '#64748b', fontSize: '0.7rem', marginLeft: '8px', background: 'rgba(148,163,184,0.12)', padding: '1px 8px', borderRadius: '8px' }}>
-                    {addon.side}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ color: '#3b82f6', fontWeight: 600 }}>{addon.price}</span>
-                  <button
-                    onClick={() => { setEditingItem(addon); setModalType('addon'); setShowModal(true); }}
-                    style={{ border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
-                  >
-                    <Edit size={14} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteAddOn(addon.id)}
-                    style={{ border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {filteredAddOns.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
-                No add-ons found. Click "Add Add-On" to create one.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Content - FAQs */}
+      {/* FAQs Tab */}
       {activeTab === 'faqs' && (
         <div
           style={{
@@ -1096,7 +726,6 @@ export default function PricingContent() {
           onClose={() => { setShowModal(false); setEditingItem(null); }}
           onSave={(data) => {
             if (modalType === 'tier') handleSaveTier(data);
-            else if (modalType === 'addon') handleSaveAddOn(data);
             else if (modalType === 'faq') handleSaveFAQ(data);
           }}
           saving={saving}
@@ -1116,16 +745,13 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
       category: 'Residential',
       isPopular: false,
       status: 'Active',
-      name: '',
       question: '',
       answer: '',
-      side: 'left',
     }
   );
 
   const getTitle = () => {
     if (type === 'tier') return data ? 'Edit Tier' : 'Add New Tier';
-    if (type === 'addon') return data ? 'Edit Add-On' : 'Add New Add-On';
     return data ? 'Edit FAQ' : 'Add New FAQ';
   };
 
@@ -1273,106 +899,6 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
               />
               Mark as Popular
             </label>
-          </div>
-        </>
-      );
-    }
-
-    if (type === 'addon') {
-      return (
-        <>
-          <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-              Add-On Name *
-            </label>
-            <input
-              type="text"
-              value={formData.name || ''}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
-                fontSize: '0.95rem',
-                outline: 'none',
-              }}
-              placeholder="Enter add-on name"
-            />
-          </div>
-
-          <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-              Price *
-            </label>
-            <input
-              type="text"
-              value={formData.price || ''}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              required
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
-                fontSize: '0.95rem',
-                outline: 'none',
-              }}
-              placeholder="e.g. $45"
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-                Category *
-              </label>
-              <select
-                value={formData.category || 'Residential'}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
-                  fontSize: '0.95rem',
-                  outline: 'none',
-                }}
-              >
-                <option value="Residential">Residential</option>
-                <option value="Commercial">Commercial</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
-                Side
-              </label>
-              <select
-                value={formData.side || 'left'}
-                onChange={(e) => setFormData({ ...formData, side: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
-                  fontSize: '0.95rem',
-                  outline: 'none',
-                }}
-              >
-                <option value="left">Left</option>
-                <option value="right">Right</option>
-              </select>
-            </div>
           </div>
         </>
       );
@@ -1544,25 +1070,14 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 border: 'none',
                 background: '#F6D961',
                 color: '#1a1a1a',
-                cursor: 'pointer',
+                cursor: saving ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
                 boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                transition: 'all 0.2s ease',
                 opacity: saving ? 0.7 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (!saving) {
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!saving) {
-                  e.currentTarget.style.transform = 'scale(1)';
-                }
               }}
             >
               <Save size={16} />
