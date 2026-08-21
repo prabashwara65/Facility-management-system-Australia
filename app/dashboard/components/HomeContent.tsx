@@ -17,10 +17,22 @@ import {
   Users,
   Star,
   RefreshCw,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  Package,
+  CheckCircle,
+  XCircle,
+  HelpCircle,
+  ShieldCheck,
+  UserCheck,
+  Tag,
+  Leaf,
+  Plane,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import PricingSection from '../components/pages/PricingSection';
 
 // Types
 interface BookingStats {
@@ -41,13 +53,31 @@ interface ServiceStats {
 
 interface PricingStats {
   totalTiers: number;
-  totalAddOns: number;
   totalFAQs: number;
+  popularTier: string;
+}
+
+interface PromiseStats {
+  total: number;
+  active: number;
+}
+
+interface TestimonialStats {
+  total: number;
+  active: number;
+  fiveStar: number;
+}
+
+interface AreaStats {
+  total: number;
+  active: number;
+  regions: number;
 }
 
 export default function HomeContent() {
-  const [showPricingPreview, setShowPricingPreview] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Stats
   const [bookingStats, setBookingStats] = useState<BookingStats>({
     total: 0,
     pending: 0,
@@ -64,35 +94,27 @@ export default function HomeContent() {
   });
   const [pricingStats, setPricingStats] = useState<PricingStats>({
     totalTiers: 0,
-    totalAddOns: 0,
     totalFAQs: 0,
+    popularTier: '',
+  });
+  const [promiseStats, setPromiseStats] = useState<PromiseStats>({
+    total: 0,
+    active: 0,
+  });
+  const [testimonialStats, setTestimonialStats] = useState<TestimonialStats>({
+    total: 0,
+    active: 0,
+    fiveStar: 0,
+  });
+  const [areaStats, setAreaStats] = useState<AreaStats>({
+    total: 0,
+    active: 0,
+    regions: 0,
   });
   const [recentBookings, setRecentBookings] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const supabase = createClient();
-
-  // Stats Cards Data
-  const statCards = [
-    { label: 'Total Bookings', value: bookingStats.total.toString(), delta: '+12.4%', tone: '#8b5cf6' },
-    { label: 'Pending', value: bookingStats.pending.toString(), delta: '+2.1%', tone: '#f59e0b' },
-    { label: 'Completed', value: bookingStats.completed.toString(), delta: '+18.7%', tone: '#10b981' },
-    { label: 'Revenue', value: `$${bookingStats.revenue.toLocaleString()}`, delta: '+0.8%', tone: '#3b82f6' },
-  ];
-
-  const quickActions = [
-    { icon: Database, label: 'Auto backup', detail: 'Every 6 hours', color: '#8b5cf6' },
-    { icon: Download, label: 'Download queue', detail: '12 files', color: '#3b82f6' },
-    { icon: Link2, label: 'Shared links', detail: '7 active', color: '#10b981' },
-    { icon: DollarSign, label: 'Pricing', detail: `${pricingStats.totalTiers} tiers`, color: '#f59e0b' },
-  ];
-
-  const serviceStatsData = [
-    { label: 'Total Services', value: serviceStats.total.toString(), icon: Home, color: '#3b82f6' },
-    { label: 'Residential', value: serviceStats.residential.toString(), icon: Home, color: '#10b981' },
-    { label: 'Commercial', value: serviceStats.commercial.toString(), icon: Building, color: '#8b5cf6' },
-    { label: 'Active', value: serviceStats.active.toString(), icon: Star, color: '#f59e0b' },
-  ];
 
   // Load all dashboard data
   const loadDashboardData = async () => {
@@ -109,10 +131,10 @@ export default function HomeContent() {
         console.error('Error loading bookings:', bookingsError);
       } else if (bookingsData) {
         const total = bookingsData.length;
-        const pending = bookingsData.filter(b => b.status === 'Pending').length;
-        const confirmed = bookingsData.filter(b => b.status === 'Confirmed').length;
-        const completed = bookingsData.filter(b => b.status === 'Completed').length;
-        const cancelled = bookingsData.filter(b => b.status === 'Cancelled').length;
+        const pending = bookingsData.filter(b => b.status === 'pending' || b.status === 'Pending').length;
+        const confirmed = bookingsData.filter(b => b.status === 'confirmed' || b.status === 'Confirmed').length;
+        const completed = bookingsData.filter(b => b.status === 'completed' || b.status === 'Completed').length;
+        const cancelled = bookingsData.filter(b => b.status === 'cancelled' || b.status === 'Cancelled').length;
         const revenue = bookingsData.reduce((sum, b) => sum + (b.total_price || 0), 0);
 
         setBookingStats({
@@ -125,7 +147,10 @@ export default function HomeContent() {
         });
 
         // Get recent 5 bookings
-        setRecentBookings(bookingsData.slice(0, 5));
+        const sorted = [...bookingsData].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setRecentBookings(sorted.slice(0, 5));
       }
 
       // 2. Load service stats
@@ -140,7 +165,7 @@ export default function HomeContent() {
           total: servicesData.length,
           residential: servicesData.filter(s => s.category === 'Residential').length,
           commercial: servicesData.filter(s => s.category === 'Commercial').length,
-          active: servicesData.filter(s => s.status === 'Active').length,
+          active: servicesData.filter(s => s.status === 'Active' || s.is_active === true).length,
         });
       }
 
@@ -149,19 +174,55 @@ export default function HomeContent() {
         .from('pricing_tiers')
         .select('*');
 
-      const { data: addOnsData, error: addOnsError } = await supabase
-        .from('add_ons')
-        .select('*');
-
       const { data: faqsData, error: faqsError } = await supabase
         .from('faqs')
         .select('*');
 
       if (!tiersError && tiersData) {
+        const popular = tiersData.find(t => t.is_popular === true);
         setPricingStats({
           totalTiers: tiersData.length,
-          totalAddOns: addOnsData?.length || 0,
           totalFAQs: faqsData?.length || 0,
+          popularTier: popular?.label || 'None',
+        });
+      }
+
+      // 4. Load promise stats
+      const { data: promisesData, error: promisesError } = await supabase
+        .from('promise_features')
+        .select('*');
+
+      if (!promisesError && promisesData) {
+        setPromiseStats({
+          total: promisesData.length,
+          active: promisesData.filter(p => p.status === 'Active').length,
+        });
+      }
+
+      // 5. Load testimonial stats
+      const { data: testimonialsData, error: testimonialsError } = await supabase
+        .from('testimonials')
+        .select('*');
+
+      if (!testimonialsError && testimonialsData) {
+        setTestimonialStats({
+          total: testimonialsData.length,
+          active: testimonialsData.filter(t => t.status === 'Active').length,
+          fiveStar: testimonialsData.filter(t => t.rating === 5).length,
+        });
+      }
+
+      // 6. Load service areas stats
+      const { data: areasData, error: areasError } = await supabase
+        .from('service_areas')
+        .select('*');
+
+      if (!areasError && areasData) {
+        const regions = [...new Set(areasData.map(a => a.region))];
+        setAreaStats({
+          total: areasData.length,
+          active: areasData.filter(a => a.status === 'Active').length,
+          regions: regions.length,
         });
       }
 
@@ -177,11 +238,21 @@ export default function HomeContent() {
     loadDashboardData();
   }, []);
 
-  // Format date for display
+  // Format date
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  // Get status color
+  const getStatusColor = (status: string) => {
+    const s = status?.toLowerCase() || '';
+    if (s === 'pending') return '#f59e0b';
+    if (s === 'confirmed') return '#3b82f6';
+    if (s === 'completed') return '#10b981';
+    if (s === 'cancelled') return '#ef4444';
+    return '#94a3b8';
   };
 
   const handleRefresh = () => {
@@ -197,6 +268,24 @@ export default function HomeContent() {
     );
   }
 
+  // Main stat cards
+  const mainStats = [
+    { label: 'Total Bookings', value: bookingStats.total, icon: FileText, color: '#8b5cf6' },
+    { label: 'Pending', value: bookingStats.pending, icon: Clock, color: '#f59e0b' },
+    { label: 'Completed', value: bookingStats.completed, icon: CheckCircle, color: '#10b981' },
+    { label: 'Revenue', value: `$${bookingStats.revenue.toLocaleString()}`, icon: DollarSign, color: '#3b82f6' },
+  ];
+
+  // Category stats
+  const categoryStats = [
+    { label: 'Services', value: serviceStats.total, icon: Package, color: '#3b82f6' },
+    { label: 'Pricing Tiers', value: pricingStats.totalTiers, icon: DollarSign, color: '#8b5cf6' },
+    { label: 'Promise Features', value: promiseStats.total, icon: ShieldCheck, color: '#10b981' },
+    { label: 'Testimonials', value: testimonialStats.total, icon: Star, color: '#f59e0b' },
+    { label: 'Service Areas', value: areaStats.total, icon: MapPin, color: '#ef4444' },
+    { label: 'FAQs', value: pricingStats.totalFAQs, icon: HelpCircle, color: '#06b6d4' },
+  ];
+
   return (
     <div style={{ display: 'grid', gap: '20px' }}>
       {/* Overview Section */}
@@ -205,180 +294,117 @@ export default function HomeContent() {
           background: 'linear-gradient(135deg, rgba(30,41,59,0.92), rgba(17,24,39,0.95))',
           border: '1px solid rgba(148,163,184,0.12)',
           borderRadius: '30px',
-          padding: '24px 24px 20px',
+          padding: '24px',
           boxShadow: '0 20px 55px rgba(2, 6, 23, 0.35)',
         }}
       >
         <div
           style={{
             display: 'flex',
-            flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '12px',
-            marginBottom: '18px',
             flexWrap: 'wrap',
+            gap: '12px',
+            marginBottom: '20px',
           }}
         >
           <div>
-            <div
-              style={{
-                color: '#94a3b8',
-                fontSize: '0.76rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-              }}
-            >
+            <div style={{ color: '#94a3b8', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
               Dashboard Overview
             </div>
-            <h1
-              style={{
-                margin: '8px 0 0',
-                fontSize: 'clamp(1.5rem, 3vw, 3rem)',
-                lineHeight: 1.05,
-                letterSpacing: '-0.07em',
-                color: '#f8fafc',
-              }}
-            >
-              Good morning
+            <h1 style={{ margin: '8px 0 0', fontSize: 'clamp(1.5rem, 3vw, 3rem)', lineHeight: 1.05, letterSpacing: '-0.07em', color: '#f8fafc' }}>
+              Welcome Back
             </h1>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={handleRefresh}
-              style={{
-                border: '1px solid rgba(148,163,184,0.18)',
-                background: 'rgba(59,130,246,0.12)',
-                color: '#dbeafe',
-                borderRadius: '12px',
-                padding: '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontSize: 'clamp(0.75rem, 0.9vw, 0.9rem)',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
-            >
-              <RefreshCw size={15} />
-              Refresh
-            </button>
-            <button
-              onClick={() => setShowPricingPreview(!showPricingPreview)}
-              style={{
-                border: '1px solid rgba(148,163,184,0.18)',
-                background: 'rgba(59,130,246,0.12)',
-                color: '#dbeafe',
-                borderRadius: '12px',
-                padding: '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontSize: 'clamp(0.75rem, 0.9vw, 0.9rem)',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
-            >
-              <DollarSign size={15} />
-              {showPricingPreview ? 'Hide Pricing' : 'View Pricing'}
-            </button>
-          </div>
+          <button
+            onClick={handleRefresh}
+            style={{
+              border: '1px solid rgba(148,163,184,0.18)',
+              background: 'rgba(59,130,246,0.12)',
+              color: '#dbeafe',
+              borderRadius: '12px',
+              padding: '10px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </button>
         </div>
 
-        {/* Stats Cards */}
-        <div 
-          style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: '16px',
-          }}
-        >
-          {statCards.map((card) => (
-            <div
-              key={card.label}
-              style={{
-                background: 'rgba(15, 23, 42, 0.72)',
-                border: '1px solid rgba(148,163,184,0.12)',
-                borderRadius: '20px',
-                padding: '18px 16px',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
-            >
+        {/* Main Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+          {mainStats.map((stat) => {
+            const Icon = stat.icon;
+            return (
               <div
+                key={stat.label}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px',
+                  background: 'rgba(15, 23, 42, 0.72)',
+                  border: '1px solid rgba(148,163,184,0.12)',
+                  borderRadius: '20px',
+                  padding: '18px 20px',
+                  transition: 'all 0.2s ease',
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
               >
-                <div
-                  style={{
-                    fontSize: 'clamp(0.6rem, 0.7vw, 0.74rem)',
-                    color: '#94a3b8',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  {card.label}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '12px',
+                      background: `${stat.color}22`,
+                      color: stat.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Icon size={20} />
+                  </div>
+                  <div>
+                    <div style={{ color: '#94a3b8', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      {stat.label}
+                    </div>
+                    <div style={{ color: '#f8fafc', fontSize: 'clamp(1.2rem, 1.8vw, 1.8rem)', fontWeight: 700 }}>
+                      {stat.value}
+                    </div>
+                  </div>
                 </div>
-                <div
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: card.tone,
-                    flexShrink: 0,
-                  }}
-                />
               </div>
-              <div
-                style={{
-                  marginTop: '14px',
-                  fontSize: 'clamp(1.3rem, 2vw, 2rem)',
-                  fontWeight: 800,
-                  letterSpacing: '-0.06em',
-                  color: '#f8fafc',
-                }}
-              >
-                {card.value}
-              </div>
-              <div
-                style={{
-                  marginTop: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: '#86efac',
-                  fontSize: 'clamp(0.65rem, 0.7vw, 0.8rem)',
-                  fontWeight: 600,
-                }}
-              >
-                <ArrowUpRight size={14} />
-                {card.delta}
-              </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Category Stats */}
+      <div
+        style={{
+          background: 'rgba(15, 23, 42, 0.82)',
+          border: '1px solid rgba(148,163,184,0.12)',
+          borderRadius: '30px',
+          padding: '24px',
+        }}
+      >
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            Content Overview
+          </div>
+          <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: '#f8fafc' }}>
+            All Categories
+          </h2>
         </div>
 
-        {/* Service Stats Mini Cards */}
-        <div 
-          style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-            gap: '12px', 
-            marginTop: '16px',
-          }}
-        >
-          {serviceStatsData.map((stat) => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+          {categoryStats.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
@@ -386,12 +412,15 @@ export default function HomeContent() {
                 style={{
                   background: 'rgba(15, 23, 42, 0.5)',
                   border: '1px solid rgba(148,163,184,0.08)',
-                  borderRadius: '12px',
-                  padding: '12px 16px',
+                  borderRadius: '14px',
+                  padding: '14px 16px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '10px',
+                  transition: 'all 0.2s ease',
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)')}
               >
                 <div
                   style={{
@@ -409,8 +438,8 @@ export default function HomeContent() {
                   <Icon size={16} />
                 </div>
                 <div>
-                  <div style={{ color: '#94a3b8', fontSize: 'clamp(0.6rem, 0.65vw, 0.7rem)' }}>{stat.label}</div>
-                  <div style={{ color: '#f8fafc', fontSize: 'clamp(0.85rem, 1vw, 1rem)', fontWeight: 700 }}>{stat.value}</div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.6rem', textTransform: 'uppercase' }}>{stat.label}</div>
+                  <div style={{ color: '#f8fafc', fontSize: '1rem', fontWeight: 700 }}>{stat.value}</div>
                 </div>
               </div>
             );
@@ -418,74 +447,27 @@ export default function HomeContent() {
         </div>
       </div>
 
-      {/* Pricing Section Preview */}
-      {showPricingPreview && (
-        <div
-          style={{
-            borderRadius: '30px',
-            overflow: 'hidden',
-            border: '1px solid rgba(148,163,184,0.12)',
-            background: 'rgba(15, 23, 42, 0.82)',
-          }}
-        >
-          <PricingSection />
-        </div>
-      )}
-
-      {/* Main Content Grid */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '20px',
-        }}
-      >
-        {/* Left Column - Recent Bookings */}
+      {/* Two Column Layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px' }}>
+        {/* Recent Bookings */}
         <div
           style={{
             background: 'rgba(15, 23, 42, 0.82)',
             border: '1px solid rgba(148,163,184,0.12)',
             borderRadius: '30px',
             padding: '24px',
-            boxShadow: '0 20px 50px rgba(2, 6, 23, 0.28)',
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px',
-              marginBottom: '20px',
-            }}
-          >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
-              <div
-                style={{
-                  color: '#94a3b8',
-                  fontSize: '0.72rem',
-                  letterSpacing: '0.14em',
-                  textTransform: 'uppercase',
-                }}
-              >
+              <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                 Recent Activity
               </div>
-              <h2
-                style={{
-                  margin: '8px 0 0',
-                  fontSize: 'clamp(1.1rem, 1.4vw, 1.5rem)',
-                  letterSpacing: '-0.05em',
-                  color: '#f8fafc',
-                }}
-              >
+              <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: '#f8fafc' }}>
                 Recent Bookings
               </h2>
             </div>
-            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>
-              {bookingStats.total} total
-            </span>
+            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{bookingStats.total} total</span>
           </div>
 
           <div style={{ display: 'grid', gap: '12px' }}>
@@ -494,9 +476,6 @@ export default function HomeContent() {
                 <div
                   key={booking.id}
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr',
-                    gap: '8px',
                     padding: '14px 16px',
                     borderRadius: '16px',
                     background: 'rgba(15, 23, 42, 0.72)',
@@ -506,7 +485,7 @@ export default function HomeContent() {
                   onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)')}
                   onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)')}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div
                       style={{
                         width: '34px',
@@ -524,152 +503,47 @@ export default function HomeContent() {
                     >
                       {booking.first_name?.[0]}{booking.last_name?.[0]}
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f8fafc' }}>
                         {booking.first_name} {booking.last_name}
                       </div>
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <span style={{ color: '#94a3b8', fontSize: 'clamp(0.65rem, 0.7vw, 0.75rem)' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
                           {booking.service_type}
                         </span>
                         <span
                           style={{
-                            fontSize: 'clamp(0.6rem, 0.65vw, 0.7rem)',
-                            padding: '2px 8px',
+                            fontSize: '0.65rem',
+                            padding: '2px 10px',
                             borderRadius: '10px',
-                            color: booking.status === 'Pending' ? '#f59e0b' : 
-                                   booking.status === 'Confirmed' ? '#3b82f6' : 
-                                   booking.status === 'Completed' ? '#10b981' : '#ef4444',
-                            background: booking.status === 'Pending' ? 'rgba(245,158,11,0.15)' : 
-                                       booking.status === 'Confirmed' ? 'rgba(59,130,246,0.15)' : 
-                                       booking.status === 'Completed' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                            color: getStatusColor(booking.status),
+                            background: `${getStatusColor(booking.status)}22`,
                           }}
                         >
-                          {booking.status}
+                          {booking.status || 'Pending'}
                         </span>
                       </div>
                     </div>
+                    <div style={{ color: '#3b82f6', fontWeight: 600, fontSize: '0.9rem' }}>
+                      ${booking.total_price || 0}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                    <span style={{ color: '#64748b', fontSize: 'clamp(0.7rem, 0.75vw, 0.8rem)' }}>
-                      {formatDate(booking.preferred_date)}
-                    </span>
-                    <span style={{ color: '#3b82f6', fontWeight: 600, fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)' }}>
-                      ${booking.total_price}
-                    </span>
+                  <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '4px', paddingLeft: '44px' }}>
+                    {formatDate(booking.preferred_date)}
                   </div>
                 </div>
               ))
             ) : (
-              <div style={{ textAlign: 'center', color: '#64748b', padding: '40px 0' }}>
+              <div style={{ textAlign: 'center', color: '#64748b', padding: '30px 0' }}>
                 No bookings yet
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Column */}
+        {/* Quick Stats */}
         <div style={{ display: 'grid', gap: '20px' }}>
-          {/* Traffic Chart */}
-          <div
-            style={{
-              background: 'linear-gradient(180deg, rgba(15,23,42,0.82), rgba(20,31,53,0.98))',
-              border: '1px solid rgba(148,163,184,0.12)',
-              borderRadius: '30px',
-              padding: '24px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '8px',
-                marginBottom: '18px',
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    color: '#94a3b8',
-                    fontSize: '0.72rem',
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Activity
-                </div>
-                <h2
-                  style={{
-                    margin: '8px 0 0',
-                    fontSize: 'clamp(1.1rem, 1.4vw, 1.5rem)',
-                    letterSpacing: '-0.05em',
-                    color: '#f8fafc',
-                  }}
-                >
-                  Traffic
-                </h2>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  color: '#86efac',
-                  fontWeight: 700,
-                  fontSize: 'clamp(0.8rem, 0.9vw, 1rem)',
-                }}
-              >
-                <TrendingUp size={15} />
-                +24%
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'end',
-                gap: 'clamp(4px, 0.6vw, 10px)',
-                height: '180px',
-                marginTop: '18px',
-              }}
-            >
-              {[58, 76, 54, 82, 69, 92, 64].map((bar, index) => (
-                <div
-                  key={index}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '8px',
-                    maxWidth: '30px',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '100%',
-                      maxWidth: '22px',
-                      height: `${bar}%`,
-                      minHeight: '24px',
-                      borderRadius: '12px 12px 6px 6px',
-                      background:
-                        index === 6
-                          ? 'linear-gradient(180deg, #60a5fa, #8b5cf6)'
-                          : 'linear-gradient(180deg, rgba(96,165,250,0.7), rgba(59,130,246,0.3))',
-                      boxShadow: '0 8px 18px rgba(96, 165, 250, 0.25)',
-                    }}
-                  />
-                  <span style={{ fontSize: 'clamp(0.5rem, 0.6vw, 0.7rem)', color: '#94a3b8' }}>
-                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Actions */}
+          {/* Service Areas Quick View */}
           <div
             style={{
               background: 'rgba(15, 23, 42, 0.82)',
@@ -678,90 +552,133 @@ export default function HomeContent() {
               padding: '24px',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '8px',
-                marginBottom: '18px',
-              }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
-                <div
-                  style={{
-                    color: '#94a3b8',
-                    fontSize: '0.72rem',
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Quick actions
+                <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                  Service Areas
                 </div>
-                <h2
-                  style={{
-                    margin: '8px 0 0',
-                    fontSize: 'clamp(1.1rem, 1.4vw, 1.5rem)',
-                    letterSpacing: '-0.05em',
-                    color: '#f8fafc',
-                  }}
-                >
-                  Uploads
+                <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: '#f8fafc' }}>
+                  Coverage
                 </h2>
+              </div>
+              <MapPin size={20} color="#3b82f6" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(15,23,42,0.5)', borderRadius: '12px' }}>
+                <div style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: 700 }}>{areaStats.total}</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Suburbs</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(15,23,42,0.5)', borderRadius: '12px' }}>
+                <div style={{ color: '#10b981', fontSize: '1.5rem', fontWeight: 700 }}>{areaStats.active}</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Active</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(15,23,42,0.5)', borderRadius: '12px' }}>
+                <div style={{ color: '#8b5cf6', fontSize: '1.5rem', fontWeight: 700 }}>{areaStats.regions}</div>
+                <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Regions</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Testimonials & Promise Quick View */}
+          <div
+            style={{
+              background: 'rgba(15, 23, 42, 0.82)',
+              border: '1px solid rgba(148,163,184,0.12)',
+              borderRadius: '30px',
+              padding: '24px',
+            }}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {/* Testimonials */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <Star size={16} color="#f59e0b" />
+                  <span style={{ color: '#94a3b8', fontSize: '0.7rem', textTransform: 'uppercase' }}>Testimonials</span>
+                </div>
+                <div style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: 700 }}>{testimonialStats.total}</div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                  <span style={{ color: '#10b981', fontSize: '0.75rem' }}>✓ {testimonialStats.active} active</span>
+                  <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}>★ {testimonialStats.fiveStar} 5-star</span>
+                </div>
+              </div>
+
+              {/* Promise Features */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <ShieldCheck size={16} color="#10b981" />
+                  <span style={{ color: '#94a3b8', fontSize: '0.7rem', textTransform: 'uppercase' }}>Promises</span>
+                </div>
+                <div style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: 700 }}>{promiseStats.total}</div>
+                <div style={{ color: '#10b981', fontSize: '0.75rem', marginTop: '4px' }}>
+                  ✓ {promiseStats.active} active
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gap: '12px' }}>
-              {quickActions.map((action) => {
-                const Icon = action.icon;
-                return (
-                  <div
-                    key={action.label}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px 14px',
-                      borderRadius: '16px',
-                      background: 'rgba(15, 23, 42, 0.72)',
-                      border: '1px solid rgba(148,163,184,0.08)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      flexWrap: 'wrap',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)')}
-                  >
-                    <div
-                      style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '12px',
-                        background: `${action.color}22`,
-                        color: action.color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Icon size={18} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: '120px' }}>
-                      <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: 'clamp(0.8rem, 0.85vw, 0.9rem)' }}>{action.label}</div>
-                      <div style={{ color: '#94a3b8', fontSize: 'clamp(0.7rem, 0.75vw, 0.8rem)', marginTop: '2px' }}>
-                        {action.detail}
-                      </div>
-                    </div>
-                    <ArrowUpRight size={16} color="#94a3b8" style={{ flexShrink: 0 }} />
-                  </div>
-                );
-              })}
+            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Popular Tier</div>
+                  <div style={{ color: '#f8fafc', fontWeight: 600 }}>{pricingStats.popularTier || 'None'}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Pricing Tiers</div>
+                  <div style={{ color: '#f8fafc', fontWeight: 600 }}>{pricingStats.totalTiers}</div>
+                </div>
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>FAQs</div>
+                  <div style={{ color: '#f8fafc', fontWeight: 600 }}>{pricingStats.totalFAQs}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Service Stats */}
+      <div
+        style={{
+          background: 'rgba(15, 23, 42, 0.82)',
+          border: '1px solid rgba(148,163,184,0.12)',
+          borderRadius: '30px',
+          padding: '24px',
+        }}
+      >
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            Service Details
+          </div>
+          <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: '#f8fafc' }}>
+            Service Breakdown
+          </h2>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+          <div style={{ padding: '14px', background: 'rgba(15,23,42,0.5)', borderRadius: '14px', textAlign: 'center' }}>
+            <div style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.total}</div>
+            <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Total Services</div>
+          </div>
+          <div style={{ padding: '14px', background: 'rgba(15,23,42,0.5)', borderRadius: '14px', textAlign: 'center' }}>
+            <div style={{ color: '#3b82f6', fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.residential}</div>
+            <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Residential</div>
+          </div>
+          <div style={{ padding: '14px', background: 'rgba(15,23,42,0.5)', borderRadius: '14px', textAlign: 'center' }}>
+            <div style={{ color: '#8b5cf6', fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.commercial}</div>
+            <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Commercial</div>
+          </div>
+          <div style={{ padding: '14px', background: 'rgba(15,23,42,0.5)', borderRadius: '14px', textAlign: 'center' }}>
+            <div style={{ color: '#10b981', fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.active}</div>
+            <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Active</div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -75,31 +75,32 @@ export default function Navbar({
         borderBottom: '1px solid color-mix(in srgb, var(--theme-primary) 12%, white)',
       }}
     >
-      <div className="mx-auto flex h-[50px] max-w-[1400px] items-center justify-between gap-3 px-6 lg:px-8 xl:px-10">
-        {/* Logo - Using group.jpg */}
-        <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+      <div className="mx-auto flex h-[64px] md:h-[72px] max-w-[1400px] items-center justify-between gap-2 px-4 sm:px-6 lg:px-8 xl:px-10">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 md:gap-2.5 flex-shrink-0 min-w-0">
           <motion.div 
-            className="flex h-9 w-9 items-center justify-center rounded-full overflow-hidden"
+            className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-full overflow-hidden flex-shrink-0"
             whileHover={{ rotate: 360 }}
             transition={{ duration: 0.6 }}
           >
             <Image
               src="/img/02.png"
               alt="Shining Property Service"
-              width={48}
-              height={48}
-              className="object-cover"
+              width={36}
+              height={36}
+              className="object-cover w-full h-full"
               priority
             />
           </motion.div>
-          <div className="font-serif text-[21px] font-bold whitespace-nowrap">
+          <div className="font-serif text-[16px] sm:text-[18px] md:text-[21px] font-bold whitespace-nowrap overflow-hidden">
             <span style={{ color: 'var(--theme-primary)' }}>Shining</span>
-            <span style={{ color: 'var(--theme-secondary)' }}> Property Service</span>
+            <span style={{ color: 'var(--theme-secondary)' }} className="hidden sm:inline"> Property Service</span>
+            <span style={{ color: 'var(--theme-secondary)' }} className="sm:hidden"> PS</span>
           </div>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-7">
+        <nav className="hidden lg:flex items-center gap-6 xl:gap-7">
           {navLinks.map((link) => (
             <NavLink key={link.href} href={link.href} onClick={scrollToSection}>
               {link.label}
@@ -108,10 +109,10 @@ export default function Navbar({
         </nav>
 
         {/* Right Section */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <a
             href={`tel:${phoneNumber.replace(/\s/g, '')}`}
-            className="hidden text-[15px] font-bold xl:block transition-colors"
+            className="hidden xl:block text-[14px] xl:text-[15px] font-bold transition-colors whitespace-nowrap"
             style={{ color: 'var(--theme-primary)' }}
           >
             {phoneNumber}
@@ -120,13 +121,29 @@ export default function Navbar({
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            className="hidden sm:block"
           >
             <Link
               href="#booking"
-              className="rounded-md px-6 py-3 text-sm font-bold text-white transition-colors"
+              className="rounded-md px-4 sm:px-5 md:px-6 py-2 md:py-3 text-xs sm:text-sm font-bold text-white transition-colors whitespace-nowrap"
               style={{ backgroundColor: 'var(--theme-primary)' }}
             >
               Book Now
+            </Link>
+          </motion.div>
+
+          {/* Mobile Book Now button */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="sm:hidden"
+          >
+            <Link
+              href="#booking"
+              className="rounded-md px-3 py-1.5 text-xs font-bold text-white transition-colors whitespace-nowrap"
+              style={{ backgroundColor: 'var(--theme-primary)' }}
+            >
+              Book
             </Link>
           </motion.div>
 
@@ -134,7 +151,7 @@ export default function Navbar({
           <div className="relative">
             <motion.button
               onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
-              className="flex items-center gap-1.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors hover:bg-gray-100"
+              className="flex items-center gap-1 rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-gray-100"
               style={{ color: 'var(--theme-primary)' }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -144,12 +161,12 @@ export default function Navbar({
                 {currentColors.slice(0, 3).map((color, i) => (
                   <div
                     key={i}
-                    className="h-3 w-3 rounded-full border border-gray-200"
+                    className="h-2.5 w-2.5 md:h-3 md:w-3 rounded-full border border-gray-200"
                     style={{ backgroundColor: color }}
                   />
                 ))}
               </div>
-              <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              <ChevronDown className="h-3 w-3 md:h-3.5 md:w-3.5 opacity-60" />
             </motion.button>
 
             {/* Theme Dropdown */}
@@ -160,7 +177,7 @@ export default function Navbar({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-white p-2 shadow-2xl ring-1 ring-black/5"
+                  className="absolute right-0 top-full mt-2 w-48 sm:w-56 rounded-xl bg-white p-2 shadow-2xl ring-1 ring-black/5 z-50"
                 >
                   <div className="space-y-1 max-h-72 overflow-y-auto">
                     {THEMES.map((theme) => {
@@ -174,14 +191,14 @@ export default function Navbar({
                             setTheme(theme.name);
                             setIsThemeDropdownOpen(false);
                           }}
-                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+                          className={`flex w-full items-center gap-2 sm:gap-3 rounded-lg px-2 sm:px-3 py-2 transition-all ${
                             isActive ? 'bg-blue-50' : 'hover:bg-gray-50'
                           }`}
                           whileHover={{ x: 4 }}
                           whileTap={{ scale: 0.98 }}
                         >
                           {/* Color preview */}
-                          <div className="flex h-8 w-8 rounded-lg overflow-hidden flex-shrink-0">
+                          <div className="flex h-6 w-6 sm:h-8 sm:w-8 rounded-lg overflow-hidden flex-shrink-0">
                             <div className="flex-1" style={{ backgroundColor: bg }} />
                             <div className="flex-1" style={{ backgroundColor: primary }} />
                             <div className="flex-1" style={{ backgroundColor: secondary }} />
@@ -189,16 +206,16 @@ export default function Navbar({
                           </div>
                           
                           <div className="flex-1 text-left">
-                            <div className="text-sm font-medium text-gray-800">
+                            <div className="text-xs sm:text-sm font-medium text-gray-800">
                               {theme.label}
                             </div>
-                            <div className="text-[10px] text-gray-500">
+                            <div className="text-[8px] sm:text-[10px] text-gray-500">
                               {theme.description}
                             </div>
                           </div>
                           
                           {isActive && (
-                            <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600 flex-shrink-0" />
                           )}
                         </motion.button>
                       );
@@ -212,11 +229,11 @@ export default function Navbar({
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden transition-colors"
+            className="lg:hidden transition-colors p-1"
             style={{ color: 'var(--theme-primary)' }}
             aria-label="Toggle menu"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isMobileMenuOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               ) : (
@@ -238,22 +255,22 @@ export default function Navbar({
         transition={{ duration: 0.3 }}
         style={{ borderColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)' }}
       >
-        <div className="space-y-2 px-6 py-4">
+        <div className="space-y-1 px-4 sm:px-6 py-3 sm:py-4">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
               onClick={(e) => scrollToSection(e, link.href)}
-              className="block rounded-lg px-3 py-3 transition-colors"
+              className="block rounded-lg px-3 py-3 text-sm sm:text-base transition-colors hover:bg-gray-50"
               style={{ color: 'var(--theme-primary)' }}
             >
               {link.label}
             </a>
           ))}
-          <div className="border-t pt-4" style={{ borderColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)' }}>
+          <div className="border-t pt-3 sm:pt-4 mt-2" style={{ borderColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)' }}>
             <a
               href={`tel:${phoneNumber.replace(/\s/g, '')}`}
-              className="block py-2 font-bold"
+              className="block py-2 font-bold text-sm sm:text-base"
               style={{ color: 'var(--theme-primary)' }}
             >
               {phoneNumber}
@@ -270,7 +287,7 @@ export default function Navbar({
                       setTheme(theme.name);
                       setIsMobileMenuOpen(false);
                     }}
-                    className={`h-8 w-8 rounded-full border-2 transition-all ${
+                    className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full border-2 transition-all ${
                       currentTheme.name === theme.name 
                         ? 'border-blue-600 scale-110' 
                         : 'border-gray-200 hover:scale-105'
@@ -295,7 +312,7 @@ function NavLink({ href, children, onClick }: NavLinkProps) {
     <a
       href={href}
       onClick={(e: MouseEvent<HTMLAnchorElement>) => onClick(e, href)}
-      className="group relative cursor-pointer text-[14px] font-semibold transition-colors"
+      className="group relative cursor-pointer text-[13px] xl:text-[14px] font-semibold transition-colors whitespace-nowrap"
       style={{ color: 'var(--theme-primary)' }}
     >
       {children}
