@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plane,
   Plus,
@@ -8,52 +8,188 @@ import {
   Trash2,
   Search,
   Package,
-  Eye,
   X,
   Save,
-  ChevronDown,
-  ChevronUp,
   CheckCircle,
   XCircle,
   Clock,
   MapPin,
   Globe,
+  RefreshCw,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
-// Initial data from ServiceAreasSection
-const initialSuburbs = [
-  { id: 1, name: 'Melbourne CBD', region: 'CBD', status: 'Active' },
-  { id: 2, name: 'South Yarra', region: 'South', status: 'Active' },
-  { id: 3, name: 'Fitzroy', region: 'North', status: 'Active' },
-  { id: 4, name: 'Richmond', region: 'East', status: 'Active' },
-  { id: 5, name: 'Carlton', region: 'North', status: 'Active' },
-  { id: 6, name: 'Prahran', region: 'South', status: 'Active' },
-  { id: 7, name: 'St Kilda', region: 'South', status: 'Active' },
-  { id: 8, name: 'Docklands', region: 'CBD', status: 'Active' },
-  { id: 9, name: 'Collingwood', region: 'North', status: 'Active' },
-  { id: 10, name: 'Brunswick', region: 'North', status: 'Active' },
-  { id: 11, name: 'Hawthorn', region: 'East', status: 'Active' },
-  { id: 12, name: 'Camberwell', region: 'East', status: 'Active' },
-  { id: 13, name: 'Toorak', region: 'South', status: 'Active' },
-  { id: 14, name: 'Malvern', region: 'South', status: 'Active' },
-  { id: 15, name: 'Armadale', region: 'South', status: 'Active' },
-  { id: 16, name: 'Northcote', region: 'North', status: 'Active' },
-  { id: 17, name: 'Clifton Hill', region: 'North', status: 'Active' },
-  { id: 18, name: 'Albert Park', region: 'South', status: 'Active' },
-  { id: 19, name: 'Port Melbourne', region: 'South', status: 'Active' },
-  { id: 20, name: 'Windsor', region: 'South', status: 'Active' },
-];
+interface Suburb {
+  id: number;
+  name: string;
+  region: string;
+  status: 'Active' | 'Inactive' | 'Draft';
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface ToastMessage {
+  type: 'success' | 'error' | 'info';
+  message: string;
+}
 
 const regionOptions = ['CBD', 'North', 'East', 'South', 'West'];
 const statusOptions = ['Active', 'Inactive', 'Draft'];
 
 export default function ServiceAreasContent() {
-  const [suburbs, setSuburbs] = useState(initialSuburbs);
+  const [suburbs, setSuburbs] = useState<Suburb[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All');
   const [showModal, setShowModal] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [viewMode, setViewMode] = useState('grid');
+  const [editingItem, setEditingItem] = useState<Suburb | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  const supabase = createClient();
+
+  const showToast = (type: ToastMessage['type'], message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // READ: Load suburbs from Supabase
+  const loadSuburbs = async () => {
+    try {
+      setIsLoading(true);
+      console.log('🔵 Loading suburbs...');
+
+      const { data, error } = await supabase
+        .from('service_areas')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error loading suburbs:', error);
+        showToast('error', 'Failed to load suburbs');
+        return;
+      }
+
+      console.log('✅ Suburbs loaded:', data?.length || 0);
+      setSuburbs(data || []);
+    } catch (error) {
+      console.error('❌ Error:', error);
+      showToast('error', 'Error loading suburbs');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSuburbs();
+  }, []);
+
+  // CREATE: Add new suburb
+  const handleCreate = async (suburbData: any) => {
+    setSaving(true);
+    try {
+      const newSuburb = {
+        name: suburbData.name,
+        region: suburbData.region,
+        status: suburbData.status || 'Active',
+      };
+
+      const { data, error } = await supabase
+        .from('service_areas')
+        .insert([newSuburb])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error creating suburb:', error);
+        showToast('error', 'Failed to create suburb');
+        return;
+      }
+
+      setSuburbs([...suburbs, data]);
+      showToast('success', 'Suburb created successfully!');
+      setShowModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('❌ Error:', error);
+      showToast('error', 'Failed to create suburb');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // UPDATE: Edit suburb
+  const handleUpdate = async (suburbData: any) => {
+    if (!editingItem) return;
+
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from('service_areas')
+        .update({
+          name: suburbData.name,
+          region: suburbData.region,
+          status: suburbData.status,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingItem.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating suburb:', error);
+        showToast('error', 'Failed to update suburb');
+        return;
+      }
+
+      setSuburbs(suburbs.map(s => s.id === data.id ? data : s));
+      showToast('success', 'Suburb updated successfully!');
+      setShowModal(false);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('❌ Error:', error);
+      showToast('error', 'Failed to update suburb');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // DELETE: Delete suburb
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this suburb?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('service_areas')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ Error deleting suburb:', error);
+        showToast('error', 'Failed to delete suburb');
+        return;
+      }
+
+      setSuburbs(suburbs.filter(s => s.id !== id));
+      showToast('success', 'Suburb deleted successfully!');
+    } catch (error) {
+      console.error('❌ Error:', error);
+      showToast('error', 'Failed to delete suburb');
+    }
+  };
+
+  // Handle save (create or update)
+  const handleSave = (suburbData: any) => {
+    if (editingItem) {
+      handleUpdate(suburbData);
+    } else {
+      handleCreate(suburbData);
+    }
+  };
+
+  const handleRefresh = () => {
+    loadSuburbs();
+  };
 
   // Filter suburbs
   const filteredSuburbs = suburbs.filter((suburb) => {
@@ -65,35 +201,12 @@ export default function ServiceAreasContent() {
   // Stats
   const stats = [
     { label: 'Total Suburbs', value: suburbs.length, icon: MapPin, color: '#3b82f6' },
-    { label: 'Active', value: suburbs.filter((s) => s.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
+    { label: 'Active', value: suburbs.filter(s => s.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
     { label: 'Regions', value: regionOptions.length, icon: Globe, color: '#8b5cf6' },
-    { label: 'Inactive', value: suburbs.filter((s) => s.status === 'Inactive').length, icon: XCircle, color: '#ef4444' },
+    { label: 'Inactive', value: suburbs.filter(s => s.status === 'Inactive').length, icon: XCircle, color: '#ef4444' },
   ];
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this suburb?')) {
-      setSuburbs(suburbs.filter((s) => s.id !== id));
-    }
-  };
-
-  const handleSave = (suburbData) => {
-    if (editingItem) {
-      setSuburbs(suburbs.map((s) => 
-        s.id === editingItem.id ? { ...s, ...suburbData } : s
-      ));
-    } else {
-      const newSuburb = {
-        ...suburbData,
-        id: suburbs.length + 1,
-        status: 'Active',
-      };
-      setSuburbs([...suburbs, newSuburb]);
-    }
-    setShowModal(false);
-    setEditingItem(null);
-  };
-
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'Active': return '#10b981';
       case 'Inactive': return '#ef4444';
@@ -102,7 +215,7 @@ export default function ServiceAreasContent() {
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Active': return <CheckCircle size={14} />;
       case 'Inactive': return <XCircle size={14} />;
@@ -111,8 +224,8 @@ export default function ServiceAreasContent() {
     }
   };
 
-  const getRegionColor = (region) => {
-    const colors = {
+  const getRegionColor = (region: string) => {
+    const colors: Record<string, string> = {
       CBD: '#3b82f6',
       North: '#10b981',
       East: '#8b5cf6',
@@ -122,8 +235,59 @@ export default function ServiceAreasContent() {
     return colors[region] || '#94a3b8';
   };
 
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px',
+        color: '#94a3b8'
+      }}>
+        <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
+        <span style={{ marginLeft: '12px' }}>Loading suburbs...</span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'grid', gap: '20px' }}>
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 9999,
+            padding: '16px 24px',
+            borderRadius: '16px',
+            background: toast.type === 'success' ? '#10b981' : toast.type === 'error' ? '#ef4444' : '#3b82f6',
+            color: 'white',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            animation: 'slideIn 0.3s ease-out',
+          }}
+        >
+          {toast.type === 'success' ? <CheckCircle size={20} /> : <XCircle size={20} />}
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              opacity: 0.7,
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div
         style={{
@@ -140,31 +304,54 @@ export default function ServiceAreasContent() {
               Service Areas Management
             </div>
             <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: '#f8fafc' }}>
-              Melbourne Service Areas
+              Service Areas
             </h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '4px' }}>
+              {suburbs.length} suburbs • Manage your service areas
+            </p>
           </div>
-          <button
-            onClick={() => {
-              setEditingItem(null);
-              setShowModal(true);
-            }}
-            style={{
-              border: 'none',
-              borderRadius: '14px',
-              padding: '12px 20px',
-              background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-              color: '#ffffff',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-            }}
-          >
-            <Plus size={18} />
-            Add Suburb
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={handleRefresh}
+              style={{
+                padding: '8px 14px',
+                borderRadius: '10px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'transparent',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+              }}
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </button>
+            <button
+              onClick={() => {
+                setEditingItem(null);
+                setShowModal(true);
+              }}
+              style={{
+                border: 'none',
+                borderRadius: '14px',
+                padding: '12px 20px',
+                background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+                color: '#ffffff',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+              }}
+            >
+              <Plus size={18} />
+              Add Suburb
+            </button>
+          </div>
         </div>
       </div>
 
@@ -402,14 +589,25 @@ export default function ServiceAreasContent() {
           data={editingItem}
           onClose={() => { setShowModal(false); setEditingItem(null); }}
           onSave={handleSave}
+          saving={saving}
         />
       )}
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes slideIn {
+          from { transform: translateX(100px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
 
 // Modal Component
-function SuburbModal({ data, onClose, onSave }) {
+function SuburbModal({ data, onClose, onSave, saving }: any) {
   const [formData, setFormData] = useState(
     data || {
       name: '',
@@ -418,7 +616,7 @@ function SuburbModal({ data, onClose, onSave }) {
     }
   );
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
   };
@@ -572,6 +770,7 @@ function SuburbModal({ data, onClose, onSave }) {
             </button>
             <button
               type="submit"
+              disabled={saving}
               style={{
                 flex: 2,
                 padding: '12px',
@@ -579,17 +778,18 @@ function SuburbModal({ data, onClose, onSave }) {
                 border: 'none',
                 background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
                 color: '#ffffff',
-                cursor: 'pointer',
+                cursor: saving ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
                 boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                opacity: saving ? 0.7 : 1,
               }}
             >
               <Save size={16} />
-              {data ? 'Update' : 'Create'}
+              {saving ? 'Saving...' : (data ? 'Update' : 'Create')}
             </button>
           </div>
         </form>
