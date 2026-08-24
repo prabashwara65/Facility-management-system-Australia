@@ -6,6 +6,7 @@ import PricingSection from "@/components/PricingSection";
 import PromiseSection from "@/components/PromiseSection";
 import TestimonialsSection from "@/components/TestimonialsSection";
 import ServiceAreasSection from "@/components/ServiceAreasSection";
+import MobileDetailing from "@/components/MobileDetailing";
 import BookingSection from "@/components/BookingSection";
 import Footer from "@/components/Footer";
 
@@ -27,6 +28,7 @@ export default function Home() {
       <TestimonialsSection />
       <ServiceAreasSection />
       <BookingSection />
+      <MobileDetailing />
       <Footer />
     </main>
   );

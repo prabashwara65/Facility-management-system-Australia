@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/app/context/ThemeProvider";
 import ScrollToTop from "@/components/ScrollToTop";
+import PriceCalculator from "@/components/PriceCalculator";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   description: "Premium cleaning services for homes and rentals.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider>
           {children}
           <ScrollToTop />
+          <PriceCalculator />
         </ThemeProvider>
       </body>
     </html>
