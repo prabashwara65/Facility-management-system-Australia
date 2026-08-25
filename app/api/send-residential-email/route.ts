@@ -293,7 +293,7 @@ export async function POST(request: Request) {
         <div class="container">
           <!-- Header -->
           <div class="header">
-            <h1>🏠 New Residential Booking</h1>
+            <h1>New Residential Booking</h1>
             <p>${timestamp ? new Date(timestamp).toLocaleString('en-AU', { 
               weekday: 'long', 
               year: 'numeric', 
