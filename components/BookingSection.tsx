@@ -16,8 +16,12 @@ import {
   CheckCircle,
   Package,
   ShoppingBag,
+  Check,
+  X,
+  AlertCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 interface ContactInfo {
   id: number;
@@ -35,6 +39,9 @@ interface ResidentialBookingData {
   category: string;
   timestamp: string;
   finalized?: boolean;
+  packagePrice?: string;
+  addOnsTotal?: string;
+  totalPrice?: string;
 }
 
 interface AddOn {
@@ -45,16 +52,7 @@ interface AddOn {
   category: string;
 }
 
-const defaultContactInfo = {
-  phone: '1800 123 456',
-  email: 'hello@sparkwell.com.au',
-  service_area: 'Melbourne, VIC',
-  hours: 'Mon–Sat, 7am–6pm',
-  guarantee_title: 'Bond-Back Guarantee',
-  guarantee_description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
-};
-
-// Add-ons data for reference
+// Add-ons data with full details
 const addOnsData: AddOn[] = [
   { id: 'carpet-living', name: 'Carpet Steam Cleaning (Living Area/Hall)', price: '$100', description: 'Living Area/Hall', category: 'Carpet & Upholstery' },
   { id: 'carpet-bedroom', name: 'Carpet Steam Cleaning (Per Bedroom)', price: '$55', description: 'Per Bedroom', category: 'Carpet & Upholstery' },
@@ -74,16 +72,6 @@ const addOnsData: AddOn[] = [
   { id: 'garage', name: 'Garage Clean', price: '$50+', description: 'Starting from $50', category: 'Deep Detail' },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
-};
-
 // Storage key for residential booking
 const RESIDENTIAL_BOOKING_KEY = 'residential_booking_data';
 
@@ -96,14 +84,25 @@ const loadFromLocalStorage = (): ResidentialBookingData | null => {
   return null;
 };
 
-// Clear local storage after loading
+// Clear local storage
 const clearLocalStorage = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(RESIDENTIAL_BOOKING_KEY);
   }
 };
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+};
+
 export default function BookingSection() {
+  const router = useRouter();
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [bedrooms, setBedrooms] = useState(2);
@@ -112,6 +111,8 @@ export default function BookingSection() {
   const [bookingData, setBookingData] = useState<ResidentialBookingData | null>(null);
   const [addOnsSummary, setAddOnsSummary] = useState<string>('');
   const [addOnsList, setAddOnsList] = useState<string[]>([]);
+  const [addOnsWithPrices, setAddOnsWithPrices] = useState<{ name: string; price: string; count: number }[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -125,6 +126,39 @@ export default function BookingSection() {
 
   const supabase = createClient();
 
+  // Toast component
+  const Toast = () => {
+    if (!toast) return null;
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-md mx-4"
+      >
+        <div
+          className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 ${
+            toast.type === 'success' 
+              ? 'bg-green-500 text-white' 
+              : toast.type === 'error' 
+                ? 'bg-red-500 text-white' 
+                : 'bg-blue-500 text-white'
+          }`}
+        >
+          {toast.type === 'success' && <Check className="w-5 h-5 flex-shrink-0" />}
+          {toast.type === 'error' && <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+          <span className="text-sm font-medium flex-1">{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="text-white/70 hover:text-white transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </motion.div>
+    );
+  };
+
   // Fetch contact info from Supabase
   useEffect(() => {
     const fetchContactInfo = async () => {
@@ -137,15 +171,30 @@ export default function BookingSection() {
 
         if (error) {
           console.error('Error fetching contact info:', error);
-          setContactInfo(defaultContactInfo as any);
+          setContactInfo({
+            id: 1,
+            phone: '1800 123 456',
+            email: 'hello@sparkwell.com.au',
+            service_area: 'Melbourne, VIC',
+            hours: 'Mon–Sat, 7am–6pm',
+            guarantee_title: 'Bond-Back Guarantee',
+            guarantee_description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
+          });
         } else if (data) {
           setContactInfo(data);
         } else {
-          setContactInfo(defaultContactInfo as any);
+          setContactInfo({
+            id: 1,
+            phone: '1800 123 456',
+            email: 'hello@sparkwell.com.au',
+            service_area: 'Melbourne, VIC',
+            hours: 'Mon–Sat, 7am–6pm',
+            guarantee_title: 'Bond-Back Guarantee',
+            guarantee_description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
+          });
         }
       } catch (error) {
         console.error('Error:', error);
-        setContactInfo(defaultContactInfo as any);
       } finally {
         setLoading(false);
       }
@@ -160,27 +209,37 @@ export default function BookingSection() {
     if (savedData && savedData.selectedTier) {
       setBookingData(savedData);
 
-      // Generate add-ons summary
+      // Generate add-ons summary with prices
       if (savedData.selectedAddOns && savedData.selectedAddOns.length > 0) {
-        const addOnNames = savedData.selectedAddOns.map(id => {
+        const addOnDetails = savedData.selectedAddOns.map(id => {
           const addon = addOnsData.find(a => a.id === id);
-          return addon ? addon.name : id;
-        });
-        setAddOnsList(addOnNames);
-        setAddOnsSummary(addOnNames.join(', '));
+          return addon ? { name: addon.name, price: addon.price, count: 1 } : null;
+        }).filter(Boolean) as { name: string; price: string; count: number }[];
+        
+        setAddOnsWithPrices(addOnDetails);
+        const names = addOnDetails.map(a => a.name);
+        setAddOnsList(names);
+        setAddOnsSummary(names.join(', '));
       }
     }
   }, []);
 
-  const contactInfoItems = contactInfo ? [
-    { icon: Phone, label: 'Phone', value: contactInfo.phone },
-    { icon: Mail, label: 'Email', value: contactInfo.email },
-    { icon: MapPin, label: 'Service Area', value: contactInfo.service_area },
-    { icon: Clock, label: 'Hours', value: contactInfo.hours },
-  ] : [];
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const calculatePrice = (serviceType: string, bedrooms: number, bathrooms: number) => {
+    const basePrices: Record<string, number> = {
+      'End of Lease / Bond Clean': 319,
+      'Regular Clean': 99,
+      'Deep Clean': 249,
+      'General Clean': 179,
+      'Deep Reset Clean': 249,
+      'End of Lease Cleaning': 319,
+    };
+    const basePrice = basePrices[serviceType] || 199;
+    const extraRooms = Math.max(0, (bedrooms + bathrooms) - 3);
+    return basePrice + (extraRooms * 25);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -188,6 +247,80 @@ export default function BookingSection() {
     setSubmitting(true);
 
     try {
+      // Get all booking data from local storage
+      const savedData = loadFromLocalStorage();
+      
+      // Calculate prices
+      const packagePrice = calculatePrice(bookingData?.selectedTier || 'End of Lease / Bond Clean', bedrooms, bathrooms);
+      
+      // Calculate add-ons total
+      let addOnsTotal = 0;
+      const addOnsWithCount = savedData?.selectedAddOns?.map(id => {
+        const addon = addOnsData.find(a => a.id === id);
+        if (addon) {
+          const price = parseInt(addon.price.replace(/[^0-9]/g, ''));
+          if (!isNaN(price)) {
+            addOnsTotal += price;
+          }
+          return { name: addon.name, price: addon.price };
+        }
+        return null;
+      }).filter(Boolean) || [];
+
+      const totalPrice = packagePrice + addOnsTotal;
+
+      // Prepare all data for email
+      const emailData = {
+        // Customer Info
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address || '',
+        suburb: formData.suburb || '',
+        preferredDate: formData.preferredDate || '',
+        specialInstructions: formData.specialInstructions || '',
+        
+        // Booking Details
+        serviceType: bookingData?.selectedTier || 'End of Lease / Bond Clean',
+        bedrooms: bedrooms,
+        bathrooms: bathrooms,
+        
+        // Package Info
+        packageName: bookingData?.selectedTier || 'End of Lease / Bond Clean',
+        packagePrice: `$${packagePrice}`,
+        
+        // Add-ons
+        addOns: addOnsWithCount,
+        addOnsTotal: `$${addOnsTotal}`,
+        addOnsSummary: addOnsSummary || 'None',
+        
+        // Total
+        totalPrice: `$${totalPrice}`,
+        
+        // Booking Type
+        bookingType: 'Residential Cleaning',
+        
+        // Timestamp
+        timestamp: new Date().toISOString(),
+        
+        // Category
+        category: savedData?.category || 'End of Lease',
+        
+        // All raw booking data
+        bookingData: savedData,
+      };
+
+      // Send email via API
+      const response = await fetch('/api/send-residential-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailData),
+      });
+
+      // Also save to Supabase
       const newBooking = {
         first_name: formData.firstName,
         last_name: formData.lastName,
@@ -201,27 +334,21 @@ export default function BookingSection() {
         preferred_date: formData.preferredDate || '',
         special_instructions: formData.specialInstructions || '',
         status: 'Pending',
-        total_price: calculatePrice(bookingData?.selectedTier || 'End of Lease / Bond Clean', bedrooms, bathrooms),
-        // Store the booking data from local storage
+        total_price: totalPrice,
         selected_package: bookingData?.selectedTier || null,
         selected_addons: addOnsSummary || null,
-        booking_data: bookingData || null,
+        booking_data: savedData || null,
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('bookings')
-        .insert([newBooking])
-        .select();
+        .insert([newBooking]);
 
       if (error) {
         console.error('Error creating booking:', error);
-        alert('Failed to submit booking. Please try again.');
-        return;
       }
 
-      console.log('Booking Submitted:', data);
-      
-      // Clear local storage after successful booking
+      // Clear local storage
       clearLocalStorage();
       
       // Reset form
@@ -240,28 +367,28 @@ export default function BookingSection() {
       setBookingData(null);
       setAddOnsSummary('');
       setAddOnsList([]);
+      setAddOnsWithPrices([]);
 
-      alert('Booking submitted successfully! We will contact you shortly.');
+      // Show success toast
+      setToast({
+        message: '✅ Booking confirmed! We will contact you shortly.',
+        type: 'success'
+      });
+
+      // Redirect to home after 2 seconds
+      setTimeout(() => {
+        router.push('/');
+      }, 2000);
+
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to submit booking. Please try again.');
+      setToast({
+        message: '❌ Failed to submit booking. Please try again.',
+        type: 'error'
+      });
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const calculatePrice = (serviceType: string, bedrooms: number, bathrooms: number) => {
-    const basePrices: Record<string, number> = {
-      'End of Lease / Bond Clean': 319,
-      'Regular Clean': 99,
-      'Deep Clean': 249,
-      'General Clean': 179,
-      'Deep Reset Clean': 249,
-      'End of Lease Cleaning': 319,
-    };
-    const basePrice = basePrices[serviceType] || 199;
-    const extraRooms = Math.max(0, (bedrooms + bathrooms) - 3);
-    return basePrice + (extraRooms * 25);
   };
 
   if (loading) {
@@ -274,12 +401,21 @@ export default function BookingSection() {
     );
   }
 
+  const contactInfoItems = contactInfo ? [
+    { icon: Phone, label: 'Phone', value: contactInfo.phone },
+    { icon: Mail, label: 'Email', value: contactInfo.email },
+    { icon: MapPin, label: 'Service Area', value: contactInfo.service_area },
+    { icon: Clock, label: 'Hours', value: contactInfo.hours },
+  ] : [];
+
   return (
     <section
       className="w-full py-16 px-4 sm:px-6 lg:px-8 font-sans"
       id="booking"
       style={{ backgroundColor: 'var(--theme-primary)' }}
     >
+      <Toast />
+      
       <div className="max-w-6xl mx-auto space-y-10">
         {/* Header */}
         <div className="text-center space-y-2">
@@ -362,7 +498,6 @@ export default function BookingSection() {
               <ArrowRight className="w-4 h-4" />
             </motion.a>
 
-
             {/* Display selected booking summary */}
             {bookingData && (
               <div 
@@ -389,8 +524,11 @@ export default function BookingSection() {
                       </p>
                     </div>
                     <ul className="space-y-1">
-                      {addOnsList.map((name, idx) => (
-                        <li key={idx} className="text-xs text-white/70">• {name}</li>
+                      {addOnsWithPrices.map((item, idx) => (
+                        <li key={idx} className="text-xs text-white/70 flex justify-between">
+                          <span>• {item.name}</span>
+                          <span style={{ color: 'var(--theme-secondary)' }}>{item.price}</span>
+                        </li>
                       ))}
                     </ul>
                   </>
