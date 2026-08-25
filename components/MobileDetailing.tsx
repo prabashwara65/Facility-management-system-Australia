@@ -737,50 +737,111 @@ export default function MobileDetailing() {
     }, 100);
   };
 
-  const handleCompleteBooking = () => {
-    if (isInfoComplete) {
-      const allData = {
-        zipCode,
-        isZipValid,
-        isUnlocked,
-        selectedCategory,
-        selectedVehicleType,
-        selectedPackage,
-        selectedService,
-        selectedYear,
-        selectedMake,
-        selectedModel,
-        selectedBody,
-        selectedConditions,
-        otherCondition,
-        selectedAddOns,
-        vehicleCount,
-        selectedDate,
-        selectedArrivalWindows,
-        backupDate,
-        showBackupDate,
-        showAddOnsStep,
-        showDateTimeStep,
-        showInfoStep,
-        firstName,
-        lastName,
-        email,
-        phone,
-        address,
-        addressUnit,
-        city,
-        state,
-        infoZipCode,
-        waterAccess,
-        electricity,
-        coveredArea,
-        extraInfo,
-        marketingOptIn,
-      };
-      saveToLocalStorage(allData);
+  const handleCompleteBooking = async () => {
+  if (isInfoComplete) {
+    // Prepare all data
+    const allData = {
+      zipCode,
+      isZipValid,
+      isUnlocked,
+      selectedCategory,
+      selectedVehicleType,
+      selectedPackage,
+      selectedService,
+      selectedYear,
+      selectedMake,
+      selectedModel,
+      selectedBody,
+      selectedConditions,
+      otherCondition,
+      selectedAddOns,
+      vehicleCount,
+      selectedDate,
+      selectedArrivalWindows,
+      backupDate,
+      showBackupDate,
+      showAddOnsStep,
+      showDateTimeStep,
+      showInfoStep,
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      addressUnit,
+      city,
+      state,
+      infoZipCode,
+      waterAccess,
+      electricity,
+      coveredArea,
+      extraInfo,
+      marketingOptIn,
+    };
+    
+    // Save to local storage
+    saveToLocalStorage(allData);
+    
+    // Calculate total price
+    const packagePrice = parseInt(selectedPackage?.price?.replace('$', '') || '0');
+    const addonsTotal = getAddOnTotal();
+    const totalPrice = packagePrice + addonsTotal;
+    
+    // Prepare email data
+    const emailData = {
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      addressUnit,
+      city,
+      state,
+      infoZipCode,
+      selectedYear,
+      selectedMake,
+      selectedModel,
+      selectedBody,
+      selectedCategory,
+      selectedPackage,
+      selectedAddOns,
+      selectedConditions,
+      otherCondition,
+      selectedDate,
+      selectedArrivalWindows,
+      waterAccess,
+      electricity,
+      coveredArea,
+      extraInfo,
+      vehicleCount,
+      marketingOptIn,
+      zipCode,
+      totalPrice: `$${totalPrice}`,
+    };
+
+    try {
+      // Send email to company owner via Gmail
+      const response = await fetch('/api/send-booking-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Email error:', errorData);
+      }
+
+      // Navigate to confirmation page
+      router.push('/booking/confirmation');
+    } catch (error) {
+      console.error('Error sending email:', error);
       router.push('/booking/confirmation');
     }
-  };
+  }
+};
 
   const toggleArrivalWindow = (window: string) => {
     setSelectedArrivalWindows(prev =>
