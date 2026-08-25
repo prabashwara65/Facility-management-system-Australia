@@ -88,7 +88,6 @@ export default function PromiseSection() {
     const loadFeatures = async () => {
       try {
         setLoading(true);
-        console.log('🔵 Loading promise features from Supabase...');
 
         const { data, error } = await supabase
           .from('promise_features')
@@ -103,10 +102,8 @@ export default function PromiseSection() {
         }
 
         if (data && data.length > 0) {
-          console.log('✅ Features loaded:', data.length);
           setFeatures(data);
         } else {
-          console.log('📝 No features found, using defaults');
           setFeatures(defaultFeatures);
         }
       } catch (error) {

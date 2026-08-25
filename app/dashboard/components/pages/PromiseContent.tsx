@@ -77,7 +77,6 @@ export default function PromiseContent() {
   const loadFeatures = async () => {
     try {
       setIsLoading(true);
-      console.log('🔵 Loading promise features...');
 
       const { data, error } = await supabase
         .from('promise_features')
@@ -90,7 +89,6 @@ export default function PromiseContent() {
         return;
       }
 
-      console.log('✅ Features loaded:', data?.length || 0);
       setFeatures(data || []);
     } catch (error) {
       console.error('❌ Error:', error);

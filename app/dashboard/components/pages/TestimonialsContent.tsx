@@ -61,7 +61,6 @@ export default function TestimonialsContent() {
   const loadTestimonials = async () => {
     try {
       setIsLoading(true);
-      console.log('🔵 Loading testimonials...');
 
       const { data, error } = await supabase
         .from('testimonials')
@@ -74,7 +73,6 @@ export default function TestimonialsContent() {
         return;
       }
 
-      console.log('✅ Testimonials loaded:', data?.length || 0);
       setTestimonials(data || []);
     } catch (error) {
       console.error('❌ Error:', error);

@@ -50,7 +50,6 @@ export default function Services() {
   const loadServices = async () => {
     try {
       setIsLoading(true);
-      console.log('🔵 Loading services from Supabase...');
 
       const { data, error } = await supabase
         .from('services')
@@ -65,7 +64,6 @@ export default function Services() {
       }
 
       if (data && data.length > 0) {
-        console.log('✅ Services loaded:', data.length);
         // Transform data to match component format
         const transformed = data.map(service => ({
           id: service.id,
@@ -76,7 +74,6 @@ export default function Services() {
         }));
         setServices(transformed);
       } else {
-        console.log('📝 No services found, using defaults');
         setServices(defaultServices);
       }
     } catch (error) {

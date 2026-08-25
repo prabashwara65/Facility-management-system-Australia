@@ -36,7 +36,6 @@ export default function TestimonialsSection() {
     const loadTestimonials = async () => {
       try {
         setLoading(true);
-        console.log('🔵 Loading testimonials from Supabase...');
 
         const { data, error } = await supabase
           .from('testimonials')
@@ -51,10 +50,8 @@ export default function TestimonialsSection() {
         }
 
         if (data && data.length > 0) {
-          console.log('✅ Testimonials loaded:', data.length);
           setTestimonials(data);
         } else {
-          console.log('📝 No testimonials found');
           setTestimonials([]);
         }
       } catch (error) {

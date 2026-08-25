@@ -57,7 +57,6 @@ export default function ServiceAreasContent() {
   const loadSuburbs = async () => {
     try {
       setIsLoading(true);
-      console.log('🔵 Loading suburbs...');
 
       const { data, error } = await supabase
         .from('service_areas')
@@ -70,7 +69,6 @@ export default function ServiceAreasContent() {
         return;
       }
 
-      console.log('✅ Suburbs loaded:', data?.length || 0);
       setSuburbs(data || []);
     } catch (error) {
       console.error('❌ Error:', error);

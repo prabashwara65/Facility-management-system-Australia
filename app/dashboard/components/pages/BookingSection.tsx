@@ -62,7 +62,7 @@ export default function ContactContent() {
   const loadContactInfo = async () => {
     try {
       setLoading(true);
-      console.log('🔵 Loading contact info...');
+      //('🔵 Loading contact info...');
 
       // Try to get existing record
       const { data, error } = await supabase
@@ -70,21 +70,21 @@ export default function ContactContent() {
         .select('id, phone, email, service_area, hours')
         .limit(1);
 
-      console.log('📊 Data:', data);
-      console.log('❌ Error:', error);
+      //('📊 Data:', data);
+      //('❌ Error:', error);
 
       if (error) {
         console.error('Error loading:', error);
         // If no data exists, create default
         if (error.code === 'PGRST116' || !data || data.length === 0) {
-          console.log('📝 No record found, creating default...');
+          //('📝 No record found, creating default...');
           const { data: inserted, error: insertError } = await supabase
             .from('bookings')
             .insert([defaultContactInfo])
             .select('id, phone, email, service_area, hours');
 
-          console.log('📊 Insert result:', inserted);
-          console.log('❌ Insert error:', insertError);
+          //('📊 Insert result:', inserted);
+          //('❌ Insert error:', insertError);
 
           if (insertError) {
             console.error('Insert error:', insertError);
@@ -98,10 +98,10 @@ export default function ContactContent() {
           setContactInfo({ id: 0, ...defaultContactInfo });
         }
       } else if (data && data.length > 0) {
-        console.log('✅ Data loaded:', data[0]);
+        //('✅ Data loaded:', data[0]);
         setContactInfo(data[0]);
       } else {
-        console.log('📝 No data found, creating default...');
+        //('📝 No data found, creating default...');
         const { data: inserted, error: insertError } = await supabase
           .from('bookings')
           .insert([defaultContactInfo])
@@ -147,15 +147,15 @@ export default function ContactContent() {
 
   const handleSave = async () => {
     if (!editingField || !contactInfo) {
-      console.log('❌ No field or contact info');
+      //('❌ No field or contact info');
       return;
     }
 
-    console.log(`🟡 Updating ${editingField} to:`, formData[editingField]);
+    //(`🟡 Updating ${editingField} to:`, formData[editingField]);
 
     // If no id, insert new record
     if (contactInfo.id === 0) {
-      console.log('📝 Creating new record...');
+      //('📝 Creating new record...');
       const { data, error } = await supabase
         .from('bookings')
         .insert([{ [editingField]: formData[editingField] }])
@@ -188,7 +188,7 @@ export default function ContactContent() {
         return;
       }
 
-      console.log('✅ Update successful:', data);
+      //('✅ Update successful:', data);
 
       if (data && data.length > 0) {
         setContactInfo(data[0]);

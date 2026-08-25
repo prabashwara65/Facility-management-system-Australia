@@ -34,7 +34,6 @@ export default function ServiceAreasSection() {
     const loadSuburbs = async () => {
       try {
         setLoading(true);
-        console.log('🔵 Loading suburbs from Supabase...');
 
         const { data, error } = await supabase
           .from('service_areas')
@@ -50,13 +49,11 @@ export default function ServiceAreasSection() {
         }
 
         if (data && data.length > 0) {
-          console.log('✅ Suburbs loaded:', data.length);
           const suburbNames = data.map(item => item.name);
           const regionNames = [...new Set(data.map(item => item.region))];
           setSuburbs(suburbNames);
           setRegions(regionNames);
         } else {
-          console.log('📝 No suburbs found');
           setSuburbs([]);
           setRegions([]);
         }

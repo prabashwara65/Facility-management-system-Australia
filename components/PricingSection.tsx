@@ -285,7 +285,6 @@ export default function PricingSection() {
             addOns: [],
           }));
         } else {
-          console.log('📦 Add-ons loaded from DB:', addOnsData);
           setPricingData(prev => ({
             ...prev,
             addOns: addOnsData || [],
