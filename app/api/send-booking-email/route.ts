@@ -33,13 +33,32 @@ export async function POST(request: Request) {
       marketingOptIn,
       zipCode,
       totalPrice,
+      bookingType,
+      timestamp,
+      addOnsTotal,
+      backupDate,
     } = body;
 
-    // Format selected add-ons
-    const addonsList = selectedAddOns ? Object.entries(selectedAddOns)
-      .filter(([_, count]) => count > 0)
-      .map(([name, count]) => `${name} × ${count}`)
-      .join(', ') : 'None';
+    // Format selected add-ons with proper names
+    let addonsList = 'None';
+    if (selectedAddOns && Array.isArray(selectedAddOns) && selectedAddOns.length > 0) {
+      addonsList = selectedAddOns
+        .map((addon: any) => {
+          if (addon && typeof addon === 'object') {
+            return `${addon.name} × ${addon.count}`;
+          }
+          return addon;
+        })
+        .join(', ');
+    } else if (selectedAddOns && typeof selectedAddOns === 'object') {
+      const entries = Object.entries(selectedAddOns);
+      if (entries.length > 0) {
+        addonsList = entries
+          .filter(([_, count]) => count > 0)
+          .map(([name, count]) => `${name} × ${count}`)
+          .join(', ');
+      }
+    }
 
     // Format full address
     const fullAddress = [address, addressUnit, city, state, infoZipCode]
@@ -54,21 +73,30 @@ export async function POST(request: Request) {
       day: 'numeric'
     }) : 'Not specified';
 
-    // Build email HTML with gray icons
+    // Format backup date
+    const formattedBackupDate = backupDate ? new Date(backupDate).toLocaleDateString('en-AU', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }) : 'Not specified';
+
+    // Build email HTML with proper spacing
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>New Booking Notification</title>
+        <title>New Mobile Detailing Booking</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f6f9; padding: 20px; }
           .container { max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-          .header { background: #1a3a6b; padding: 28px 36px; text-align: center; border-bottom: 3px solid #4a7bc4; }
+          .header { background: linear-gradient(135deg, #1a3a6b, #2d5a9e); padding: 28px 36px; text-align: center; border-bottom: 3px solid #4a7bc4; }
           .header h1 { color: #ffffff; font-size: 24px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px; }
           .header p { color: rgba(255,255,255,0.7); font-size: 13px; margin: 0; }
           .badge { display: inline-block; background: #d97706; color: white; padding: 3px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .badge-mobile { display: inline-block; background: #2563eb; color: white; padding: 3px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-top: 6px; margin-left: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
           .content { padding: 28px 36px; }
           .section { margin-bottom: 24px; }
           .section-title { font-size: 14px; font-weight: 700; color: #1a3a6b; border-bottom: 2px solid #e8edf5; padding-bottom: 8px; margin-bottom: 14px; letter-spacing: 0.3px; }
@@ -85,6 +113,7 @@ export async function POST(request: Request) {
           .total-row { display: flex; justify-content: space-between; align-items: center; }
           .total-label { font-size: 16px; font-weight: 600; color: #1e293b; }
           .total-amount { font-size: 24px; font-weight: 800; color: #1a3a6b; }
+          .zip-highlight { background: #dbeafe; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
           .footer { background: #f8fafc; padding: 16px 36px; text-align: center; border-top: 1px solid #e8edf5; }
           .footer p { color: #94a3b8; font-size: 12px; margin: 3px 0; }
           @media (max-width: 600px) {
@@ -99,8 +128,15 @@ export async function POST(request: Request) {
         <div class="container">
           <!-- Header -->
           <div class="header">
-            <h1>✦ New Booking Request</h1>
-            <p>${new Date().toLocaleString('en-AU', { 
+            <h1>✦ New Mobile Detailing Booking</h1>
+            <p>${timestamp ? new Date(timestamp).toLocaleString('en-AU', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }) : new Date().toLocaleString('en-AU', { 
               weekday: 'long', 
               year: 'numeric', 
               month: 'long', 
@@ -108,7 +144,10 @@ export async function POST(request: Request) {
               hour: '2-digit',
               minute: '2-digit'
             })}</p>
-            <span class="badge">● Pending Confirmation</span>
+            <div>
+              <span class="badge">● Pending Confirmation</span>
+              <span class="badge-mobile">Mobile Detailing</span>
+            </div>
           </div>
 
           <div class="content">
@@ -116,12 +155,34 @@ export async function POST(request: Request) {
             <div class="section">
               <div class="section-title"><span class="icon">◈</span> Customer Information</div>
               <div class="grid">
-                <div class="row"><span class="label">Name</span><span class="value">${firstName} ${lastName}</span></div>
-                <div class="row"><span class="label">Email</span><span class="value">${email}</span></div>
-                <div class="row"><span class="label">Phone</span><span class="value">${phone}</span></div>
-                <div class="row row-full"><span class="label">Address</span><span class="value">${fullAddress}</span></div>
-                <div class="row"><span class="label">Postcode</span><span class="value">${infoZipCode}</span></div>
-                <div class="row"><span class="label">State</span><span class="value">${state}</span></div>
+                <div class="row">
+                  <span class="label">Name</span>
+                  <span class="value">${firstName} ${lastName}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Email</span>
+                  <span class="value">${email}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Phone</span>
+                  <span class="value">${phone}</span>
+                </div>
+                <div class="row row-full">
+                  <span class="label">Address</span>
+                  <span class="value">${fullAddress}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Postcode (Service Area)</span>
+                  <span class="value"><span class="zip-highlight">${zipCode || 'Not specified'}</span></span>
+                </div>
+                <div class="row">
+                  <span class="label">Postcode (Delivery)</span>
+                  <span class="value"><span class="zip-highlight">${infoZipCode}</span></span>
+                </div>
+                <div class="row">
+                  <span class="label">State</span>
+                  <span class="value">${state}</span>
+                </div>
               </div>
             </div>
 
@@ -129,12 +190,30 @@ export async function POST(request: Request) {
             <div class="section">
               <div class="section-title"><span class="icon">◈</span> Vehicle Details</div>
               <div class="grid">
-                <div class="row"><span class="label">Year</span><span class="value">${selectedYear}</span></div>
-                <div class="row"><span class="label">Make</span><span class="value">${selectedMake}</span></div>
-                <div class="row"><span class="label">Model</span><span class="value">${selectedModel}</span></div>
-                <div class="row"><span class="label">Body Type</span><span class="value">${selectedBody}</span></div>
-                <div class="row"><span class="label">Category</span><span class="value">${selectedCategory}</span></div>
-                <div class="row"><span class="label">Vehicles</span><span class="value">${vehicleCount}</span></div>
+                <div class="row">
+                  <span class="label">Year</span>
+                  <span class="value">${selectedYear}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Make</span>
+                  <span class="value">${selectedMake}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Model</span>
+                  <span class="value">${selectedModel}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Body Type</span>
+                  <span class="value">${selectedBody}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Category</span>
+                  <span class="value">${selectedCategory}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Number of Vehicles</span>
+                  <span class="value">${vehicleCount}</span>
+                </div>
               </div>
             </div>
 
@@ -142,21 +221,43 @@ export async function POST(request: Request) {
             <div class="section">
               <div class="section-title"><span class="icon">◈</span> Selected Package</div>
               <div class="grid">
-                <div class="row row-full"><span class="label">Package</span><span class="value value-highlight">${selectedPackage?.name}</span></div>
-                <div class="row row-full"><span class="label">Description</span><span class="value">${selectedPackage?.description}</span></div>
+                <div class="row row-full">
+                  <span class="label">Package</span>
+                  <span class="value value-highlight">${selectedPackage?.name}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Price</span>
+                  <span class="value value-highlight">${selectedPackage?.price}</span>
+                </div>
+                <div class="row row-full">
+                  <span class="label">Description</span>
+                  <span class="value">${selectedPackage?.description}</span>
+                </div>
               </div>
             </div>
 
             <!-- Add-ons -->
-            ${selectedAddOns && Object.keys(selectedAddOns).length > 0 ? `
+            ${addonsList !== 'None' ? `
               <div class="section">
                 <div class="section-title"><span class="icon">◈</span> Add-ons</div>
                 <div>
-                  ${Object.entries(selectedAddOns)
-                    .filter(([_, count]) => count > 0)
-                    .map(([name, count]) => `<span class="addon-tag">${name} × ${count}</span>`)
-                    .join('')}
+                  ${Array.isArray(selectedAddOns) 
+                    ? selectedAddOns.map((addon: any) => 
+                        addon && typeof addon === 'object' 
+                          ? `<span class="addon-tag">${addon.name} × ${addon.count} ($${addon.price * addon.count})</span>`
+                          : ''
+                      ).join('')
+                    : Object.entries(selectedAddOns)
+                        .filter(([_, count]) => count > 0)
+                        .map(([name, count]) => {
+                          const addonOption = addOnOptions?.find((a: any) => a.id === name);
+                          const price = addonOption ? addonOption.price * count : '';
+                          return `<span class="addon-tag">${name} × ${count}${price ? ` ($${price})` : ''}</span>`;
+                        })
+                        .join('')
+                  }
                 </div>
+                ${addOnsTotal ? `<div style="margin-top: 8px; text-align: right; font-size: 13px; color: #1a3a6b; font-weight: 600;">Add-ons Total: ${addOnsTotal}</div>` : ''}
               </div>
             ` : ''}
 
@@ -175,12 +276,36 @@ export async function POST(request: Request) {
             <div class="section">
               <div class="section-title"><span class="icon">◈</span> Appointment Details</div>
               <div class="grid">
-                <div class="row"><span class="label">Date</span><span class="value">${formattedDate}</span></div>
-                <div class="row"><span class="label">Arrival Window</span><span class="value">${selectedArrivalWindows?.join(', ') || 'Not specified'}</span></div>
-                <div class="row"><span class="label">Water Access</span><span class="value">${waterAccess || 'Not specified'}</span></div>
-                <div class="row"><span class="label">Electricity</span><span class="value">${electricity || 'Not specified'}</span></div>
-                <div class="row"><span class="label">Covered Area</span><span class="value">${coveredArea || 'Not specified'}</span></div>
-                <div class="row"><span class="label">Marketing Opt-in</span><span class="value">${marketingOptIn ? '✦ Yes' : '○ No'}</span></div>
+                <div class="row">
+                  <span class="label">Primary Date</span>
+                  <span class="value">${formattedDate}</span>
+                </div>
+                ${backupDate ? `
+                  <div class="row">
+                    <span class="label">Backup Date</span>
+                    <span class="value">${formattedBackupDate}</span>
+                  </div>
+                ` : ''}
+                <div class="row">
+                  <span class="label">Arrival Window</span>
+                  <span class="value">${selectedArrivalWindows?.join(', ') || 'Not specified'}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Water Access</span>
+                  <span class="value">${waterAccess || 'Not specified'}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Electricity</span>
+                  <span class="value">${electricity || 'Not specified'}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Covered Area</span>
+                  <span class="value">${coveredArea || 'Not specified'}</span>
+                </div>
+                <div class="row">
+                  <span class="label">Marketing Opt-in</span>
+                  <span class="value">${marketingOptIn ? '✦ Yes' : '○ No'}</span>
+                </div>
               </div>
             </div>
 
@@ -202,7 +327,7 @@ export async function POST(request: Request) {
                   <span class="total-amount">${totalPrice}</span>
                 </div>
                 <div style="margin-top: 6px; text-align: right; font-size: 11px; color: #94a3b8;">
-                  Includes package + add-ons
+                  Includes package + add-ons (${vehicleCount} vehicle${vehicleCount > 1 ? 's' : ''})
                 </div>
               </div>
             </div>
@@ -211,7 +336,7 @@ export async function POST(request: Request) {
           <!-- Footer -->
           <div class="footer">
             <p style="font-weight: 600; color: #64748b;">Shining Property Service</p>
-            <p>This booking was submitted from the Shining Property Service website.</p>
+            <p>This mobile detailing booking was submitted from the Shining Property Service website.</p>
             <p>© ${new Date().getFullYear()} Shining Property Service. All rights reserved.</p>
           </div>
         </div>
@@ -231,14 +356,14 @@ export async function POST(request: Request) {
     const mailOptions = {
       from: `"Shining Property Service" <${process.env.GMAIL_USER}>`,
       to: 'shiningpropertyofficial@gmail.com',
-      subject: `New Booking: ${selectedPackage?.name || 'Booking'} - ${firstName} ${lastName}`,
+      subject: `Mobile Detailing Booking: ${selectedPackage?.name || 'Booking'} - ${firstName} ${lastName}`,
       html: html,
       replyTo: email,
     };
 
     await transporter.sendMail(mailOptions);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: 'Booking email sent successfully' });
   } catch (error) {
     console.error('Error sending email:', error);
     return NextResponse.json({ 
