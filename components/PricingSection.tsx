@@ -28,11 +28,13 @@ interface FAQ {
 }
 
 interface AddOn {
-  id: string;
+  id: number;
   name: string;
   price: string;
   description: string;
   category: string;
+  is_active: boolean;
+  sort_order: number;
   selected?: boolean;
 }
 
@@ -174,33 +176,6 @@ const defaultFAQs: FAQ[] = [
   },
 ];
 
-// Add-ons data
-const addOnsData: AddOn[] = [
-  // Carpet & Upholstery
-  { id: 'carpet-living', name: 'Carpet Steam Cleaning (Living Area/Hall)', price: '$100', description: 'Living Area/Hall', category: 'Carpet & Upholstery' },
-  { id: 'carpet-bedroom', name: 'Carpet Steam Cleaning (Per Bedroom)', price: '$55', description: 'Per Bedroom', category: 'Carpet & Upholstery' },
-  { id: 'upholstery', name: 'Upholstery Steam Cleaning', price: 'Custom', description: 'Available upon request', category: 'Carpet & Upholstery' },
-  
-  // Kitchen Add-ons
-  { id: 'oven', name: 'Oven Cleaning', price: '$65', description: 'Professional oven cleaning', category: 'Kitchen Add-ons' },
-  { id: 'fridge', name: 'Fridge Cleaning', price: '$35', description: 'Deep fridge cleaning', category: 'Kitchen Add-ons' },
-  { id: 'dishes', name: 'Dishes', price: '$35', description: 'Wash and put away dishes', category: 'Kitchen Add-ons' },
-  
-  // Whole Home
-  { id: 'cabinets', name: 'Clean Inside Cabinets', price: '$30 - $100', description: 'Based on number of cabinets', category: 'Whole Home' },
-  { id: 'windows', name: 'Inside Window Cleaning', price: '$65 - $150', description: 'Based on number of windows', category: 'Whole Home' },
-  { id: 'blinds', name: 'Wet Wipe Blinds', price: '$29', description: 'Per blind', category: 'Whole Home' },
-  { id: 'walls', name: 'Clean Walls', price: '$29', description: 'Per wall', category: 'Whole Home' },
-  { id: 'green-supplies', name: 'Use Green Supplies', price: '$5', description: 'Eco-friendly cleaning products', category: 'Whole Home' },
-  
-  // Deep Detail
-  { id: 'linen', name: 'Bed Linen Change', price: '$15', description: 'Fresh bed linen', category: 'Deep Detail' },
-  { id: 'ironing', name: 'Ironing', price: '$45', description: 'Per 30 minutes', category: 'Deep Detail' },
-  { id: 'laundry', name: 'Laundry Service', price: '$30', description: 'Per load', category: 'Deep Detail' },
-  { id: 'balcony', name: 'Balcony / Patio Clean', price: '$60 - $100', description: 'Based on size', category: 'Deep Detail' },
-  { id: 'garage', name: 'Garage Clean', price: '$50+', description: 'Starting from $50', category: 'Deep Detail' },
-];
-
 // Category icons
 const categoryIcons: Record<string, React.ReactNode> = {
   'Carpet & Upholstery': <Home className="w-4 h-4" />,
@@ -232,9 +207,11 @@ export default function PricingSection() {
   const [pricingData, setPricingData] = useState<{
     tiers: Tier[];
     faqs: FAQ[];
+    addOns: AddOn[];
   }>({
     tiers: [],
     faqs: [],
+    addOns: [],
   });
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<ServiceCategory>('Residential');
@@ -245,6 +222,7 @@ export default function PricingSection() {
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [expandedAddOnCategory, setExpandedAddOnCategory] = useState<string | null>('Carpet & Upholstery');
   const [selectedTierData, setSelectedTierData] = useState<Tier | null>(null);
+  const [allAddOns, setAllAddOns] = useState<AddOn[]>([]);
 
   const supabase = createClient();
 
@@ -254,6 +232,7 @@ export default function PricingSection() {
       try {
         setLoading(true);
 
+        // Load tiers
         const { data: tiersData, error: tiersError } = await supabase
           .from('pricing_tiers')
           .select('*')
@@ -262,30 +241,63 @@ export default function PricingSection() {
 
         if (tiersError) {
           console.error('Error loading tiers:', tiersError);
-          setPricingData({
+          setPricingData(prev => ({
+            ...prev,
             tiers: defaultTiers,
-            faqs: defaultFAQs,
-          });
+          }));
         } else {
-          const { data: faqsData, error: faqsError } = await supabase
-            .from('faqs')
-            .select('*')
-            .order('sort_order', { ascending: true });
-
-          if (faqsError) {
-            console.error('Error loading FAQs:', faqsError);
-          }
-
-          setPricingData({
+          setPricingData(prev => ({
+            ...prev,
             tiers: tiersData && tiersData.length > 0 ? tiersData : defaultTiers,
+          }));
+        }
+
+        // Load FAQs
+        const { data: faqsData, error: faqsError } = await supabase
+          .from('faqs')
+          .select('*')
+          .order('sort_order', { ascending: true });
+
+        if (faqsError) {
+          console.error('Error loading FAQs:', faqsError);
+          setPricingData(prev => ({
+            ...prev,
+            faqs: defaultFAQs,
+          }));
+        } else {
+          setPricingData(prev => ({
+            ...prev,
             faqs: faqsData && faqsData.length > 0 ? faqsData : defaultFAQs,
-          });
+          }));
+        }
+
+        // Load Add-ons from database
+        const { data: addOnsData, error: addOnsError } = await supabase
+          .from('addons')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+
+        if (addOnsError) {
+          console.error('Error loading add-ons:', addOnsError);
+          setPricingData(prev => ({
+            ...prev,
+            addOns: [],
+          }));
+        } else {
+          console.log('📦 Add-ons loaded from DB:', addOnsData);
+          setPricingData(prev => ({
+            ...prev,
+            addOns: addOnsData || [],
+          }));
+          setAllAddOns(addOnsData || []);
         }
       } catch (error) {
         console.error('Error loading pricing data:', error);
         setPricingData({
           tiers: defaultTiers,
           faqs: defaultFAQs,
+          addOns: [],
         });
       } finally {
         setLoading(false);
@@ -310,7 +322,7 @@ export default function PricingSection() {
     if (residentialTiers.length > 0 && !selectedTier) {
       setSelectedTier(residentialTiers[0].label);
     }
-  }, [pricingData, selectedTier]);
+  }, [pricingData.tiers, selectedTier]);
 
   // Update selected tier data when tier changes
   useEffect(() => {
@@ -366,7 +378,7 @@ export default function PricingSection() {
         price: selectedTierData.price,
         category: selectedTierData.category,
         addons: selectedAddOns.map(id => {
-          const addon = addOnsData.find(a => a.id === id);
+          const addon = allAddOns.find(a => a.id.toString() === id);
           return addon ? { name: addon.name, price: addon.price } : null;
         }).filter(Boolean),
         timestamp: new Date().toISOString(),
@@ -407,14 +419,20 @@ export default function PricingSection() {
   const residentialData = getCategoryData('Residential');
   const commercialData = getCategoryData('Commercial');
 
-  // Group add-ons by category
-  const groupedAddOns = addOnsData.reduce((acc, addOn) => {
+  // Group add-ons by category from database
+  const groupedAddOns = allAddOns.reduce((acc, addOn) => {
     if (!acc[addOn.category]) {
       acc[addOn.category] = [];
     }
-    acc[addOn.category].push(addOn);
+    acc[addOn.category].push({
+      id: addOn.id.toString(),
+      name: addOn.name,
+      price: addOn.price,
+      description: addOn.description,
+      category: addOn.category,
+    });
     return acc;
-  }, {} as Record<string, AddOn[]>);
+  }, {} as Record<string, any[]>);
 
   if (loading) {
     return (
@@ -625,7 +643,7 @@ function ResidentialContent({
       </div>
 
       {/* Add-ons Section - Only shown when a tier is selected */}
-      {selectedTier && (
+      {selectedTier && Object.keys(groupedAddOns).length > 0 && (
         <div className="rounded-2xl p-6 sm:p-8 space-y-6 backdrop-blur-sm"
           style={{
             backgroundColor: 'rgba(255,255,255,0.06)',
@@ -645,7 +663,7 @@ function ResidentialContent({
           <div className="space-y-4">
             {Object.entries(groupedAddOns).map(([category, addOns]) => {
               const isExpanded = expandedAddOnCategory === category;
-              const selectedCount = addOns.filter(a => selectedAddOns.includes(a.id)).length;
+              const selectedCount = addOns.filter((a: any) => selectedAddOns.includes(a.id)).length;
               
               return (
                 <div key={category} className="rounded-lg overflow-hidden"

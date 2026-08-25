@@ -20,6 +20,9 @@ import {
   ChevronUp,
   HelpCircle,
   RefreshCw,
+  ShoppingBag,
+  Sparkles,
+  Bath,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -44,18 +47,40 @@ interface FAQ {
   category: ServiceCategory;
 }
 
+interface AddOn {
+  id: number;
+  name: string;
+  price: string;
+  description: string;
+  category: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 const categories = ['All', 'Residential', 'Commercial'];
 const statusOptions = ['Active', 'Inactive', 'Draft'];
+const addOnCategories = ['Carpet & Upholstery', 'Kitchen Add-ons', 'Whole Home', 'Deep Detail'];
+
+// Category icons
+const categoryIconMap: Record<string, React.ReactNode> = {
+  'Carpet & Upholstery': <Home className="w-4 h-4" />,
+  'Kitchen Add-ons': <Bath className="w-4 h-4" />,
+  'Whole Home': <Sparkles className="w-4 h-4" />,
+  'Deep Detail': <Clock className="w-4 h-4" />,
+};
 
 export default function PricingContent() {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [addOns, setAddOns] = useState<AddOn[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'tiers' | 'faqs'>('tiers');
+  const [activeTab, setActiveTab] = useState<'tiers' | 'faqs' | 'addons'>('tiers');
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [modalType, setModalType] = useState<'tier' | 'faq'>('tier');
+  const [modalType, setModalType] = useState<'tier' | 'faq' | 'addon'>('tier');
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -90,6 +115,18 @@ export default function PricingContent() {
       } else if (faqsData) {
         setFaqs(faqsData);
       }
+
+      // Load Add-ons from the addons table
+      const { data: addOnsData, error: addOnsError } = await supabase
+        .from('addons')
+        .select('*')
+        .order('sort_order', { ascending: true });
+
+      if (addOnsError) {
+        console.error('Error loading add-ons:', addOnsError);
+      } else if (addOnsData) {
+        setAddOns(addOnsData);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -116,12 +153,19 @@ export default function PricingContent() {
     return matchesCategory && matchesSearch;
   });
 
+  const filteredAddOns = addOns.filter((addOn: AddOn) => {
+    const matchesSearch = addOn.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         addOn.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         addOn.category.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
   // Stats
   const stats = [
     { label: 'Total Tiers', value: tiers.length, icon: Package, color: '#3b82f6' },
     { label: 'Active Tiers', value: tiers.filter((t: Tier) => t.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
+    { label: 'Total Add-ons', value: addOns.length, icon: ShoppingBag, color: '#8b5cf6' },
     { label: 'Total FAQs', value: faqs.length, icon: HelpCircle, color: '#f59e0b' },
-    { label: 'Total Bookings', value: tiers.reduce((sum, t) => sum + (t.bookings || 0), 0), icon: Users, color: '#8b5cf6' },
   ];
 
   // CRUD: Delete Tier
@@ -170,12 +214,34 @@ export default function PricingContent() {
     }
   };
 
+  // CRUD: Delete Add-on
+  const handleDeleteAddOn = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this add-on?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('addons')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting add-on:', error);
+        alert('Failed to delete add-on');
+        return;
+      }
+
+      setAddOns(addOns.filter((a: AddOn) => a.id !== id));
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to delete add-on');
+    }
+  };
+
   // CRUD: Save Tier
   const handleSaveTier = async (tierData: any) => {
     setSaving(true);
     try {
       if (editingItem) {
-        // Update
         const { data, error } = await supabase
           .from('pricing_tiers')
           .update({
@@ -198,7 +264,6 @@ export default function PricingContent() {
 
         setTiers(tiers.map((t: Tier) => t.id === editingItem.id ? { ...t, ...tierData } : t));
       } else {
-        // Create
         const { data, error } = await supabase
           .from('pricing_tiers')
           .insert({
@@ -238,7 +303,6 @@ export default function PricingContent() {
     setSaving(true);
     try {
       if (editingItem) {
-        // Update
         const { data, error } = await supabase
           .from('faqs')
           .update({
@@ -258,7 +322,6 @@ export default function PricingContent() {
 
         setFaqs(faqs.map((f: FAQ) => f.id === editingItem.id ? { ...f, ...faqData } : f));
       } else {
-        // Create
         const { data, error } = await supabase
           .from('faqs')
           .insert({
@@ -285,6 +348,102 @@ export default function PricingContent() {
       alert('Failed to save FAQ');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // CRUD: Save Add-on to addons table
+  const handleSaveAddOn = async (addOnData: any) => {
+    setSaving(true);
+    try {
+      // Clean the data - ensure all required fields are present
+      const cleanData = {
+        name: addOnData.name?.trim() || '',
+        price: addOnData.price?.trim() || '',
+        description: addOnData.description?.trim() || '',
+        category: addOnData.category || 'Carpet & Upholstery',
+        is_active: addOnData.is_active !== undefined ? addOnData.is_active : true,
+      };
+
+      // Validate required fields
+      if (!cleanData.name || !cleanData.price) {
+        alert('Name and Price are required fields');
+        setSaving(false);
+        return;
+      }
+
+      if (editingItem) {
+        // Update existing add-on
+        const { data, error } = await supabase
+          .from('addons')
+          .update(cleanData)
+          .eq('id', editingItem.id)
+          .select();
+
+        if (error) {
+          console.error('Error updating add-on:', error);
+          alert('Failed to update add-on: ' + error.message);
+          setSaving(false);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          setAddOns(addOns.map((a: AddOn) => 
+            a.id === editingItem.id ? { ...a, ...cleanData, updated_at: new Date().toISOString() } : a
+          ));
+          alert('Add-on updated successfully!');
+        }
+      } else {
+        // Create new add-on
+        const { data, error } = await supabase
+          .from('addons')
+          .insert({
+            ...cleanData,
+            sort_order: addOns.length + 1,
+          })
+          .select();
+
+        if (error) {
+          console.error('Error creating add-on:', error);
+          alert('Failed to create add-on: ' + error.message);
+          setSaving(false);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          setAddOns([...addOns, data[0]]);
+          alert('Add-on created successfully!');
+        }
+      }
+      setShowModal(false);
+      setEditingItem(null);
+    } catch (error: any) {
+      console.error('Error:', error);
+      alert('Failed to save add-on: ' + (error.message || 'Unknown error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Toggle Add-on Active Status
+  const handleToggleAddOnActive = async (addOn: AddOn) => {
+    try {
+      const { data, error } = await supabase
+        .from('addons')
+        .update({ is_active: !addOn.is_active })
+        .eq('id', addOn.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error toggling add-on:', error);
+        alert('Failed to update add-on status');
+        return;
+      }
+
+      setAddOns(addOns.map((a: AddOn) => a.id === addOn.id ? { ...a, is_active: !a.is_active } : a));
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to update add-on status');
     }
   };
 
@@ -346,10 +505,10 @@ export default function PricingContent() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-              Pricing Management
+              Pricing & Add-ons Management
             </div>
             <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: '#f8fafc' }}>
-              Pricing ({tiers.length} Tiers)
+              Dashboard ({tiers.length} Tiers, {addOns.length} Add-ons)
             </h2>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -370,29 +529,6 @@ export default function PricingContent() {
             >
               <RefreshCw size={16} />
               Refresh
-            </button>
-            <button
-              onClick={() => {
-                setEditingItem(null);
-                setModalType('tier');
-                setShowModal(true);
-              }}
-              style={{
-                border: 'none',
-                borderRadius: '14px',
-                padding: '12px 20px',
-                background: '#F6D961',
-                color: '#1a1a1a',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
-              }}
-            >
-              <Plus size={18} />
-              Add Tier
             </button>
           </div>
         </div>
@@ -516,6 +652,28 @@ export default function PricingContent() {
             </span>
           </button>
           <button
+            onClick={() => setActiveTab('addons')}
+            style={{
+              padding: '8px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              background: activeTab === 'addons' ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
+              color: activeTab === 'addons' ? '#F6D961' : '#94a3b8',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: activeTab === 'addons' ? 600 : 400,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <ShoppingBag size={16} />
+            Add-ons
+            <span style={{ fontSize: '0.7rem', padding: '1px 8px', borderRadius: '10px', background: 'rgba(148,163,184,0.12)', color: '#94a3b8' }}>
+              {filteredAddOns.length}
+            </span>
+          </button>
+          <button
             onClick={() => setActiveTab('faqs')}
             style={{
               padding: '8px 18px',
@@ -540,6 +698,165 @@ export default function PricingContent() {
         </div>
       </div>
 
+      {/* Add-ons Tab */}
+      {activeTab === 'addons' && (
+        <div
+          style={{
+            background: 'rgba(15, 23, 42, 0.82)',
+            border: '1px solid rgba(148,163,184,0.12)',
+            borderRadius: '30px',
+            padding: '24px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>Add-on Services</h3>
+            <button
+              onClick={() => { setEditingItem(null); setModalType('addon'); setShowModal(true); }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#F6D961',
+                color: '#1a1a1a',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                boxShadow: '0 2px 10px rgba(246, 217, 97, 0.3)',
+              }}
+            >
+              <Plus size={16} /> Add Add-on
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {filteredAddOns.map((addOn: AddOn) => {
+              const isExpanded = expandedItems.includes(addOn.id);
+              const Icon = categoryIconMap[addOn.category] || <Package className="w-4 h-4" />;
+
+              return (
+                <div
+                  key={addOn.id}
+                  style={{
+                    borderRadius: '16px',
+                    border: addOn.is_active ? '1px solid rgba(148,163,184,0.08)' : '1px solid rgba(239,68,68,0.15)',
+                    background: 'rgba(15, 23, 42, 0.72)',
+                    overflow: 'hidden',
+                    opacity: addOn.is_active ? 1 : 0.6,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'auto 1fr auto auto auto auto',
+                      alignItems: 'center',
+                      gap: '14px',
+                      padding: '14px 18px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => toggleExpand(addOn.id)}
+                  >
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: addOn.is_active ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)',
+                        color: addOn.is_active ? '#3b82f6' : '#ef4444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {Icon}
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: '#f8fafc', fontWeight: 600 }}>{addOn.name}</span>
+                        <span style={{ 
+                          fontSize: '0.6rem', 
+                          padding: '2px 10px', 
+                          borderRadius: '10px', 
+                          background: addOn.is_active ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)',
+                          color: addOn.is_active ? '#10b981' : '#ef4444',
+                          fontWeight: 700 
+                        }}>
+                          {addOn.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
+                        <span style={{ color: '#3b82f6', fontWeight: 700, fontSize: '0.95rem' }}>{addOn.price}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{addOn.category}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ color: '#64748b', fontSize: '0.8rem' }}>
+                      {addOn.category}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingItem(addOn); setModalType('addon'); setShowModal(true); }}
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteAddOn(addOn.id); }}
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+
+                    <div style={{ color: '#64748b' }}>
+                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div style={{ padding: '0 18px 18px 72px', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
+                      <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '12px' }}>
+                        {addOn.description}
+                      </p>
+                      <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                        <button
+                          onClick={() => handleToggleAddOnActive(addOn)}
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: addOn.is_active ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+                            color: addOn.is_active ? '#ef4444' : '#10b981',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {addOn.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                          Created: {new Date(addOn.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {filteredAddOns.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                <ShoppingBag size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                <p>No add-ons found. Click "Add Add-on" to create one.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tiers Tab */}
       {activeTab === 'tiers' && (
         <div
@@ -550,6 +867,29 @@ export default function PricingContent() {
             padding: '24px',
           }}
         >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>Tiers</h3>
+            <button
+              onClick={() => { setEditingItem(null); setModalType('tier'); setShowModal(true); }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#F6D961',
+                color: '#1a1a1a',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                boxShadow: '0 2px 10px rgba(246, 217, 97, 0.3)',
+              }}
+            >
+              <Plus size={16} /> Add Tier
+            </button>
+          </div>
+
           <div style={{ display: 'grid', gap: '12px' }}>
             {filteredTiers.map((tier: Tier) => {
               const isExpanded = expandedItems.includes(tier.id);
@@ -644,7 +984,8 @@ export default function PricingContent() {
             })}
             {filteredTiers.length === 0 && (
               <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                No tiers found. Click "Add Tier" to create one.
+                <Package size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                <p>No tiers found. Click "Add Tier" to create one.</p>
               </div>
             )}
           </div>
@@ -665,9 +1006,22 @@ export default function PricingContent() {
             <h3 style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>FAQs</h3>
             <button
               onClick={() => { setEditingItem(null); setModalType('faq'); setShowModal(true); }}
-              style={{ padding: '6px 14px', borderRadius: '10px', border: '1px solid rgba(148,163,184,0.12)', background: 'rgba(59,130,246,0.12)', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '12px',
+                border: 'none',
+                background: '#F6D961',
+                color: '#1a1a1a',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                boxShadow: '0 2px 10px rgba(246, 217, 97, 0.3)',
+              }}
             >
-              <Plus size={14} /> Add FAQ
+              <Plus size={16} /> Add FAQ
             </button>
           </div>
 
@@ -711,7 +1065,8 @@ export default function PricingContent() {
             ))}
             {filteredFAQs.length === 0 && (
               <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
-                No FAQs found. Click "Add FAQ" to create one.
+                <HelpCircle size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+                <p>No FAQs found. Click "Add FAQ" to create one.</p>
               </div>
             )}
           </div>
@@ -727,6 +1082,7 @@ export default function PricingContent() {
           onSave={(data) => {
             if (modalType === 'tier') handleSaveTier(data);
             else if (modalType === 'faq') handleSaveFAQ(data);
+            else if (modalType === 'addon') handleSaveAddOn(data);
           }}
           saving={saving}
         />
@@ -737,21 +1093,47 @@ export default function PricingContent() {
 
 // Modal Component
 function PricingModal({ type, data, onClose, onSave, saving }: any) {
-  const [formData, setFormData] = useState(
-    data || {
-      label: '',
-      price: '',
-      description: '',
-      category: 'Residential',
-      isPopular: false,
-      status: 'Active',
-      question: '',
-      answer: '',
+  // Initialize form data based on type
+  const getInitialData = () => {
+    if (data) return data;
+    
+    if (type === 'tier') {
+      return {
+        label: '',
+        price: '',
+        description: '',
+        category: 'Residential',
+        isPopular: false,
+        status: 'Active',
+      };
     }
-  );
+    
+    if (type === 'addon') {
+      return {
+        name: '',
+        price: '',
+        description: '',
+        category: 'Carpet & Upholstery',
+        is_active: true,
+      };
+    }
+    
+    if (type === 'faq') {
+      return {
+        question: '',
+        answer: '',
+        category: 'Residential',
+      };
+    }
+    
+    return {};
+  };
+
+  const [formData, setFormData] = useState(getInitialData());
 
   const getTitle = () => {
     if (type === 'tier') return data ? 'Edit Tier' : 'Add New Tier';
+    if (type === 'addon') return data ? 'Edit Add-on' : 'Add New Add-on';
     return data ? 'Edit FAQ' : 'Add New FAQ';
   };
 
@@ -898,6 +1280,125 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 }}
               />
               Mark as Popular
+            </label>
+          </div>
+        </>
+      );
+    }
+
+    if (type === 'addon') {
+      return (
+        <>
+          <div>
+            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              Add-on Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name || ''}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'rgba(15, 23, 42, 0.72)',
+                color: '#e2e8f0',
+                fontSize: '0.95rem',
+                outline: 'none',
+              }}
+              placeholder="e.g. Oven Cleaning"
+            />
+          </div>
+
+          <div>
+            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              Price *
+            </label>
+            <input
+              type="text"
+              value={formData.price || ''}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              required
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'rgba(15, 23, 42, 0.72)',
+                color: '#e2e8f0',
+                fontSize: '0.95rem',
+                outline: 'none',
+              }}
+              placeholder="e.g. $65"
+            />
+          </div>
+
+          <div>
+            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              Description
+            </label>
+            <textarea
+              value={formData.description || ''}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'rgba(15, 23, 42, 0.72)',
+                color: '#e2e8f0',
+                fontSize: '0.95rem',
+                outline: 'none',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+              }}
+              placeholder="Describe the add-on..."
+            />
+          </div>
+
+          <div>
+            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              Category *
+            </label>
+            <select
+              value={formData.category || 'Carpet & Upholstery'}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              required
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                border: '1px solid rgba(148,163,184,0.12)',
+                background: 'rgba(15, 23, 42, 0.72)',
+                color: '#e2e8f0',
+                fontSize: '0.95rem',
+                outline: 'none',
+              }}
+            >
+              <option value="Carpet & Upholstery">Carpet & Upholstery</option>
+              <option value="Kitchen Add-ons">Kitchen Add-ons</option>
+              <option value="Whole Home">Whole Home</option>
+              <option value="Deep Detail">Deep Detail</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={formData.is_active !== undefined ? formData.is_active : true}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                style={{
+                  width: '18px',
+                  height: '18px',
+                  accentColor: '#3b82f6',
+                  cursor: 'pointer',
+                }}
+              />
+              Active
             </label>
           </div>
         </>
