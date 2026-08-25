@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
+import { Check, Plus, Minus, Sparkles, Home, Bath, Clock, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 type ServiceCategory = 'Residential' | 'Commercial';
 
@@ -23,6 +25,15 @@ interface FAQ {
   question: string;
   answer: string;
   category: ServiceCategory;
+}
+
+interface AddOn {
+  id: string;
+  name: string;
+  price: string;
+  description: string;
+  category: string;
+  selected?: boolean;
 }
 
 const defaultTiers: Tier[] = [
@@ -163,6 +174,60 @@ const defaultFAQs: FAQ[] = [
   },
 ];
 
+// Add-ons data
+const addOnsData: AddOn[] = [
+  // Carpet & Upholstery
+  { id: 'carpet-living', name: 'Carpet Steam Cleaning (Living Area/Hall)', price: '$100', description: 'Living Area/Hall', category: 'Carpet & Upholstery' },
+  { id: 'carpet-bedroom', name: 'Carpet Steam Cleaning (Per Bedroom)', price: '$55', description: 'Per Bedroom', category: 'Carpet & Upholstery' },
+  { id: 'upholstery', name: 'Upholstery Steam Cleaning', price: 'Custom', description: 'Available upon request', category: 'Carpet & Upholstery' },
+  
+  // Kitchen Add-ons
+  { id: 'oven', name: 'Oven Cleaning', price: '$65', description: 'Professional oven cleaning', category: 'Kitchen Add-ons' },
+  { id: 'fridge', name: 'Fridge Cleaning', price: '$35', description: 'Deep fridge cleaning', category: 'Kitchen Add-ons' },
+  { id: 'dishes', name: 'Dishes', price: '$35', description: 'Wash and put away dishes', category: 'Kitchen Add-ons' },
+  
+  // Whole Home
+  { id: 'cabinets', name: 'Clean Inside Cabinets', price: '$30 - $100', description: 'Based on number of cabinets', category: 'Whole Home' },
+  { id: 'windows', name: 'Inside Window Cleaning', price: '$65 - $150', description: 'Based on number of windows', category: 'Whole Home' },
+  { id: 'blinds', name: 'Wet Wipe Blinds', price: '$29', description: 'Per blind', category: 'Whole Home' },
+  { id: 'walls', name: 'Clean Walls', price: '$29', description: 'Per wall', category: 'Whole Home' },
+  { id: 'green-supplies', name: 'Use Green Supplies', price: '$5', description: 'Eco-friendly cleaning products', category: 'Whole Home' },
+  
+  // Deep Detail
+  { id: 'linen', name: 'Bed Linen Change', price: '$15', description: 'Fresh bed linen', category: 'Deep Detail' },
+  { id: 'ironing', name: 'Ironing', price: '$45', description: 'Per 30 minutes', category: 'Deep Detail' },
+  { id: 'laundry', name: 'Laundry Service', price: '$30', description: 'Per load', category: 'Deep Detail' },
+  { id: 'balcony', name: 'Balcony / Patio Clean', price: '$60 - $100', description: 'Based on size', category: 'Deep Detail' },
+  { id: 'garage', name: 'Garage Clean', price: '$50+', description: 'Starting from $50', category: 'Deep Detail' },
+];
+
+// Category icons
+const categoryIcons: Record<string, React.ReactNode> = {
+  'Carpet & Upholstery': <Home className="w-4 h-4" />,
+  'Kitchen Add-ons': <Bath className="w-4 h-4" />,
+  'Whole Home': <Sparkles className="w-4 h-4" />,
+  'Deep Detail': <Clock className="w-4 h-4" />,
+};
+
+// Storage key for residential booking
+const RESIDENTIAL_BOOKING_KEY = 'residential_booking_data';
+
+// Save to local storage
+const saveToLocalStorage = (data: any) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(RESIDENTIAL_BOOKING_KEY, JSON.stringify(data));
+  }
+};
+
+// Load from local storage
+const loadFromLocalStorage = () => {
+  if (typeof window !== 'undefined') {
+    const data = localStorage.getItem(RESIDENTIAL_BOOKING_KEY);
+    return data ? JSON.parse(data) : null;
+  }
+  return null;
+};
+
 export default function PricingSection() {
   const [pricingData, setPricingData] = useState<{
     tiers: Tier[];
@@ -177,6 +242,9 @@ export default function PricingSection() {
   const [direction, setDirection] = useState(0);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [hoveredTier, setHoveredTier] = useState<string | null>(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [expandedAddOnCategory, setExpandedAddOnCategory] = useState<string | null>('Carpet & Upholstery');
+  const [selectedTierData, setSelectedTierData] = useState<Tier | null>(null);
 
   const supabase = createClient();
 
@@ -186,7 +254,6 @@ export default function PricingSection() {
       try {
         setLoading(true);
 
-        // Load tiers
         const { data: tiersData, error: tiersError } = await supabase
           .from('pricing_tiers')
           .select('*')
@@ -200,7 +267,6 @@ export default function PricingSection() {
             faqs: defaultFAQs,
           });
         } else {
-          // Load FAQs
           const { data: faqsData, error: faqsError } = await supabase
             .from('faqs')
             .select('*')
@@ -229,6 +295,15 @@ export default function PricingSection() {
     loadPricingData();
   }, []);
 
+  // Load saved data from local storage
+  useEffect(() => {
+    const savedData = loadFromLocalStorage();
+    if (savedData) {
+      setSelectedTier(savedData.selectedTier || '');
+      setSelectedAddOns(savedData.selectedAddOns || []);
+    }
+  }, []);
+
   // Set initial selected tier when data loads
   useEffect(() => {
     const residentialTiers = pricingData.tiers.filter(t => t.category === 'Residential');
@@ -236,6 +311,25 @@ export default function PricingSection() {
       setSelectedTier(residentialTiers[0].label);
     }
   }, [pricingData, selectedTier]);
+
+  // Update selected tier data when tier changes
+  useEffect(() => {
+    const tier = pricingData.tiers.find(t => t.label === selectedTier);
+    setSelectedTierData(tier || null);
+  }, [selectedTier, pricingData.tiers]);
+
+  // Save to local storage whenever selections change
+  useEffect(() => {
+    if (selectedTier) {
+      const dataToSave = {
+        selectedTier,
+        selectedAddOns,
+        category: 'Residential',
+        timestamp: new Date().toISOString(),
+      };
+      saveToLocalStorage(dataToSave);
+    }
+  }, [selectedTier, selectedAddOns]);
 
   const handleCategoryChange = (category: ServiceCategory) => {
     if (category === activeCategory) return;
@@ -253,6 +347,42 @@ export default function PricingSection() {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
+  const toggleAddOn = (addOnId: string) => {
+    setSelectedAddOns(prev =>
+      prev.includes(addOnId)
+        ? prev.filter(id => id !== addOnId)
+        : [...prev, addOnId]
+    );
+  };
+
+  const toggleAddOnCategory = (category: string) => {
+    setExpandedAddOnCategory(expandedAddOnCategory === category ? null : category);
+  };
+
+  const handleBookNow = () => {
+    if (selectedTierData) {
+      const bookingData = {
+        service: selectedTierData.label,
+        price: selectedTierData.price,
+        category: selectedTierData.category,
+        addons: selectedAddOns.map(id => {
+          const addon = addOnsData.find(a => a.id === id);
+          return addon ? { name: addon.name, price: addon.price } : null;
+        }).filter(Boolean),
+        timestamp: new Date().toISOString(),
+      };
+      
+      // Save final booking data
+      saveToLocalStorage({
+        ...bookingData,
+        finalized: true,
+      });
+      
+      // Navigate to booking page
+      window.location.href = '/booking';
+    }
+  };
+
   const slideVariants = {
     enter: (direction: number) => ({
       x: direction > 0 ? 300 : -300,
@@ -268,16 +398,23 @@ export default function PricingSection() {
     }),
   };
 
-  // Get filtered data for current category
   const getCategoryData = (category: ServiceCategory) => {
     const tiers = pricingData.tiers.filter(t => t.category === category && t.status === 'Active');
     const faqs = pricingData.faqs.filter(f => f.category === category);
-    
     return { tiers, faqs };
   };
 
   const residentialData = getCategoryData('Residential');
   const commercialData = getCategoryData('Commercial');
+
+  // Group add-ons by category
+  const groupedAddOns = addOnsData.reduce((acc, addOn) => {
+    if (!acc[addOn.category]) {
+      acc[addOn.category] = [];
+    }
+    acc[addOn.category].push(addOn);
+    return acc;
+  }, {} as Record<string, AddOn[]>);
 
   if (loading) {
     return (
@@ -362,6 +499,13 @@ export default function PricingSection() {
                   toggleFaq={toggleFaq}
                   hoveredTier={hoveredTier}
                   setHoveredTier={setHoveredTier}
+                  groupedAddOns={groupedAddOns}
+                  selectedAddOns={selectedAddOns}
+                  toggleAddOn={toggleAddOn}
+                  expandedAddOnCategory={expandedAddOnCategory}
+                  toggleAddOnCategory={toggleAddOnCategory}
+                  selectedTierData={selectedTierData}
+                  handleBookNow={handleBookNow}
                 />
               ) : (
                 <CommercialContent data={commercialData} />
@@ -381,7 +525,14 @@ function ResidentialContent({
   openFaqIndex, 
   toggleFaq,
   hoveredTier,
-  setHoveredTier 
+  setHoveredTier,
+  groupedAddOns,
+  selectedAddOns,
+  toggleAddOn,
+  expandedAddOnCategory,
+  toggleAddOnCategory,
+  selectedTierData,
+  handleBookNow,
 }: any) {
   return (
     <div className="space-y-10">
@@ -472,6 +623,188 @@ function ResidentialContent({
           );
         })}
       </div>
+
+      {/* Add-ons Section - Only shown when a tier is selected */}
+      {selectedTier && (
+        <div className="rounded-2xl p-6 sm:p-8 space-y-6 backdrop-blur-sm"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <div className="text-center">
+            <h2 className="text-xl font-serif font-semibold text-white">
+              Want It Cleaner Than Clean?
+            </h2>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Add These Upgrades to Your Booking:
+            </p>
+          </div>
+
+          {/* Add-ons by Category */}
+          <div className="space-y-4">
+            {Object.entries(groupedAddOns).map(([category, addOns]) => {
+              const isExpanded = expandedAddOnCategory === category;
+              const selectedCount = addOns.filter(a => selectedAddOns.includes(a.id)).length;
+              
+              return (
+                <div key={category} className="rounded-lg overflow-hidden"
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  <button
+                    onClick={() => toggleAddOnCategory(category)}
+                    className="w-full px-4 py-3 flex items-center justify-between transition-all hover:bg-white/5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span style={{ color: 'var(--theme-secondary)' }}>
+                        {categoryIcons[category] || <Sparkles className="w-4 h-4" />}
+                      </span>
+                      <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                        {category}
+                      </span>
+                      {selectedCount > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: 'var(--theme-secondary)',
+                            color: 'white',
+                          }}
+                        >
+                          {selectedCount}
+                        </span>
+                      )}
+                    </div>
+                    <motion.span
+                      className="text-lg flex-shrink-0"
+                      style={{ color: 'rgba(255,255,255,0.5)' }}
+                      animate={{ rotate: isExpanded ? 180 : 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {isExpanded ? '−' : '+'}
+                    </motion.span>
+                  </button>
+
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 pb-4 space-y-2">
+                          {addOns.map((addOn: any) => {
+                            const isSelected = selectedAddOns.includes(addOn.id);
+                            return (
+                              <button
+                                key={addOn.id}
+                                onClick={() => toggleAddOn(addOn.id)}
+                                className="w-full flex items-center justify-between p-3 rounded-lg transition-all"
+                                style={{
+                                  backgroundColor: isSelected ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
+                                  border: isSelected ? '1px solid var(--theme-secondary)' : '1px solid rgba(255,255,255,0.06)',
+                                }}
+                              >
+                                <div className="flex items-center gap-3 text-left">
+                                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                    isSelected
+                                      ? 'border-blue-500 bg-blue-500'
+                                      : 'border-gray-500'
+                                  }`}>
+                                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                                  </div>
+                                  <div>
+                                    <div className="text-sm" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                                      {addOn.name}
+                                    </div>
+                                    <div className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                      {addOn.description}
+                                    </div>
+                                  </div>
+                                </div>
+                                <span className="text-sm font-medium" style={{ color: 'var(--theme-secondary)' }}>
+                                  {addOn.price}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Why Smart Clients Add These */}
+          <div className="mt-4 p-4 rounded-lg"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Why Smart Clients Add These:
+            </p>
+            <ul className="space-y-1 text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <li>• Agents love it when the oven and fridge are spotless <span style={{ color: 'rgba(255,255,255,0.3)' }}>(and they will check)</span></li>
+              <li>• Hidden smells? Gone. Especially with pets or cooking odours</li>
+              <li>• We tackle the worst jobs so you don't have to</li>
+              <li>• More clean, less stress, for way less time and money than doing it yourself</li>
+            </ul>
+          </div>
+
+          {/* Add Time-Saving Extras & Book Now */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+            <button
+              className="px-6 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                color: 'white',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              Add Time-Saving Extras
+            </button>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleBookNow}
+              className="px-8 py-3 rounded-lg text-sm font-bold transition-all hover:opacity-90 flex items-center gap-2"
+              style={{
+                backgroundColor: 'var(--theme-secondary)',
+                color: 'white',
+                boxShadow: '0 4px 20px rgba(59,130,246,0.3)',
+              }}
+            >
+              Book Now
+              <ArrowRight className="w-4 h-4" />
+            </motion.button>
+          </div>
+
+          {/* Selected Summary */}
+          {selectedTierData && (
+            <div className="mt-4 p-4 rounded-lg text-center"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Selected: <span style={{ color: 'white' }}>{selectedTierData.label}</span>
+                {selectedAddOns.length > 0 && (
+                  <span> + {selectedAddOns.length} add-on{selectedAddOns.length > 1 ? 's' : ''}</span>
+                )}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* FAQ Section */}
       <div

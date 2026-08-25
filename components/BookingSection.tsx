@@ -13,6 +13,9 @@ import {
   Plus,
   Sparkles,
   ChevronDown,
+  CheckCircle,
+  Package,
+  ShoppingBag,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -26,6 +29,22 @@ interface ContactInfo {
   guarantee_description: string;
 }
 
+interface ResidentialBookingData {
+  selectedTier: string;
+  selectedAddOns: string[];
+  category: string;
+  timestamp: string;
+  finalized?: boolean;
+}
+
+interface AddOn {
+  id: string;
+  name: string;
+  price: string;
+  description: string;
+  category: string;
+}
+
 const defaultContactInfo = {
   phone: '1800 123 456',
   email: 'hello@sparkwell.com.au',
@@ -34,6 +53,26 @@ const defaultContactInfo = {
   guarantee_title: 'Bond-Back Guarantee',
   guarantee_description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
 };
+
+// Add-ons data for reference
+const addOnsData: AddOn[] = [
+  { id: 'carpet-living', name: 'Carpet Steam Cleaning (Living Area/Hall)', price: '$100', description: 'Living Area/Hall', category: 'Carpet & Upholstery' },
+  { id: 'carpet-bedroom', name: 'Carpet Steam Cleaning (Per Bedroom)', price: '$55', description: 'Per Bedroom', category: 'Carpet & Upholstery' },
+  { id: 'upholstery', name: 'Upholstery Steam Cleaning', price: 'Custom', description: 'Available upon request', category: 'Carpet & Upholstery' },
+  { id: 'oven', name: 'Oven Cleaning', price: '$65', description: 'Professional oven cleaning', category: 'Kitchen Add-ons' },
+  { id: 'fridge', name: 'Fridge Cleaning', price: '$35', description: 'Deep fridge cleaning', category: 'Kitchen Add-ons' },
+  { id: 'dishes', name: 'Dishes', price: '$35', description: 'Wash and put away dishes', category: 'Kitchen Add-ons' },
+  { id: 'cabinets', name: 'Clean Inside Cabinets', price: '$30 - $100', description: 'Based on number of cabinets', category: 'Whole Home' },
+  { id: 'windows', name: 'Inside Window Cleaning', price: '$65 - $150', description: 'Based on number of windows', category: 'Whole Home' },
+  { id: 'blinds', name: 'Wet Wipe Blinds', price: '$29', description: 'Per blind', category: 'Whole Home' },
+  { id: 'walls', name: 'Clean Walls', price: '$29', description: 'Per wall', category: 'Whole Home' },
+  { id: 'green-supplies', name: 'Use Green Supplies', price: '$5', description: 'Eco-friendly cleaning products', category: 'Whole Home' },
+  { id: 'linen', name: 'Bed Linen Change', price: '$15', description: 'Fresh bed linen', category: 'Deep Detail' },
+  { id: 'ironing', name: 'Ironing', price: '$45', description: 'Per 30 minutes', category: 'Deep Detail' },
+  { id: 'laundry', name: 'Laundry Service', price: '$30', description: 'Per load', category: 'Deep Detail' },
+  { id: 'balcony', name: 'Balcony / Patio Clean', price: '$60 - $100', description: 'Based on size', category: 'Deep Detail' },
+  { id: 'garage', name: 'Garage Clean', price: '$50+', description: 'Starting from $50', category: 'Deep Detail' },
+];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -45,18 +84,39 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
 };
 
+// Storage key for residential booking
+const RESIDENTIAL_BOOKING_KEY = 'residential_booking_data';
+
+// Load from local storage
+const loadFromLocalStorage = (): ResidentialBookingData | null => {
+  if (typeof window !== 'undefined') {
+    const data = localStorage.getItem(RESIDENTIAL_BOOKING_KEY);
+    return data ? JSON.parse(data) : null;
+  }
+  return null;
+};
+
+// Clear local storage after loading
+const clearLocalStorage = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(RESIDENTIAL_BOOKING_KEY);
+  }
+};
+
 export default function BookingSection() {
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [bedrooms, setBedrooms] = useState(2);
   const [bathrooms, setBathrooms] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [bookingData, setBookingData] = useState<ResidentialBookingData | null>(null);
+  const [addOnsSummary, setAddOnsSummary] = useState<string>('');
+  const [addOnsList, setAddOnsList] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     phone: '',
     email: '',
-    serviceType: 'End of Lease / Bond Clean',
     address: '',
     suburb: '',
     preferredDate: '',
@@ -94,6 +154,24 @@ export default function BookingSection() {
     fetchContactInfo();
   }, []);
 
+  // Load booking data from local storage
+  useEffect(() => {
+    const savedData = loadFromLocalStorage();
+    if (savedData && savedData.selectedTier) {
+      setBookingData(savedData);
+
+      // Generate add-ons summary
+      if (savedData.selectedAddOns && savedData.selectedAddOns.length > 0) {
+        const addOnNames = savedData.selectedAddOns.map(id => {
+          const addon = addOnsData.find(a => a.id === id);
+          return addon ? addon.name : id;
+        });
+        setAddOnsList(addOnNames);
+        setAddOnsSummary(addOnNames.join(', '));
+      }
+    }
+  }, []);
+
   const contactInfoItems = contactInfo ? [
     { icon: Phone, label: 'Phone', value: contactInfo.phone },
     { icon: Mail, label: 'Email', value: contactInfo.email },
@@ -101,7 +179,7 @@ export default function BookingSection() {
     { icon: Clock, label: 'Hours', value: contactInfo.hours },
   ] : [];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -115,7 +193,7 @@ export default function BookingSection() {
         last_name: formData.lastName,
         phone: formData.phone,
         email: formData.email,
-        service_type: formData.serviceType,
+        service_type: bookingData?.selectedTier || 'End of Lease / Bond Clean',
         bedrooms: bedrooms,
         bathrooms: bathrooms,
         address: formData.address || '',
@@ -123,7 +201,11 @@ export default function BookingSection() {
         preferred_date: formData.preferredDate || '',
         special_instructions: formData.specialInstructions || '',
         status: 'Pending',
-        total_price: calculatePrice(formData.serviceType, bedrooms, bathrooms),
+        total_price: calculatePrice(bookingData?.selectedTier || 'End of Lease / Bond Clean', bedrooms, bathrooms),
+        // Store the booking data from local storage
+        selected_package: bookingData?.selectedTier || null,
+        selected_addons: addOnsSummary || null,
+        booking_data: bookingData || null,
       };
 
       const { data, error } = await supabase
@@ -139,13 +221,15 @@ export default function BookingSection() {
 
       console.log('Booking Submitted:', data);
       
+      // Clear local storage after successful booking
+      clearLocalStorage();
+      
       // Reset form
       setFormData({
         firstName: '',
         lastName: '',
         phone: '',
         email: '',
-        serviceType: 'End of Lease / Bond Clean',
         address: '',
         suburb: '',
         preferredDate: '',
@@ -153,6 +237,9 @@ export default function BookingSection() {
       });
       setBedrooms(2);
       setBathrooms(1);
+      setBookingData(null);
+      setAddOnsSummary('');
+      setAddOnsList([]);
 
       alert('Booking submitted successfully! We will contact you shortly.');
     } catch (error) {
@@ -168,6 +255,9 @@ export default function BookingSection() {
       'End of Lease / Bond Clean': 319,
       'Regular Clean': 99,
       'Deep Clean': 249,
+      'General Clean': 179,
+      'Deep Reset Clean': 249,
+      'End of Lease Cleaning': 319,
     };
     const basePrice = basePrices[serviceType] || 199;
     const extraRooms = Math.max(0, (bedrooms + bathrooms) - 3);
@@ -203,8 +293,13 @@ export default function BookingSection() {
             className="text-3xl sm:text-4xl font-serif font-bold tracking-tight"
             style={{ color: 'white' }}
           >
-            Book your clean today.
+            {bookingData ? 'Complete Your Booking' : 'Book your clean today.'}
           </h2>
+          {bookingData && (
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              You've selected a package. Fill in your details below to finalize your booking.
+            </p>
+          )}
         </div>
 
         <motion.div
@@ -214,7 +309,7 @@ export default function BookingSection() {
           viewport={{ once: true, margin: '-50px' }}
           className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
         >
-          {/* Left Column - Contact Info */}
+          {/* Left Column - Contact Info & Selected Package */}
           <motion.div variants={itemVariants} className="lg:col-span-4 space-y-6">
             <div className="space-y-4">
               {contactInfoItems.map((item, index) => {
@@ -267,21 +362,42 @@ export default function BookingSection() {
               <ArrowRight className="w-4 h-4" />
             </motion.a>
 
-            <div 
-              className="rounded-2xl p-5 space-y-2 backdrop-blur-sm"
-              style={{ 
-                backgroundColor: 'rgba(255,255,255,0.08)', 
-                border: '1px solid rgba(255,255,255,0.08)' 
-              }}
-            >
-              <div className="flex items-center space-x-2 font-bold text-sm" style={{ color: 'var(--theme-secondary)' }}>
-                <Sparkles className="w-4 h-4 fill-current" />
-                <span>{contactInfo?.guarantee_title || 'Bond-Back Guarantee'}</span>
+
+            {/* Display selected booking summary */}
+            {bookingData && (
+              <div 
+                className="rounded-2xl p-5 space-y-3 backdrop-blur-sm"
+                style={{ 
+                  backgroundColor: 'rgba(59,130,246,0.15)', 
+                  border: '1px solid rgba(59,130,246,0.3)' 
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Package className="w-5 h-5" style={{ color: 'var(--theme-secondary)' }} />
+                  <p className="text-xs font-semibold" style={{ color: 'var(--theme-secondary)' }}>
+                    Selected Package
+                  </p>
+                </div>
+                <p className="text-sm font-bold text-white">{bookingData.selectedTier}</p>
+                
+                {addOnsList.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 mt-3">
+                      <ShoppingBag className="w-4 h-4" style={{ color: 'var(--theme-secondary)' }} />
+                      <p className="text-xs font-semibold" style={{ color: 'var(--theme-secondary)' }}>
+                        Add-ons ({addOnsList.length})
+                      </p>
+                    </div>
+                    <ul className="space-y-1">
+                      {addOnsList.map((name, idx) => (
+                        <li key={idx} className="text-xs text-white/70">• {name}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                <p className="text-xs text-white/40 mt-1">Complete the form to confirm</p>
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                {contactInfo?.guarantee_description || "If your property manager isn't satisfied, we return free of charge. That's our promise."}
-              </p>
-            </div>
+            )}
           </motion.div>
 
           {/* Right Column - Booking Form */}
@@ -296,8 +412,29 @@ export default function BookingSection() {
             <h3 
               className="text-xl font-serif font-bold mb-6 text-white"
             >
-              Request a Booking
+              {bookingData ? 'Your Details' : 'Request a Booking'}
             </h3>
+
+            {bookingData && (
+              <div className="mb-4 p-4 rounded-xl space-y-2" style={{ backgroundColor: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                <div className="flex items-start gap-3">
+                  <Package className="w-4 h-4 mt-0.5" style={{ color: 'var(--theme-secondary)' }} />
+                  <div>
+                    <p className="text-xs text-white/60">Package</p>
+                    <p className="text-sm font-semibold text-white">{bookingData.selectedTier}</p>
+                  </div>
+                </div>
+                {addOnsList.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <ShoppingBag className="w-4 h-4 mt-0.5" style={{ color: 'var(--theme-secondary)' }} />
+                    <div>
+                      <p className="text-xs text-white/60">Add-ons ({addOnsList.length})</p>
+                      <p className="text-sm text-white/80">{addOnsSummary}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -306,7 +443,7 @@ export default function BookingSection() {
                     className="text-[11px] font-semibold tracking-wider uppercase"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
-                    First Name
+                    First Name <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -328,7 +465,7 @@ export default function BookingSection() {
                     className="text-[11px] font-semibold tracking-wider uppercase"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
-                    Last Name
+                    Last Name <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -353,7 +490,7 @@ export default function BookingSection() {
                     className="text-[11px] font-semibold tracking-wider uppercase"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
-                    Phone
+                    Phone <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="tel"
@@ -375,7 +512,7 @@ export default function BookingSection() {
                     className="text-[11px] font-semibold tracking-wider uppercase"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
-                    Email
+                    Email <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="email"
@@ -394,49 +531,13 @@ export default function BookingSection() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label 
-                  className="text-[11px] font-semibold tracking-wider uppercase"
-                  style={{ color: 'rgba(255,255,255,0.7)' }}
-                >
-                  Service Type
-                </label>
-                <div className="relative">
-                  <select
-                    name="serviceType"
-                    value={formData.serviceType}
-                    onChange={handleChange}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm appearance-none cursor-pointer transition-colors pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)]"
-                    style={{
-                      backgroundColor: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      color: 'white',
-                    }}
-                  >
-                    <option value="End of Lease / Bond Clean" style={{ backgroundColor: 'var(--theme-primary)' }}>
-                      End of Lease / Bond Clean
-                    </option>
-                    <option value="Regular Clean" style={{ backgroundColor: 'var(--theme-primary)' }}>
-                      Regular Clean
-                    </option>
-                    <option value="Deep Clean" style={{ backgroundColor: 'var(--theme-primary)' }}>
-                      Deep Clean
-                    </option>
-                  </select>
-                  <ChevronDown 
-                    className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ color: 'rgba(255,255,255,0.6)' }}
-                  />
-                </div>
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label 
                     className="text-[11px] font-semibold tracking-wider uppercase"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
-                    Bedrooms
+                    Bedrooms <span className="text-red-400">*</span>
                   </label>
                   <div 
                     className="flex items-center justify-between rounded-xl px-4 py-2"
@@ -474,7 +575,7 @@ export default function BookingSection() {
                     className="text-[11px] font-semibold tracking-wider uppercase"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
-                    Bathrooms
+                    Bathrooms <span className="text-red-400">*</span>
                   </label>
                   <div 
                     className="flex items-center justify-between rounded-xl px-4 py-2"
@@ -616,7 +717,7 @@ export default function BookingSection() {
                   className="w-full font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200 disabled:opacity-50"
                   style={{ backgroundColor: 'var(--theme-secondary)', color: 'white' }}
                 >
-                  <span>{submitting ? 'Submitting...' : 'Request My Booking'}</span>
+                  <span>{submitting ? 'Submitting...' : bookingData ? 'Confirm Booking' : 'Request My Booking'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </motion.button>
               </div>

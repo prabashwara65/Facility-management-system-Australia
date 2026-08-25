@@ -414,7 +414,7 @@ const generateDates = () => {
 };
 
 // Storage keys
-const STORAGE_KEY = 'shining_booking_data';
+const STORAGE_KEY = 'mobile_detailing_booking_data';
 
 // Save to local storage
 const saveToLocalStorage = (data: any) => {
@@ -486,25 +486,37 @@ export default function MobileDetailing() {
   useEffect(() => {
     const savedData = loadFromLocalStorage();
     if (savedData) {
+      // Step 1: Services
       setZipCode(savedData.zipCode || '');
       setIsZipValid(savedData.isZipValid || false);
       setIsUnlocked(savedData.isUnlocked || false);
       setSelectedCategory(savedData.selectedCategory || null);
+      setSelectedVehicleType(savedData.selectedVehicleType || null);
       setSelectedPackage(savedData.selectedPackage || null);
+      setSelectedService(savedData.selectedService || null);
       setSelectedYear(savedData.selectedYear || '');
       setSelectedMake(savedData.selectedMake || '');
       setSelectedModel(savedData.selectedModel || '');
       setSelectedBody(savedData.selectedBody || '');
       setSelectedConditions(savedData.selectedConditions || []);
       setOtherCondition(savedData.otherCondition || '');
+      
+      // Step 2: Add-ons
       setSelectedAddOns(savedData.selectedAddOns || {});
       setVehicleCount(savedData.vehicleCount || 1);
+      
+      // Step 3: Date & Time
       setSelectedDate(savedData.selectedDate ? new Date(savedData.selectedDate) : null);
       setSelectedArrivalWindows(savedData.selectedArrivalWindows || []);
       setBackupDate(savedData.backupDate ? new Date(savedData.backupDate) : null);
+      setShowBackupDate(savedData.showBackupDate || false);
+      
+      // Step navigation
       if (savedData.showAddOnsStep) setShowAddOnsStep(true);
       if (savedData.showDateTimeStep) setShowDateTimeStep(true);
       if (savedData.showInfoStep) setShowInfoStep(true);
+      
+      // Step 4: Customer Info
       setFirstName(savedData.firstName || '');
       setLastName(savedData.lastName || '');
       setEmail(savedData.email || '');
@@ -525,25 +537,37 @@ export default function MobileDetailing() {
   // Save to local storage whenever data changes
   useEffect(() => {
     const dataToSave = {
+      // Step 1: Services
       zipCode,
       isZipValid,
       isUnlocked,
       selectedCategory,
+      selectedVehicleType,
       selectedPackage,
+      selectedService,
       selectedYear,
       selectedMake,
       selectedModel,
       selectedBody,
       selectedConditions,
       otherCondition,
+      
+      // Step 2: Add-ons
       selectedAddOns,
       vehicleCount,
+      
+      // Step 3: Date & Time
       selectedDate,
       selectedArrivalWindows,
       backupDate,
+      showBackupDate,
+      
+      // Step navigation
       showAddOnsStep,
       showDateTimeStep,
       showInfoStep,
+      
+      // Step 4: Customer Info
       firstName,
       lastName,
       email,
@@ -561,11 +585,21 @@ export default function MobileDetailing() {
     };
     saveToLocalStorage(dataToSave);
   }, [
-    zipCode, isZipValid, isUnlocked, selectedCategory, selectedPackage,
-    selectedYear, selectedMake, selectedModel, selectedBody,
-    selectedConditions, otherCondition, selectedAddOns, vehicleCount,
-    selectedDate, selectedArrivalWindows, backupDate,
+    // Step 1: Services
+    zipCode, isZipValid, isUnlocked, selectedCategory, selectedVehicleType, 
+    selectedPackage, selectedService, selectedYear, selectedMake, selectedModel, 
+    selectedBody, selectedConditions, otherCondition,
+    
+    // Step 2: Add-ons
+    selectedAddOns, vehicleCount,
+    
+    // Step 3: Date & Time
+    selectedDate, selectedArrivalWindows, backupDate, showBackupDate,
+    
+    // Step navigation
     showAddOnsStep, showDateTimeStep, showInfoStep,
+    
+    // Step 4: Customer Info
     firstName, lastName, email, phone, address, addressUnit,
     city, state, infoZipCode, waterAccess, electricity,
     coveredArea, extraInfo, marketingOptIn
@@ -710,7 +744,9 @@ export default function MobileDetailing() {
         isZipValid,
         isUnlocked,
         selectedCategory,
+        selectedVehicleType,
         selectedPackage,
+        selectedService,
         selectedYear,
         selectedMake,
         selectedModel,
@@ -722,6 +758,10 @@ export default function MobileDetailing() {
         selectedDate,
         selectedArrivalWindows,
         backupDate,
+        showBackupDate,
+        showAddOnsStep,
+        showDateTimeStep,
+        showInfoStep,
         firstName,
         lastName,
         email,
