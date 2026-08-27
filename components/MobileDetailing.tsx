@@ -602,56 +602,193 @@ export default function MobileDetailing() {
   const [loadedArrivalWindows, setLoadedArrivalWindows] = useState<string[]>(arrivalWindows);
 
   // Load saved data from local storage on mount
-  useEffect(() => {
-    const savedData = loadFromLocalStorage();
-    if (savedData) {
-      // Step 1: Services
-      setZipCode(savedData.zipCode || '');
-      setIsZipValid(savedData.isZipValid || false);
-      setIsUnlocked(savedData.isUnlocked || false);
-      setSelectedCategory(savedData.selectedCategory || null);
-      setSelectedVehicleType(savedData.selectedVehicleType || null);
-      setSelectedPackage(savedData.selectedPackage || null);
-      setSelectedService(savedData.selectedService || null);
-      setSelectedYear(savedData.selectedYear || '');
-      setSelectedMake(savedData.selectedMake || '');
-      setSelectedModel(savedData.selectedModel || '');
-      setSelectedBody(savedData.selectedBody || '');
-      setSelectedConditions(savedData.selectedConditions || []);
-      setOtherCondition(savedData.otherCondition || '');
-      
-      // Step 2: Add-ons
-      setSelectedAddOns(savedData.selectedAddOns || {});
-      setVehicleCount(savedData.vehicleCount || 1);
-      
-      // Step 3: Date & Time
-      setSelectedDate(savedData.selectedDate ? new Date(savedData.selectedDate) : null);
-      setSelectedArrivalWindows(savedData.selectedArrivalWindows || []);
-      setBackupDate(savedData.backupDate ? new Date(savedData.backupDate) : null);
-      setShowBackupDate(savedData.showBackupDate || false);
-      
-      // Step navigation
-      if (savedData.showAddOnsStep) setShowAddOnsStep(true);
-      if (savedData.showDateTimeStep) setShowDateTimeStep(true);
-      if (savedData.showInfoStep) setShowInfoStep(true);
-      
-      // Step 4: Customer Info
-      setFirstName(savedData.firstName || '');
-      setLastName(savedData.lastName || '');
-      setEmail(savedData.email || '');
-      setPhone(savedData.phone || '');
-      setAddress(savedData.address || '');
-      setAddressUnit(savedData.addressUnit || '');
-      setCity(savedData.city || '');
-      setState(savedData.state || '');
-      setInfoZipCode(savedData.infoZipCode || '');
-      setWaterAccess(savedData.waterAccess || null);
-      setElectricity(savedData.electricity || null);
-      setCoveredArea(savedData.coveredArea || null);
-      setExtraInfo(savedData.extraInfo || '');
-      setMarketingOptIn(savedData.marketingOptIn || false);
+  // ============================================
+// UNIFIED LOCAL STORAGE + SUPABASE LOADING
+// ============================================
+
+useEffect(() => {
+  // STEP 1: Restore from localStorage FIRST
+  const savedData = loadFromLocalStorage();
+  if (savedData) {
+    setZipCode(savedData.zipCode || '');
+    setIsZipValid(savedData.isZipValid || false);
+    setIsUnlocked(savedData.isUnlocked || false);
+    setSelectedCategory(savedData.selectedCategory || null);
+    setSelectedVehicleType(savedData.selectedVehicleType || null);
+    setSelectedPackage(savedData.selectedPackage || null);
+    setSelectedService(savedData.selectedService || null);
+    setSelectedYear(savedData.selectedYear || '');
+    setSelectedMake(savedData.selectedMake || '');
+    setSelectedModel(savedData.selectedModel || '');
+    setSelectedBody(savedData.selectedBody || '');
+    setSelectedConditions(savedData.selectedConditions || []);
+    setOtherCondition(savedData.otherCondition || '');
+    setSelectedAddOns(savedData.selectedAddOns || {});
+    setVehicleCount(savedData.vehicleCount || 1);
+    setSelectedDate(savedData.selectedDate ? new Date(savedData.selectedDate) : null);
+    setSelectedArrivalWindows(savedData.selectedArrivalWindows || []);
+    setBackupDate(savedData.backupDate ? new Date(savedData.backupDate) : null);
+    setShowBackupDate(savedData.showBackupDate || false);
+    if (savedData.showAddOnsStep) setShowAddOnsStep(true);
+    if (savedData.showDateTimeStep) setShowDateTimeStep(true);
+    if (savedData.showInfoStep) setShowInfoStep(true);
+    setFirstName(savedData.firstName || '');
+    setLastName(savedData.lastName || '');
+    setEmail(savedData.email || '');
+    setPhone(savedData.phone || '');
+    setAddress(savedData.address || '');
+    setAddressUnit(savedData.addressUnit || '');
+    setCity(savedData.city || '');
+    setState(savedData.state || '');
+    setInfoZipCode(savedData.infoZipCode || '');
+    setWaterAccess(savedData.waterAccess || null);
+    setElectricity(savedData.electricity || null);
+    setCoveredArea(savedData.coveredArea || null);
+    setExtraInfo(savedData.extraInfo || '');
+    setMarketingOptIn(savedData.marketingOptIn || false);
+
+    if (!savedData.isZipValid) {
+      setSelectedCategory(null);
+      setSelectedVehicleType(null);
+      setSelectedPackage(null);
+      setSelectedService(null);
+      setSelectedYear('');
+      setSelectedMake('');
+      setSelectedModel('');
+      setSelectedBody('');
+      setShowAddOnsStep(false);
+      setShowDateTimeStep(false);
+      setShowInfoStep(false);
     }
-  }, []);
+  }
+
+  // STEP 2: Fetch fresh data from Supabase (but DON'T reset saved state)
+  const loadVehicleData = async () => {
+    const supabase = createClient();
+    setIsVehicleDataLoading(true);
+    setVehicleDataError('');
+
+    try {
+      const [
+        servicesResult,
+        exteriorResult,
+        interiorResult,
+        addOnsResult,
+        categoriesResult,
+        makesResult,
+        modelsResult,
+        bodyTypesResult,
+        conditionsResult,
+        windowsResult,
+      ] = await Promise.all([
+        supabase.from('vehicle_services').select('*').order('id'),
+        supabase.from('vehicle_service_exterior_items').select('service_id, item').order('display_order'),
+        supabase.from('vehicle_service_interior_items').select('service_id, item').order('display_order'),
+        supabase.from('vehicle_add_on_options').select('*').order('name'),
+        supabase.from('vehicle_categories').select('*').order('label'),
+        supabase.from('vehicle_makes').select('*').order('name'),
+        supabase.from('vehicle_models').select('*').order('name'),
+        supabase.from('vehicle_body_types').select('*').order('name'),
+        supabase.from('vehicle_conditions').select('name').order('name'),
+        supabase.from('vehicle_arrival_windows').select('window_time').order('display_order'),
+      ]);
+
+      const results = [servicesResult, exteriorResult, interiorResult, addOnsResult, categoriesResult, makesResult, modelsResult, bodyTypesResult, conditionsResult, windowsResult];
+      const failedResult = results.find((result) => result.error);
+      if (failedResult?.error) {
+        throw failedResult.error;
+      }
+
+      const exteriorByService = ((exteriorResult.data || []) as VehicleServiceItemRow[]).reduce<Record<number, string[]>>((acc, item) => {
+        acc[item.service_id] = [...(acc[item.service_id] || []), item.item];
+        return acc;
+      }, {});
+
+      const interiorByService = ((interiorResult.data || []) as VehicleServiceItemRow[]).reduce<Record<number, string[]>>((acc, item) => {
+        acc[item.service_id] = [...(acc[item.service_id] || []), item.item];
+        return acc;
+      }, {});
+
+      const fallbackServiceByName = new Map(services.map((service) => [service.name, service]));
+      const nextServices = ((servicesResult.data || []) as VehicleServiceRow[]).map((service) => {
+        const fallback = fallbackServiceByName.get(service.name);
+        return {
+          id: service.id,
+          name: service.name,
+          price: `$${Number(service.price || 0).toFixed(0)}`,
+          rating: Number(service.rating || fallback?.rating || 0),
+          reviews: service.reviews ?? fallback?.reviews ?? 0,
+          popular: Boolean(service.popular),
+          description: service.description || fallback?.description || '',
+          vehicleType: service.vehicle_type || fallback?.vehicleType || 'all',
+          estimatedTime: service.estimated_time || fallback?.estimatedTime || '',
+          exterior: exteriorByService[service.id] || fallback?.exterior || [],
+          interior: interiorByService[service.id] || fallback?.interior || [],
+        } satisfies Service;
+      });
+
+      if (nextServices.length > 0) {
+        setLoadedServices(nextServices);
+      }
+
+      const nextAddOns = ((addOnsResult.data || []) as VehicleAddOnRow[]).map((addOn) => ({
+        id: addOn.id,
+        name: addOn.name,
+        price: Number(addOn.price || 0),
+        description: addOn.description || '',
+        details: addOn.details || '',
+        perSeat: Boolean(addOn.per_seat),
+      }));
+      if (nextAddOns.length > 0) {
+        setLoadedAddOns(nextAddOns);
+      }
+
+      const nextCategories = ((categoriesResult.data || []) as Array<{ id: string; label: string; icon_name?: string | null }>).map((category) => ({
+        id: category.id,
+        label: category.label,
+        icon_name: category.icon_name || 'Car',
+        icon: vehicleIconMap[category.icon_name || 'Car'] || Car,
+      }));
+      if (nextCategories.length > 0) {
+        setLoadedCategories(nextCategories);
+      }
+
+      const nextMakes = (makesResult.data || []) as VehicleMake[];
+      if (nextMakes.length > 0) {
+        setLoadedMakes(nextMakes);
+      }
+
+      const nextModels = (modelsResult.data || []) as VehicleModel[];
+      if (nextModels.length > 0) {
+        setLoadedModels(nextModels);
+      }
+
+      const nextBodyTypes = (bodyTypesResult.data || []) as VehicleBodyType[];
+      if (nextBodyTypes.length > 0) {
+        setLoadedBodyTypes(nextBodyTypes);
+      }
+
+      const nextConditions = ((conditionsResult.data || []) as VehicleConditionRow[]).map((condition) => condition.name);
+      if (nextConditions.length > 0) {
+        setLoadedConditions(nextConditions);
+      }
+
+      const nextWindows = ((windowsResult.data || []) as VehicleArrivalWindowRow[]).map((window) => window.window_time);
+      if (nextWindows.length > 0) {
+        setLoadedArrivalWindows(nextWindows);
+      }
+
+    } catch (error) {
+      console.error('Error loading mobile detailing data:', error);
+      setVehicleDataError('Live booking options could not be refreshed. Showing saved defaults.');
+    } finally {
+      setIsVehicleDataLoading(false);
+    }
+  };
+
+  loadVehicleData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []); // ← Empty array - runs ONCE on mount
 
   useEffect(() => {
     const loadVehicleData = async () => {
@@ -1391,7 +1528,7 @@ export default function MobileDetailing() {
                   <span
                     className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white/75"
                   >
-                    <Sparkles className="h-3.5 w-3.5" />
+                    
                     Mobile vehicle detailing
                   </span>
                   <h1 className="text-3xl sm:text-5xl md:text-6xl font-serif font-bold tracking-tight text-white mb-4">
@@ -1407,7 +1544,7 @@ export default function MobileDetailing() {
                       </span>
                     ))}
                   </div>
-                  <button
+                  {/* <button
                     onClick={() => {
                       setBookingType(null);
                       // Reset any booking state if needed
@@ -1415,7 +1552,7 @@ export default function MobileDetailing() {
                     className="mt-5 text-sm font-medium text-white/70 transition-colors hover:text-white hover:underline flex items-center gap-1 mx-auto"
                   >
                     ← Change service type
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>
@@ -2788,7 +2925,7 @@ export default function MobileDetailing() {
               </div>
             </div>
 
-            {/* CTA Section */}
+            {/* CTA Section
             <div 
               className="py-12"
               style={{ 
@@ -2812,7 +2949,7 @@ export default function MobileDetailing() {
                   Book Now
                 </button>
               </div>
-            </div>
+            </div> */}
           </>
         )}
 
