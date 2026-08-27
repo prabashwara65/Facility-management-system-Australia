@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, Variants } from 'framer-motion';
-import { ShieldCheck, FileCheck2, UserCheck, Tag, Leaf, Plane } from 'lucide-react';
+import { ShieldCheck, FileCheck2, UserCheck, Tag, Leaf, Plane, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface PromiseFeature {
@@ -80,6 +80,7 @@ const cardVariants: Variants = {
 export default function PromiseSection() {
   const [features, setFeatures] = useState<PromiseFeature[]>(defaultFeatures);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const supabase = createClient();
 
@@ -117,6 +118,10 @@ export default function PromiseSection() {
     loadFeatures();
   }, []);
 
+  const toggleExpand = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
   if (loading) {
     return (
       <section className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans" id="why-us" style={{ backgroundColor: 'var(--theme-bg)' }}>
@@ -132,7 +137,7 @@ export default function PromiseSection() {
       <div className="max-w-6xl mx-auto space-y-12">
         <div className="text-center space-y-3">
           <span className="font-semibold tracking-widest text-xs uppercase" style={{ color: 'var(--theme-primary)' }}>
-            The Sparkwell Promise
+            The Shining Property Service Promise
           </span>
           <h2 className="text-4xl sm:text-5xl font-serif font-bold tracking-tight" style={{ color: 'var(--theme-text)' }}>
             Why homeowners <span className="italic font-normal" style={{ color: 'var(--theme-secondary)' }}>trust us.</span>
@@ -144,25 +149,74 @@ export default function PromiseSection() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-50px' }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
         >
           {features.map((feature) => {
             const Icon = iconMap[feature.icon] || ShieldCheck;
+            const isExpanded = expandedId === feature.id;
+
             return (
               <motion.div
                 key={feature.id}
                 variants={cardVariants}
                 whileHover={{ y: -4 }}
-                className="rounded-xl p-6 sm:p-8 flex items-start space-x-4 transition-all duration-200"
-                style={{ backgroundColor: 'var(--theme-card)', border: '1px solid var(--theme-border)', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
+                className="rounded-xl p-4 sm:p-6 md:p-8 transition-all duration-200 cursor-pointer"
+                style={{ 
+                  backgroundColor: 'var(--theme-card)', 
+                  border: '1px solid var(--theme-border)', 
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                }}
+                onClick={() => toggleExpand(feature.id)}
               >
-                <div className="p-3 rounded-lg flex-shrink-0" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-secondary)' }}>
-                  <Icon className="w-5 h-5" />
-                </div>
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="p-2 sm:p-3 rounded-lg flex-shrink-0" style={{ backgroundColor: 'var(--theme-surface)', color: 'var(--theme-secondary)' }}>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <h3 className="text-base font-bold" style={{ color: 'var(--theme-text)' }}>{feature.title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--theme-muted)' }}>{feature.description}</p>
+                  <div className="space-y-1 sm:space-y-1.5 min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-sm sm:text-base font-bold truncate" style={{ color: 'var(--theme-text)' }}>
+                        {feature.title}
+                      </h3>
+                      {/* Expand/Collapse icon - visible only on mobile */}
+                      <button 
+                        className="sm:hidden flex-shrink-0 p-1 rounded-full hover:bg-white/10 transition-colors"
+                        style={{ color: 'var(--theme-muted)' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpand(feature.id);
+                        }}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Description - Always visible on desktop, expandable on mobile */}
+                    <motion.div
+                      initial={false}
+                      animate={{ 
+                        height: isExpanded || window.innerWidth >= 640 ? 'auto' : 0,
+                        opacity: isExpanded || window.innerWidth >= 640 ? 1 : 0,
+                      }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <p className="text-xs sm:text-sm leading-relaxed pt-1" style={{ color: 'var(--theme-muted)' }}>
+                        {feature.description}
+                      </p>
+                    </motion.div>
+
+                    {/* Mobile: Show truncated description when collapsed */}
+                    {!isExpanded && (
+                      <p className="text-[10px] leading-relaxed sm:hidden opacity-60 truncate" style={{ color: 'var(--theme-muted)' }}>
+                        {feature.description.length > 50 ? feature.description.substring(0, 50) + '...' : feature.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             );

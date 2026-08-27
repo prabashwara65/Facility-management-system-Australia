@@ -1,14 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from "next/link";
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
-import { Home, Sparkles, Calendar, ArrowRight, type LucideIcon } from "lucide-react";
+import { motion, Variants } from "framer-motion";
+import { Home, Sparkles, Calendar, ArrowRight } from "lucide-react";
 import { createClient } from '@/lib/supabase/client';
 
-// Define the icon map with proper typing
-const iconMap: Record<string, LucideIcon> = {
+// Swiper imports
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination } from 'swiper/modules';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+
+const iconMap = {
   Home: Home,
   Sparkles: Sparkles,
   Calendar: Calendar,
@@ -39,7 +46,6 @@ const defaultServices = [
   },
 ];
 
-// Define service type
 interface Service {
   id: number;
   icon: string;
@@ -48,11 +54,25 @@ interface Service {
   description: string;
 }
 
+// Card variants matching testimonials style
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.5, 
+      ease: 'easeOut' 
+    } 
+  },
+};
+
 export default function Services() {
   const [services, setServices] = useState<Service[]>(defaultServices);
   const [isLoading, setIsLoading] = useState(true);
+  const [swiperRef, setSwiperRef] = useState<any>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const sectionRef = useRef<HTMLElement>(null);
-  const isInView = useInView(sectionRef, { once: false, amount: 0.2 });
 
   const supabase = createClient();
 
@@ -61,23 +81,19 @@ export default function Services() {
     try {
       setIsLoading(true);
 
-      // Note: Make sure your table name is correct
-      // If your table is 'vehicle_services', use that instead of 'services'
       const { data, error } = await supabase
-        .from('services') // Change this to your actual table name
+        .from('services')
         .select('id, icon, title, price, description')
         .order('sort_order', { ascending: true });
 
       if (error) {
         console.error('❌ Error loading services:', error);
-        // Fallback to default services
         setServices(defaultServices);
         return;
       }
 
       if (data && data.length > 0) {
-        // Transform data to match component format
-        const transformed: Service[] = data.map((service: any) => ({
+        const transformed = data.map(service => ({
           id: service.id,
           icon: service.icon || 'Home',
           title: service.title,
@@ -100,33 +116,25 @@ export default function Services() {
     loadServices();
   }, []);
 
-  // Container variants for staggered animations
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.2,
-      },
-    },
-  };
+  const totalSlides = services.length;
 
-  const itemVariants = {
-    hidden: {
-      opacity: 0,
-      y: 30,
-      scale: 0.97,
+  // Breakpoints for responsive cards
+  const breakpoints = {
+    0: {
+      slidesPerView: 1,
+      spaceBetween: 16,
     },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        type: "spring" as const,
-        stiffness: 120,
-        damping: 15,
-      },
+    640: {
+      slidesPerView: 1,
+      spaceBetween: 16,
+    },
+    768: {
+      slidesPerView: 2,
+      spaceBetween: 20,
+    },
+    1024: {
+      slidesPerView: 3,
+      spaceBetween: 24,
     },
   };
 
@@ -135,11 +143,26 @@ export default function Services() {
       <section
         id="services"
         ref={sectionRef}
-        className="px-6 py-16 lg:py-20"
-        style={{ backgroundColor: 'var(--theme-bg)' }}
+        className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans"
+        style={{ backgroundColor: '#ffffff' }}
       >
-        <div className="mx-auto max-w-[1400px] flex justify-center items-center min-h-[400px]">
-          <div style={{ color: 'var(--theme-muted)' }}>Loading services...</div>
+        <div className="max-w-7xl mx-auto text-center">
+          <p style={{ color: 'var(--theme-muted)' }}>Loading services...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (services.length === 0) {
+    return (
+      <section
+        id="services"
+        ref={sectionRef}
+        className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans"
+        style={{ backgroundColor: '#ffffff' }}
+      >
+        <div className="max-w-7xl mx-auto text-center">
+          <p style={{ color: 'var(--theme-muted)' }}>No services available yet.</p>
         </div>
       </section>
     );
@@ -149,71 +172,123 @@ export default function Services() {
     <section
       id="services"
       ref={sectionRef}
-      className="px-6 py-16 lg:py-20"
-      style={{ backgroundColor: 'var(--theme-bg)' }}
+      className="w-full py-5 px-4 sm:px-6 lg:px-8 font-sans overflow-hidden"
+      style={{ backgroundColor: '#ffffff' }}
     >
-      <div className="mx-auto max-w-[1400px]">
-        {/* Section Heading */}
-        <motion.div 
-          className="text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-          transition={{ duration: 0.5 }}
-        >
-          <motion.p 
-            className="text-[10px] font-bold tracking-[0.16em] uppercase sm:text-xs"
-            style={{ color: 'var(--theme-primary)' }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
-            transition={{ delay: 0.15, duration: 0.4 }}
+      <div className="max-w-6xl mx-auto space-y-12">
+        {/* Header - Matching testimonials style */}
+        <div className="text-center space-y-4">
+          <span
+            className="font-semibold tracking-widest text-xs uppercase"
+            style={{ color: 'var(--theme-secondary)' }}
           >
             OUR SERVICES
-          </motion.p>
+          </span>
 
-          <motion.h2 
-            className="mt-4 font-serif text-[32px] font-medium leading-tight tracking-tight sm:text-[38px] lg:text-[44px]"
-            style={{ color: 'var(--theme-text)' }}
-            initial={{ opacity: 0, y: 15 }}
-            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
+          <h2 className="text-4xl sm:text-5xl font-serif font-bold tracking-tight" style={{ color: 'var(--theme-text)' }}>
             Every clean,{" "}
-            <span className="italic" style={{ color: 'var(--theme-primary)' }}>
+            <span className="italic" style={{ color: 'var(--theme-secondary)' }}>
               done right.
             </span>
-          </motion.h2>
+          </h2>
 
-          <motion.p 
-            className="mx-auto mt-3 max-w-2xl text-[14px]"
-            style={{ color: 'var(--theme-muted)' }}
-            initial={{ opacity: 0 }}
-            animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          >
+          <p className="text-sm max-w-xl mx-auto" style={{ color: 'var(--theme-muted)' }}>
             Choose from our range of professional cleaning services tailored to your needs
-          </motion.p>
-        </motion.div>
+          </p>
+        </div>
 
-        {/* Service Cards */}
-        <motion.div 
-          className="mt-12 grid gap-6 md:grid-cols-3"
-          variants={containerVariants}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-        >
+        {/* Swiper Carousel - Mobile & Tablet */}
+        <div className="block lg:hidden">
+          <div className="relative">
+            <Swiper
+              onSwiper={setSwiperRef}
+              modules={[Navigation, Pagination]}
+              breakpoints={breakpoints}
+              spaceBetween={20}
+              slidesPerView={1}
+              pagination={{
+                clickable: true,
+                dynamicBullets: true,
+              }}
+              onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
+              className="pb-12"
+            >
+              {services.map((service) => {
+                const Icon = iconMap[service.icon] || Home;
+                return (
+                  <SwiperSlide key={service.id}>
+                    <motion.div
+                      variants={cardVariants}
+                      initial="hidden"
+                      animate="visible"
+                      whileHover={{ y: -4 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    >
+                      <ServiceCard
+                        icon={<Icon className="w-5 h-5" />}
+                        title={service.title}
+                        price={service.price}
+                        description={service.description}
+                      />
+                    </motion.div>
+                  </SwiperSlide>
+                );
+              })}
+            </Swiper>
+
+            {/* Numbered Navigation - Mobile & Tablet */}
+            <div className="flex justify-center items-center gap-3 mt-8">
+              {Array.from({ length: totalSlides }).map((_, index) => {
+                const isActive = activeIndex === index;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => swiperRef?.slideTo(index)}
+                    className={`transition-all duration-300 rounded-full flex items-center justify-center text-xs font-medium ${
+                      isActive
+                        ? 'w-10 h-10 text-white shadow-md scale-110'
+                        : 'w-8 h-8 text-gray-500 hover:bg-gray-200'
+                    }`}
+                    style={{
+                      backgroundColor: isActive ? 'var(--theme-secondary)' : 'rgba(0,0,0,0.06)',
+                      color: isActive ? 'white' : 'var(--theme-muted)',
+                      border: isActive ? 'none' : '1px solid rgba(0,0,0,0.08)',
+                    }}
+                  >
+                    {index + 1}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Hide default Swiper pagination */}
+            <style jsx>{`
+              :global(.swiper-pagination) {
+                display: none !important;
+              }
+              :global(.swiper-button-next),
+              :global(.swiper-button-prev) {
+                display: none !important;
+              }
+            `}</style>
+          </div>
+        </div>
+
+        {/* Grid View - Desktop (lg and above) */}
+        <div className="hidden lg:grid lg:grid-cols-3 gap-6">
           {services.map((service) => {
             const Icon = iconMap[service.icon] || Home;
             return (
               <motion.div
-                key={service.id || service.title}
-                variants={itemVariants}
-                whileHover={{ 
-                  y: -6,
-                  transition: { type: "spring", stiffness: 300 }
-                }}
+                key={service.id}
+                variants={cardVariants}
+                initial="hidden"
+                animate="visible"
+                whileHover={{ y: -4 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
                 <ServiceCard
-                  icon={<Icon className="w-7 h-7" />}
+                  icon={<Icon className="w-5 h-5" />}
                   title={service.title}
                   price={service.price}
                   description={service.description}
@@ -221,7 +296,7 @@ export default function Services() {
               </motion.div>
             );
           })}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -240,48 +315,45 @@ function ServiceCard({
 }) {
   return (
     <div
-      className="flex min-h-[380px] flex-col rounded-xl border p-8 transition-all duration-300 hover:shadow-xl lg:p-9"
+      className="rounded-2xl p-6 flex flex-col transition-all duration-200"
       style={{
-        backgroundColor: 'var(--theme-card)',
-        borderColor: 'var(--theme-border)',
-        boxShadow: '0 4px 20px color-mix(in srgb, var(--theme-primary) 6%, transparent)',
+        backgroundColor: '#ffffff',
+        border: '1px solid #e5e7eb',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+        minHeight: '240px',
+        maxHeight: '320px',
       }}
     >
-      <div 
-        className="flex h-14 w-14 items-center justify-center rounded-xl"
-        style={{ 
-          backgroundColor: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)',
-          color: 'var(--theme-primary)',
+      {/* Icon */}
+      <div
+        className="flex h-10 w-10 items-center justify-center rounded-xl mb-4"
+        style={{
+          backgroundColor: 'color-mix(in srgb, var(--theme-secondary) 12%, transparent)',
+          color: 'var(--theme-secondary)',
         }}
       >
         {icon}
       </div>
 
-      <h3 className="mt-6 font-serif text-[22px] font-bold leading-tight" style={{ color: 'var(--theme-text)' }}>
-        {title}
-      </h3>
-
-      <motion.p 
-        className="mt-2 text-2xl font-bold"
-        style={{ color: 'var(--theme-primary)' }}
-        whileHover={{ scale: 1.05 }}
+      {/* Price */}
+      <motion.span
+        className="text-xl font-bold tracking-tight mb-1"
+        style={{ color: 'var(--theme-secondary)' }}
+        whileHover={{ scale: 1.03 }}
         transition={{ type: "spring", stiffness: 300 }}
       >
         {price}
-      </motion.p>
+      </motion.span>
 
-      <p className="mt-4 max-w-[400px] text-[14px] font-medium leading-[1.6]" style={{ color: 'var(--theme-muted)' }}>
+      {/* Title */}
+      <h3 className="font-serif text-lg font-bold leading-snug mb-2" style={{ color: 'var(--theme-text)' }}>
+        {title}
+      </h3>
+
+      {/* Description */}
+      <p className="text-sm leading-relaxed flex-1 line-clamp-3" style={{ color: 'var(--theme-muted)' }}>
         {description}
       </p>
-
-      <Link
-        href="#contact"
-        className="mt-auto inline-flex items-center gap-1.5 w-fit text-[14px] font-semibold transition-all hover:gap-2.5"
-        style={{ color: 'var(--theme-primary)' }}
-      >
-        <span>Learn More</span>
-        <ArrowRight className="w-4 h-4 transition-transform" />
-      </Link>
     </div>
   );
 }

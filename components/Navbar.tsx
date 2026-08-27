@@ -147,8 +147,8 @@ export default function Navbar({
             </Link>
           </motion.div>
 
-          {/* Theme Switcher - Compact Dropdown */}
-          <div className="relative">
+          {/* Theme Switcher - Desktop only (hidden on mobile) */}
+          <div className="hidden lg:block relative">
             <motion.button
               onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
               className="flex items-center gap-1 rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-gray-100"
@@ -244,7 +244,7 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Theme Switcher ALSO here */}
       <motion.div 
         className="lg:hidden overflow-hidden border-t bg-white"
         initial={{ height: 0, opacity: 0 }}
@@ -267,6 +267,7 @@ export default function Navbar({
               {link.label}
             </a>
           ))}
+          
           <div className="border-t pt-3 sm:pt-4 mt-2" style={{ borderColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)' }}>
             <a
               href={`tel:${phoneNumber.replace(/\s/g, '')}`}
@@ -275,11 +276,13 @@ export default function Navbar({
             >
               {phoneNumber}
             </a>
-            
-            {/* Mobile Theme Selector */}
-            <div className="mt-3 space-y-2">
-              <p className="text-xs font-medium text-gray-500">Switch Theme</p>
-              <div className="flex flex-wrap gap-2">
+          </div>
+
+          {/* Theme Switcher - Also in mobile dropdown */}
+          <div className="pt-2 mt-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)' }}>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-gray-500">Theme</p>
+              <div className="flex gap-2">
                 {THEMES.map((theme) => (
                   <button
                     key={theme.name}

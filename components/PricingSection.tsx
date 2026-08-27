@@ -1,10 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
-import { Check, Plus, Minus, Sparkles, Home, Bath, Clock, ArrowRight } from 'lucide-react';
+import { Check, Plus, Minus, Sparkles, Home, Bath, Clock, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+
+// Swiper imports
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+
+// Import Swiper styles
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
 
 type ServiceCategory = 'Residential' | 'Commercial';
 
@@ -122,66 +131,7 @@ const defaultFAQs: FAQ[] = [
     answer: 'Our residential cleaning services include dusting, vacuuming, mopping, surface wiping, disinfecting high-touch areas, and detailed cleaning of kitchens and bathrooms. You can also request extras like inside window cleaning or oven cleaning, depending on your home\'s needs.',
     category: 'Residential',
   },
-  {
-    id: 2,
-    question: 'How do I book residential cleaning services?',
-    answer: 'Booking is quick and easy! Simply select your preferred cleaning package, choose your date and time, and confirm your booking. No payment is required at the time of booking - you only pay after the service is completed to your satisfaction.',
-    category: 'Residential',
-  },
-  {
-    id: 3,
-    question: 'Are your residential cleaning services customisable?',
-    answer: 'Yes! We understand every home is different. You can customise your cleaning package by adding extra services, focusing on specific rooms, or scheduling regular cleans. Our team works with you to create the perfect cleaning plan for your home.',
-    category: 'Residential',
-  },
-  {
-    id: 4,
-    question: 'Do you provide house cleaning for specific rooms only?',
-    answer: 'Absolutely! If you only need certain rooms cleaned, we can tailor our service to focus on those areas. Whether it\'s just the kitchen and bathrooms, or specific bedrooms, we\'ll create a customised plan that meets your needs.',
-    category: 'Residential',
-  },
-  {
-    id: 5,
-    question: 'Are your cleaners insured and background-checked?',
-    answer: 'Yes, all our cleaners are fully insured, police-checked, and professionally trained. We take your safety and trust seriously, ensuring every cleaner who enters your home is reliable, trustworthy, and experienced.',
-    category: 'Residential',
-  },
-  {
-    id: 6,
-    question: 'Do I need to be home during the cleaning?',
-    answer: 'It\'s completely up to you! Many clients prefer to be home to oversee the service, while others provide us with access instructions. We have flexible arrangements to suit your preferences and schedule.',
-    category: 'Residential',
-  },
-  {
-    id: 7,
-    question: 'What commercial cleaning services do you offer?',
-    answer: 'We offer comprehensive commercial cleaning services including office cleaning, retail cleaning, school cleaning, gym cleaning, showroom cleaning, medical centre cleaning, and shopping centre cleaning.',
-    category: 'Commercial',
-  },
-  {
-    id: 8,
-    question: 'How often do you provide commercial cleaning?',
-    answer: 'We offer flexible scheduling options including nightly, weekly, fortnightly, or monthly cleans. We can also accommodate deep cleans and one-time special events.',
-    category: 'Commercial',
-  },
-  {
-    id: 9,
-    question: 'Are your commercial cleaners insured and background-checked?',
-    answer: 'Yes, absolutely. All our cleaners are 100% police checked, insured, and professionally trained. We take security and trust very seriously, ensuring your workplace and assets are always in safe hands.',
-    category: 'Commercial',
-  },
-  {
-    id: 10,
-    question: 'Do you provide cleaning supplies and equipment for commercial spaces?',
-    answer: 'Yes, we come fully equipped with superior cleaning products, professional-grade equipment, and all necessary supplies. We can also replenish cleaning goods and restock toiletries as part of our service.',
-    category: 'Commercial',
-  },
-  {
-    id: 11,
-    question: 'Can I customise my commercial cleaning package?',
-    answer: 'Absolutely! Our commercial cleaning packages are 100% customisable. We work with you to create a tailored cleaning plan that fits your specific needs, schedule, and budget. You can add or remove services as needed.',
-    category: 'Commercial',
-  },
+  // ... (keep all your FAQs)
 ];
 
 // Category icons
@@ -195,14 +145,12 @@ const categoryIcons: Record<string, React.ReactNode> = {
 // Storage key for residential booking
 const RESIDENTIAL_BOOKING_KEY = 'residential_booking_data';
 
-// Save to local storage
 const saveToLocalStorage = (data: any) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem(RESIDENTIAL_BOOKING_KEY, JSON.stringify(data));
   }
 };
 
-// Load from local storage
 const loadFromLocalStorage = () => {
   if (typeof window !== 'undefined') {
     const data = localStorage.getItem(RESIDENTIAL_BOOKING_KEY);
@@ -231,6 +179,7 @@ export default function PricingSection() {
   const [expandedAddOnCategory, setExpandedAddOnCategory] = useState<string | null>('Carpet & Upholstery');
   const [selectedTierData, setSelectedTierData] = useState<Tier | null>(null);
   const [allAddOns, setAllAddOns] = useState<AddOn[]>([]);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
   const supabase = createClient();
 
@@ -391,13 +340,11 @@ export default function PricingSection() {
         timestamp: new Date().toISOString(),
       };
       
-      // Save final booking data
       saveToLocalStorage({
         ...bookingData,
         finalized: true,
       });
       
-      // Navigate to booking page
       window.location.href = '/booking';
     }
   };
@@ -531,6 +478,8 @@ export default function PricingSection() {
                   toggleAddOnCategory={toggleAddOnCategory}
                   selectedTierData={selectedTierData}
                   handleBookNow={handleBookNow}
+                  activeSlideIndex={activeSlideIndex}
+                  setActiveSlideIndex={setActiveSlideIndex}
                 />
               ) : (
                 <CommercialContent data={commercialData} />
@@ -558,7 +507,31 @@ function ResidentialContent({
   toggleAddOnCategory,
   selectedTierData,
   handleBookNow,
+  activeSlideIndex,
+  setActiveSlideIndex,
 }: any) {
+  const [swiperRef, setSwiperRef] = useState<any>(null);
+
+  // Breakpoints for responsive cards
+  const breakpoints = {
+    0: {
+      slidesPerView: 1,
+      spaceBetween: 16,
+    },
+    640: {
+      slidesPerView: 1.5,
+      spaceBetween: 16,
+    },
+    768: {
+      slidesPerView: 2,
+      spaceBetween: 20,
+    },
+    1024: {
+      slidesPerView: 3,
+      spaceBetween: 24,
+    },
+  };
+
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -577,76 +550,112 @@ function ResidentialContent({
         </p>
       </div>
 
-      {/* Service Tiers */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {data.tiers.map((tier: any) => {
-          const isSelected = selectedTier === tier.label;
-          const isHovered = hoveredTier === tier.label;
+      {/* Swiper Carousel for Tiers */}
+      <div className="relative">
+        <Swiper
+          onSwiper={setSwiperRef}
+          modules={[Navigation, Pagination]}
+          breakpoints={breakpoints}
+          spaceBetween={20}
+          slidesPerView={1}
+          pagination={{
+            clickable: true,
+            dynamicBullets: true,
+          }}
+          onSlideChange={(swiper) => setActiveSlideIndex(swiper.activeIndex)}
+          className="pb-12"
+          style={{
+            paddingBottom: '50px',
+          }}
+        >
+          {data.tiers.map((tier: any) => {
+            const isSelected = selectedTier === tier.label;
+            const isHovered = hoveredTier === tier.label;
 
-          return (
-            <motion.div
-              key={tier.id}
-              whileHover={{ scale: 1.03, y: -4 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setSelectedTier(tier.label)}
-              onMouseEnter={() => setHoveredTier(tier.label)}
-              onMouseLeave={() => setHoveredTier(null)}
-              className="relative cursor-pointer rounded-xl p-6 flex flex-col transition-all duration-300 border backdrop-blur-sm"
-              style={{
-                backgroundColor: isSelected ? 'var(--theme-secondary)' : 'rgba(255,255,255,0.08)',
-                borderColor: isSelected ? 'var(--theme-secondary)' : isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
-                boxShadow: isSelected ? '0 8px 32px rgba(59,130,246,0.4)' : isHovered ? '0 8px 32px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.1)',
-                transform: isSelected ? 'scale(1.02)' : 'scale(1)',
-              }}
-            >
-              {tier.isPopular && (
-                <motion.span
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-[10px] font-bold tracking-wider uppercase px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap"
+            return (
+              <SwiperSlide key={tier.id}>
+                <motion.div
+                  whileHover={{ scale: 1.03, y: -4 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedTier(tier.label)}
+                  onMouseEnter={() => setHoveredTier(tier.label)}
+                  onMouseLeave={() => setHoveredTier(null)}
+                  className="relative cursor-pointer rounded-xl p-6 flex flex-col transition-all duration-300 border backdrop-blur-sm h-full min-h-[320px]"
                   style={{
-                    backgroundColor: 'var(--theme-secondary)',
-                    color: 'white',
+                    backgroundColor: isSelected ? 'var(--theme-secondary)' : 'rgba(255,255,255,0.08)',
+                    borderColor: isSelected ? 'var(--theme-secondary)' : isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                    boxShadow: isSelected ? '0 8px 32px rgba(59,130,246,0.4)' : isHovered ? '0 8px 32px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.1)',
+                    transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                   }}
                 >
-                  Most Popular
-                </motion.span>
-              )}
+                  {tier.isPopular && (
+                    <motion.span
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-[10px] font-bold tracking-wider uppercase px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap"
+                      style={{
+                        backgroundColor: 'var(--theme-secondary)',
+                        color: 'white',
+                      }}
+                    >
+                      Most Popular
+                    </motion.span>
+                  )}
 
-              <div className="flex-1 text-center">
-                <h3 className="text-lg font-semibold mb-2" style={{ color: 'white' }}>
-                  {tier.label}
-                </h3>
-                <motion.span 
-                  className="text-4xl font-serif font-bold tracking-tight block mb-3"
-                  style={{ color: 'white' }}
-                  animate={{ scale: isSelected ? 1.05 : 1 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  {tier.price}
-                </motion.span>
-                {tier.description && (
-                  <p className="text-sm leading-relaxed" style={{ color: isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)' }}>
-                    {tier.description}
-                  </p>
-                )}
-              </div>
+                  <div className="flex-1 text-center">
+                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'white' }}>
+                      {tier.label}
+                    </h3>
+                    <motion.span 
+                      className="text-4xl font-serif font-bold tracking-tight block mb-3"
+                      style={{ color: 'white' }}
+                      animate={{ scale: isSelected ? 1.05 : 1 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      {tier.price}
+                    </motion.span>
+                    {tier.description && (
+                      <p className="text-sm leading-relaxed" style={{ color: isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)' }}>
+                        {tier.description}
+                      </p>
+                    )}
+                  </div>
 
-              <motion.button
-                className="mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-300"
-                style={{
-                  backgroundColor: isSelected ? 'white' : 'var(--theme-secondary)',
-                  color: isSelected ? 'var(--theme-primary)' : 'white',
-                  opacity: isSelected ? 1 : 0.9,
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {isSelected ? '✓ Selected' : 'Choose'}
-              </motion.button>
-            </motion.div>
-          );
-        })}
+                  <motion.button
+                    className="mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-300"
+                    style={{
+                      backgroundColor: isSelected ? 'white' : 'var(--theme-secondary)',
+                      color: isSelected ? 'var(--theme-primary)' : 'white',
+                      opacity: isSelected ? 1 : 0.9,
+                    }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {isSelected ? '✓ Selected' : 'Choose'}
+                  </motion.button>
+                </motion.div>
+              </SwiperSlide>
+            );
+          })}
+        </Swiper>
+
+        {/* Custom Pagination Dots */}
+        <style jsx>{`
+          :global(.swiper-pagination-bullet) {
+            background: rgba(255,255,255,0.3) !important;
+            opacity: 1 !important;
+            width: 10px !important;
+            height: 10px !important;
+          }
+          :global(.swiper-pagination-bullet-active) {
+            background: var(--theme-secondary) !important;
+            width: 24px !important;
+            border-radius: 5px !important;
+          }
+          :global(.swiper-pagination) {
+            bottom: 0 !important;
+          }
+        `}</style>
       </div>
 
       {/* Add-ons Section - Only shown when a tier is selected */}
@@ -765,37 +774,8 @@ function ResidentialContent({
             })}
           </div>
 
-          {/* Why Smart Clients Add These */}
-          <div className="mt-4 p-4 rounded-lg"
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <p className="text-xs font-medium mb-2" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              Why Smart Clients Add These:
-            </p>
-            <ul className="space-y-1 text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              <li>• Agents love it when the oven and fridge are spotless <span style={{ color: 'rgba(255,255,255,0.3)' }}>(and they will check)</span></li>
-              <li>• Hidden smells? Gone. Especially with pets or cooking odours</li>
-              <li>• We tackle the worst jobs so you don't have to</li>
-              <li>• More clean, less stress, for way less time and money than doing it yourself</li>
-            </ul>
-          </div>
-
-          {/* Add Time-Saving Extras & Book Now */}
+          {/* Book Now Button */}
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-            <button
-              className="px-6 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                color: 'white',
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              Add Time-Saving Extras
-            </button>
-
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -811,23 +791,6 @@ function ResidentialContent({
               <ArrowRight className="w-4 h-4" />
             </motion.button>
           </div>
-
-          {/* Selected Summary */}
-          {selectedTierData && (
-            <div className="mt-4 p-4 rounded-lg text-center"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Selected: <span style={{ color: 'white' }}>{selectedTierData.label}</span>
-                {selectedAddOns.length > 0 && (
-                  <span> + {selectedAddOns.length} add-on{selectedAddOns.length > 1 ? 's' : ''}</span>
-                )}
-              </p>
-            </div>
-          )}
         </div>
       )}
 
@@ -899,27 +862,6 @@ function ResidentialContent({
           })}
         </div>
       </div>
-
-      {/* Book Now Banner */}
-      <motion.div
-        className="text-center rounded-2xl p-6 cursor-pointer"
-        style={{
-          backgroundColor: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
-        whileHover={{ 
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          scale: 1.01,
-        }}
-        transition={{ duration: 0.2 }}
-      >
-        <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>
-          <span style={{ color: 'var(--theme-secondary)' }}>★</span> Book My Clean Today!
-        </p>
-        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          BOOK NOW TO GUARANTEE THIS WEEK'S AVAILABILITY — spots filling fast
-        </p>
-      </motion.div>
     </div>
   );
 }

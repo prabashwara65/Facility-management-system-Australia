@@ -8,6 +8,11 @@ import {
   Recycle,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay } from 'swiper/modules';
+
+// Import Swiper styles
+import 'swiper/css';
 
 interface TrustItemProps {
   icon: React.ReactNode;
@@ -20,6 +25,14 @@ interface HeroProps {
 }
 
 export default function Hero({ onScrollTrigger }: HeroProps) {
+  const trustItems = [
+    { icon: <ShieldCheck size={16} />, title: "100% Satisfaction", subtitle: "Guaranteed" },
+    { icon: <Flag size={16} />, title: "Fully Insured", subtitle: "& Bonded" },
+    { icon: <BadgeCheck size={16} />, title: "Police-Checked", subtitle: "Team Members" },
+    { icon: <Star size={16} />, title: "4.9 / 5 Stars", subtitle: "1,200+ Reviews" },
+    { icon: <Recycle size={16} />, title: "Eco-Friendly", subtitle: "Products Used" },
+  ];
+
   return (
     <section className="relative h-screen w-full overflow-hidden">
       {/* Background Image */}
@@ -30,7 +43,7 @@ export default function Hero({ onScrollTrigger }: HeroProps) {
         style={{ opacity: 0.6 }}
       />
 
-      {/* Gradient Overlay - with transparency */}
+      {/* Gradient Overlay */}
       <div
         className="absolute inset-0"
         style={{
@@ -140,38 +153,48 @@ export default function Hero({ onScrollTrigger }: HeroProps) {
 
       {/* TRUST BAR */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-20 border-t backdrop-blur-sm"
+        className="absolute bottom-0 left-0 right-0 z-20 border-t backdrop-blur-sm py-2"
         style={{
           borderColor: 'var(--hero-badge-border)',
           backgroundColor: 'color-mix(in srgb, var(--theme-primary) 90%, black)',
         }}
       >
-        <div className="mx-auto grid max-w-[1400px] grid-cols-2 md:grid-cols-3 lg:grid-cols-5 px-2 sm:px-4">
-          <TrustItem
-            icon={<ShieldCheck size={16} />}
-            title="100% Satisfaction"
-            subtitle="Guaranteed"
-          />
-          <TrustItem
-            icon={<Flag size={16} />}
-            title="Fully Insured"
-            subtitle="& Bonded"
-          />
-          <TrustItem
-            icon={<BadgeCheck size={16} />}
-            title="Police-Checked"
-            subtitle="Team Members"
-          />
-          <TrustItem
-            icon={<Star size={16} />}
-            title="4.9 / 5 Stars"
-            subtitle="1,200+ Reviews"
-          />
-          <TrustItem
-            icon={<Recycle size={16} />}
-            title="Eco-Friendly"
-            subtitle="Products Used"
-          />
+        <div className="mx-auto max-w-[1400px] px-2 sm:px-4">
+          <Swiper
+            modules={[Autoplay]}
+            loop={true}
+            autoplay={{
+              delay: 2500,
+              disableOnInteraction: false,
+            }}
+            breakpoints={{
+              0: {
+                slidesPerView: 2,
+                spaceBetween: 10,
+              },
+              640: {
+                slidesPerView: 3,
+                spaceBetween: 15,
+              },
+              1024: {
+                slidesPerView: 5,
+                spaceBetween: 0,
+                loop: false,
+                autoplay: false,
+              },
+            }}
+            className="w-full"
+          >
+            {trustItems.map((item, index) => (
+              <SwiperSlide key={index}>
+                <TrustItem
+                  icon={item.icon}
+                  title={item.title}
+                  subtitle={item.subtitle}
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
         </div>
       </div>
     </section>
@@ -180,17 +203,17 @@ export default function Hero({ onScrollTrigger }: HeroProps) {
 
 function TrustItem({ icon, title, subtitle }: TrustItemProps) {
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2 border-r border-[var(--hero-badge-border)] px-1.5 sm:px-2 md:px-3 lg:px-4 xl:px-5 py-2 sm:py-3 last:border-r-0">
+    <div className="flex items-center justify-center gap-2 px-2 py-2 lg:border-r border-[var(--hero-badge-border)] lg:last:border-r-0">
       <div className="flex h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--hero-badge-border)]" style={{ color: 'var(--hero-text)' }}>
         {icon}
       </div>
 
       <div className="min-w-0">
-        <div className="whitespace-nowrap text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs font-bold truncate" style={{ color: 'var(--hero-text)' }}>
+        <div className="whitespace-nowrap text-[10px] sm:text-[11px] md:text-xs font-bold truncate" style={{ color: 'var(--hero-text)' }}>
           {title}
         </div>
 
-        <div className="text-[7px] sm:text-[8px] md:text-[9px] lg:text-[10px] truncate" style={{ color: 'var(--hero-text-secondary)' }}>
+        <div className="text-[8px] sm:text-[9px] md:text-[10px] truncate" style={{ color: 'var(--hero-text-secondary)' }}>
           {subtitle}
         </div>
       </div>
