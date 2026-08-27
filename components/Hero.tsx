@@ -34,7 +34,7 @@ export default function Hero({ onScrollTrigger }: HeroProps) {
   ];
 
   return (
-    <section className="relative h-screen w-full overflow-hidden">
+    <section className="relative h-[60svh] min-h-[480px] w-full overflow-hidden rounded-lg lg:h-screen">
       {/* Background Image */}
       <img
         src="/img/cleaning_lady.avif"

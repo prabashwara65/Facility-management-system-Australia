@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ReactNode, MouseEvent, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Palette, Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Sparkles, DollarSign, Users, MapPin, Calendar, Phone, Palette } from "lucide-react";
 import { useTheme, THEMES } from "@/app/context/ThemeProvider";
 import Image from "next/image";
 
@@ -18,14 +18,20 @@ interface NavbarProps {
   phoneNumber?: string;
 }
 
+interface NavItem {
+  href: string;
+  label: string;
+  shortLabel: string;
+  icon: ReactNode;
+}
+
 export default function Navbar({ 
   logoText = "Shining Property Service",
   phoneNumber = "1800 123 456"
 }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState<boolean>(false);
-  const { currentTheme, setTheme, themes } = useTheme();
+  const { currentTheme, setTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = (): void => {
@@ -46,38 +52,39 @@ export default function Navbar({
     const section = document.querySelector(sectionId);
     if (section) {
       section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setIsMobileMenuOpen(false);
+      setIsThemeDropdownOpen(false);
     }
   };
 
-  const navLinks = [
-    { href: "#services", label: "Services" },
-    { href: "#pricing", label: "Pricing" },
-    { href: "#why-us", label: "Why Us" },
-    { href: "#areas", label: "Areas" },
-    { href: "#booking", label: "Book Now" },
+  const navLinks: NavItem[] = [
+    { href: "#services", label: "Services", shortLabel: "Services", icon: <Sparkles className="w-4 h-4" /> },
+    { href: "#pricing", label: "Pricing", shortLabel: "Pricing", icon: <DollarSign className="w-4 h-4" /> },
+    { href: "#why-us", label: "Why Us", shortLabel: "Why", icon: <Users className="w-4 h-4" /> },
+    { href: "#areas", label: "Areas", shortLabel: "Areas", icon: <MapPin className="w-4 h-4" /> },
+    { href: "#booking", label: "Book Now", shortLabel: "Book", icon: <Calendar className="w-4 h-4" /> },
   ];
 
   // Get current theme colors for preview
   const currentColors = THEMES.find(t => t.name === currentTheme.name)?.colors || ['#ffffff', '#1a3a6b', '#4a7bc4', '#0a1d38'];
 
   return (
+    <>
     <motion.header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`hidden lg:block fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'bg-white/90 shadow-lg shadow-slate-200/70 backdrop-blur-md' 
-          : 'bg-white/80 backdrop-blur-sm'
+          ? 'bg-white/95 shadow-lg shadow-slate-200/70 backdrop-blur-md' 
+          : 'bg-white/90 backdrop-blur-sm'
       }`}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
       style={{
-        borderBottom: '1px solid color-mix(in srgb, var(--theme-primary) 12%, white)',
+        borderBottom: '1px solid rgba(0,0,0,0.06)',
       }}
     >
       <div className="mx-auto flex h-[64px] md:h-[72px] max-w-[1400px] items-center justify-between gap-2 px-4 sm:px-6 lg:px-8 xl:px-10">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 md:gap-2.5 flex-shrink-0 min-w-0">
+        <Link href="/" className="flex items-center gap-2 md:gap-2.5 flex-shrink-0 min-w-0" aria-label={logoText}>
           <motion.div 
             className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-full overflow-hidden flex-shrink-0"
             whileHover={{ rotate: 360 }}
@@ -85,7 +92,7 @@ export default function Navbar({
           >
             <Image
               src="/img/02.png"
-              alt="Shining Property Service"
+              alt={logoText}
               width={36}
               height={36}
               className="object-cover w-full h-full"
@@ -112,9 +119,10 @@ export default function Navbar({
         <div className="flex items-center gap-2 sm:gap-3">
           <a
             href={`tel:${phoneNumber.replace(/\s/g, '')}`}
-            className="hidden xl:block text-[14px] xl:text-[15px] font-bold transition-colors whitespace-nowrap"
+            className="hidden xl:flex items-center gap-1.5 text-[14px] xl:text-[15px] font-bold transition-colors whitespace-nowrap"
             style={{ color: 'var(--theme-primary)' }}
           >
+            <Phone className="w-4 h-4" />
             {phoneNumber}
           </a>
 
@@ -125,25 +133,11 @@ export default function Navbar({
           >
             <Link
               href="#booking"
-              className="rounded-md px-4 sm:px-5 md:px-6 py-2 md:py-3 text-xs sm:text-sm font-bold text-white transition-colors whitespace-nowrap"
+              className="rounded-md px-4 sm:px-5 md:px-6 py-2 md:py-3 text-xs sm:text-sm font-bold text-white transition-colors whitespace-nowrap flex items-center gap-1.5"
               style={{ backgroundColor: 'var(--theme-primary)' }}
             >
+              <Calendar className="w-4 h-4" />
               Book Now
-            </Link>
-          </motion.div>
-
-          {/* Mobile Book Now button */}
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="sm:hidden"
-          >
-            <Link
-              href="#booking"
-              className="rounded-md px-3 py-1.5 text-xs font-bold text-white transition-colors whitespace-nowrap"
-              style={{ backgroundColor: 'var(--theme-primary)' }}
-            >
-              Book
             </Link>
           </motion.div>
 
@@ -151,12 +145,13 @@ export default function Navbar({
           <div className="hidden lg:block relative">
             <motion.button
               onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
-              className="flex items-center gap-1 rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-gray-100"
+              className="flex items-center gap-1 rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-gray-100/50"
               style={{ color: 'var(--theme-primary)' }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               aria-label="Change theme"
             >
+              <Palette className="h-3.5 w-3.5" />
               <div className="flex gap-0.5">
                 {currentColors.slice(0, 3).map((color, i) => (
                   <div
@@ -177,7 +172,7 @@ export default function Navbar({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute right-0 top-full mt-2 w-48 sm:w-56 rounded-xl bg-white p-2 shadow-2xl ring-1 ring-black/5 z-50"
+                  className="absolute right-0 top-full mt-2 w-48 sm:w-56 rounded-xl bg-white/95 backdrop-blur-sm p-2 shadow-2xl ring-1 ring-black/5 z-50"
                 >
                   <div className="space-y-1 max-h-72 overflow-y-auto">
                     {THEMES.map((theme) => {
@@ -192,7 +187,7 @@ export default function Navbar({
                             setIsThemeDropdownOpen(false);
                           }}
                           className={`flex w-full items-center gap-2 sm:gap-3 rounded-lg px-2 sm:px-3 py-2 transition-all ${
-                            isActive ? 'bg-blue-50' : 'hover:bg-gray-50'
+                            isActive ? 'bg-blue-50/80' : 'hover:bg-gray-50/80'
                           }`}
                           whileHover={{ x: 4 }}
                           whileTap={{ scale: 0.98 }}
@@ -225,88 +220,136 @@ export default function Navbar({
               )}
             </AnimatePresence>
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden transition-colors p-1"
-            style={{ color: 'var(--theme-primary)' }}
-            aria-label="Toggle menu"
-          >
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isMobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
         </div>
       </div>
+    </motion.header>
 
-      {/* Mobile Menu - Theme Switcher ALSO here */}
-      <motion.div 
-        className="lg:hidden overflow-hidden border-t bg-white"
-        initial={{ height: 0, opacity: 0 }}
-        animate={{ 
-          height: isMobileMenuOpen ? 'auto' : 0,
-          opacity: isMobileMenuOpen ? 1 : 0
-        }}
-        transition={{ duration: 0.3 }}
-        style={{ borderColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)' }}
-      >
-        <div className="space-y-1 px-4 sm:px-6 py-3 sm:py-4">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={(e) => scrollToSection(e, link.href)}
-              className="block rounded-lg px-3 py-3 text-sm sm:text-base transition-colors hover:bg-gray-50"
-              style={{ color: 'var(--theme-primary)' }}
-            >
-              {link.label}
-            </a>
-          ))}
-          
-          <div className="border-t pt-3 sm:pt-4 mt-2" style={{ borderColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)' }}>
-            <a
-              href={`tel:${phoneNumber.replace(/\s/g, '')}`}
-              className="block py-2 font-bold text-sm sm:text-base"
-              style={{ color: 'var(--theme-primary)' }}
-            >
-              {phoneNumber}
-            </a>
-          </div>
+    <AnimatePresence>
+      {isThemeDropdownOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: 12, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.96 }}
+          transition={{ duration: 0.2 }}
+          className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 mx-auto w-full overflow-hidden px-2 lg:hidden"
+        >
+          <div
+            className="mx-auto max-h-[45vh] w-full max-w-md overflow-y-auto rounded-xl border p-2 shadow-2xl backdrop-blur-md"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.92)',
+              borderColor: 'rgba(0,0,0,0.08)',
+              boxShadow: '0 18px 50px rgba(0,0,0,0.08)',
+            }}
+          >
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {THEMES.map((theme) => {
+                const isActive = currentTheme.name === theme.name;
 
-          {/* Theme Switcher - Also in mobile dropdown */}
-          <div className="pt-2 mt-1 border-t" style={{ borderColor: 'color-mix(in srgb, var(--theme-primary) 12%, white)' }}>
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-gray-500">Theme</p>
-              <div className="flex gap-2">
-                {THEMES.map((theme) => (
+                return (
                   <button
                     key={theme.name}
+                    type="button"
                     onClick={() => {
                       setTheme(theme.name);
-                      setIsMobileMenuOpen(false);
+                      setIsThemeDropdownOpen(false);
                     }}
-                    className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full border-2 transition-all ${
-                      currentTheme.name === theme.name 
-                        ? 'border-blue-600 scale-110' 
-                        : 'border-gray-200 hover:scale-105'
-                    }`}
-                    style={{ 
-                      background: `linear-gradient(135deg, ${theme.colors[0]}, ${theme.colors[1]})` 
+                    className="flex min-h-12 min-w-0 items-center gap-2 rounded-md border px-2 py-2 text-left transition-transform active:scale-95"
+                    style={{
+                      backgroundColor: isActive
+                        ? 'rgba(59,130,246,0.08)'
+                        : 'rgba(255,255,255,0.5)',
+                      borderColor: isActive ? 'rgba(59,130,246,0.3)' : 'rgba(0,0,0,0.06)',
+                      color: 'var(--theme-text)',
                     }}
-                    title={theme.label}
-                  />
-                ))}
-              </div>
+                    aria-label={`Use ${theme.label} theme`}
+                  >
+                    <span className="flex flex-shrink-0 gap-0.5">
+                      {theme.colors.slice(0, 3).map((color, index) => (
+                        <span
+                          key={`${theme.name}-${color}-${index}`}
+                          className="h-3.5 w-3.5 rounded-full border border-gray-200 shadow-sm"
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[11px] font-bold">
+                      {theme.label}
+                    </span>
+                    {isActive && <Check className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    {/* Mobile Bottom Navigation Bar - Using var(--theme-surface) */}
+    <div className="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 w-full overflow-hidden px-2 lg:hidden">
+      <motion.nav
+        className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border px-1.5 py-2 shadow-2xl backdrop-blur-md sm:px-2"
+        initial={{ y: 96 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.45, ease: 'easeOut' }}
+        style={{
+          backgroundColor: 'var(--theme-surface)',
+          borderColor: 'var(--theme-border)',
+          boxShadow: '0 18px 50px rgba(0,0,0,0.06)',
+        }}
+        aria-label="Primary navigation"
+      >
+        <div className="grid min-w-0 grid-cols-6 gap-0.5 sm:gap-1">
+          {navLinks.map(({ href, shortLabel, icon }) => (
+            <a
+              key={href}
+              href={href}
+              onClick={(e) => scrollToSection(e, href)}
+              className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 text-[9px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 min-[380px]:text-[10px] sm:px-1 sm:text-xs"
+              style={{
+                color: 'var(--theme-text)',
+                outlineColor: 'var(--theme-secondary)',
+              }}
+            >
+              <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center opacity-70">{icon}</span>
+              <span className="block max-w-full truncate leading-none">{shortLabel}</span>
+            </a>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => setIsThemeDropdownOpen((open) => !open)}
+            className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 text-[9px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 min-[380px]:text-[10px] sm:px-1 sm:text-xs"
+            style={{
+              backgroundColor: isThemeDropdownOpen
+                ? 'color-mix(in srgb, var(--theme-secondary) 12%, transparent)'
+                : 'transparent',
+              color: 'var(--theme-text)',
+              outlineColor: 'var(--theme-secondary)',
+            }}
+            aria-label="Choose theme"
+            aria-expanded={isThemeDropdownOpen}
+          >
+            <Palette className="h-4 w-4 flex-shrink-0 opacity-70" />
+            <span className="block max-w-full truncate leading-none">Theme</span>
+          </button>
         </div>
-      </motion.div>
-    </motion.header>
+      </motion.nav>
+    </div>
+
+    <style jsx global>{`
+      @media (max-width: 1023px) {
+        html,
+        body {
+          overflow-x: hidden;
+        }
+
+        body {
+          padding-bottom: calc(82px + env(safe-area-inset-bottom));
+        }
+      }
+    `}</style>
+    </>
   );
 }
 
