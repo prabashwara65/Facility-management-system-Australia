@@ -59,6 +59,8 @@ interface AddOn {
   updated_at: string;
 }
 
+type PricingModalData = Partial<Tier> & Partial<FAQ> & Partial<AddOn>;
+
 const categories = ['All', 'Residential', 'Commercial'];
 const statusOptions = ['Active', 'Inactive', 'Draft'];
 const addOnCategories = ['Carpet & Upholstery', 'Kitchen Add-ons', 'Whole Home', 'Deep Detail'];
@@ -1079,7 +1081,7 @@ export default function PricingContent() {
           type={modalType}
           data={editingItem}
           onClose={() => { setShowModal(false); setEditingItem(null); }}
-          onSave={(data) => {
+          onSave={(data: PricingModalData) => {
             if (modalType === 'tier') handleSaveTier(data);
             else if (modalType === 'faq') handleSaveFAQ(data);
             else if (modalType === 'addon') handleSaveAddOn(data);

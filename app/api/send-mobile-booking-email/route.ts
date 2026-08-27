@@ -1,9 +1,122 @@
+// app/api/send-booking-email/route.ts
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
+// ============================================
+// TYPES
+// ============================================
+
+interface AddOnOption {
+  id: string;
+  name: string;
+  price: number;
+}
+
+interface SelectedAddOn {
+  name: string;
+  price: number;
+  count: number;
+}
+
+interface SelectedPackage {
+  name: string;
+  price: string;
+  description: string;
+}
+
+interface BookingEmailData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+  addressUnit?: string;
+  city: string;
+  state: string;
+  infoZipCode: string;
+  zipCode: string;
+  selectedYear: string;
+  selectedMake: string;
+  selectedModel: string;
+  selectedBody: string;
+  selectedCategory: string;
+  selectedVehicleType: string;
+  selectedPackage: SelectedPackage;
+  selectedAddOns: SelectedAddOn[] | Record<string, number>;
+  selectedConditions: string[];
+  otherCondition: string;
+  addOnsTotal: string;
+  selectedDate: string;
+  selectedArrivalWindows: string[];
+  backupDate: string | null;
+  waterAccess: 'yes' | 'no' | null;
+  electricity: 'yes' | 'no' | null;
+  coveredArea: 'yes' | 'no' | null;
+  extraInfo: string;
+  vehicleCount: number;
+  marketingOptIn: boolean;
+  totalPrice: string;
+  bookingType: string;
+  timestamp: string;
+}
+
+// ============================================
+// ADD-ON OPTIONS (for reference)
+// ============================================
+
+const addOnOptions: AddOnOption[] = [
+  { id: 'pet-hair', name: 'Pet Hair Removal', price: 70 },
+  { id: 'super-interior', name: 'Super Interior', price: 140 },
+  { id: 'interior-sanitizing', name: 'Interior Sanitizing', price: 60 },
+  { id: 'rain-x', name: 'Rain X Treatment', price: 30 },
+  { id: 'polymer-sealant', name: 'Polymer Sealant', price: 35 },
+  { id: 'headlight-restoration', name: 'Headlight Restoration', price: 105 },
+  { id: 'child-seat', name: 'Child Seat Cleaning', price: 35 },
+];
+
+// ============================================
+// HELPERS
+// ============================================
+
+function formatAddons(addons: SelectedAddOn[] | Record<string, number>): { list: string; items: string[] } {
+  const items: string[] = [];
+  
+  if (Array.isArray(addons)) {
+    // Handle array format
+    addons.forEach((addon: SelectedAddOn) => {
+      if (addon && typeof addon === 'object' && addon.name) {
+        const count = addon.count || 1;
+        items.push(`${addon.name} × ${count} ($${(addon.price || 0) * count})`);
+      }
+    });
+  } else if (addons && typeof addons === 'object') {
+    // Handle record format { id: count }
+    Object.entries(addons).forEach(([id, count]) => {
+      if (count > 0) {
+        const addon = addOnOptions.find(a => a.id === id);
+        if (addon) {
+          items.push(`${addon.name} × ${count} ($${addon.price * count})`);
+        } else {
+          items.push(`${id} × ${count}`);
+        }
+      }
+    });
+  }
+  
+  return {
+    list: items.length > 0 ? items.join(', ') : 'None',
+    items,
+  };
+}
+
+// ============================================
+// POST HANDLER
+// ============================================
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body: BookingEmailData = await request.json();
+    
     const {
       firstName,
       lastName,
@@ -39,26 +152,8 @@ export async function POST(request: Request) {
       backupDate,
     } = body;
 
-    // Format selected add-ons with proper names
-    let addonsList = 'None';
-    if (selectedAddOns && Array.isArray(selectedAddOns) && selectedAddOns.length > 0) {
-      addonsList = selectedAddOns
-        .map((addon: any) => {
-          if (addon && typeof addon === 'object') {
-            return `${addon.name} × ${addon.count}`;
-          }
-          return addon;
-        })
-        .join(', ');
-    } else if (selectedAddOns && typeof selectedAddOns === 'object') {
-      const entries = Object.entries(selectedAddOns);
-      if (entries.length > 0) {
-        addonsList = entries
-          .filter(([_, count]) => count > 0)
-          .map(([name, count]) => `${name} × ${count}`)
-          .join(', ');
-      }
-    }
+    // Format selected add-ons
+    const { list: addonsList, items: addonItems } = formatAddons(selectedAddOns || []);
 
     // Format full address
     const fullAddress = [address, addressUnit, city, state, infoZipCode]
@@ -81,7 +176,37 @@ export async function POST(request: Request) {
       day: 'numeric'
     }) : 'Not specified';
 
-    // Build email HTML with proper spacing
+    // Format timestamp
+    const formattedTimestamp = timestamp ? new Date(timestamp).toLocaleString('en-AU', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : new Date().toLocaleString('en-AU', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // Build add-ons HTML
+    const addonsHtml = addonItems.length > 0 
+      ? addonItems.map((item: string) => `<span class="addon-tag">${item}</span>`).join('')
+      : '<span style="color: #94a3b8; font-size: 13px;">No add-ons selected</span>';
+
+    // Build conditions HTML
+    const conditionsHtml = selectedConditions && selectedConditions.length > 0
+      ? selectedConditions.map((c: string) => `<span class="condition-tag">${c}</span>`).join(' ')
+      : '';
+
+    // ============================================
+    // BUILD EMAIL HTML
+    // ============================================
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -129,24 +254,10 @@ export async function POST(request: Request) {
           <!-- Header -->
           <div class="header">
             <h1>✦ New Mobile Detailing Booking</h1>
-            <p>${timestamp ? new Date(timestamp).toLocaleString('en-AU', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            }) : new Date().toLocaleString('en-AU', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</p>
+            <p>${formattedTimestamp}</p>
             <div>
               <span class="badge">● Pending Confirmation</span>
-              <span class="badge-mobile">Mobile Detailing</span>
+              <span class="badge-mobile">${bookingType || 'Mobile Detailing'}</span>
             </div>
           </div>
 
@@ -157,19 +268,19 @@ export async function POST(request: Request) {
               <div class="grid">
                 <div class="row">
                   <span class="label">Name</span>
-                  <span class="value">${firstName} ${lastName}</span>
+                  <span class="value">${firstName || ''} ${lastName || ''}</span>
                 </div>
                 <div class="row">
                   <span class="label">Email</span>
-                  <span class="value">${email}</span>
+                  <span class="value">${email || ''}</span>
                 </div>
                 <div class="row">
                   <span class="label">Phone</span>
-                  <span class="value">${phone}</span>
+                  <span class="value">${phone || ''}</span>
                 </div>
                 <div class="row row-full">
                   <span class="label">Address</span>
-                  <span class="value">${fullAddress}</span>
+                  <span class="value">${fullAddress || 'Not specified'}</span>
                 </div>
                 <div class="row">
                   <span class="label">Postcode (Service Area)</span>
@@ -177,11 +288,11 @@ export async function POST(request: Request) {
                 </div>
                 <div class="row">
                   <span class="label">Postcode (Delivery)</span>
-                  <span class="value"><span class="zip-highlight">${infoZipCode}</span></span>
+                  <span class="value"><span class="zip-highlight">${infoZipCode || 'Not specified'}</span></span>
                 </div>
                 <div class="row">
                   <span class="label">State</span>
-                  <span class="value">${state}</span>
+                  <span class="value">${state || 'Not specified'}</span>
                 </div>
               </div>
             </div>
@@ -192,27 +303,27 @@ export async function POST(request: Request) {
               <div class="grid">
                 <div class="row">
                   <span class="label">Year</span>
-                  <span class="value">${selectedYear}</span>
+                  <span class="value">${selectedYear || 'Not specified'}</span>
                 </div>
                 <div class="row">
                   <span class="label">Make</span>
-                  <span class="value">${selectedMake}</span>
+                  <span class="value">${selectedMake || 'Not specified'}</span>
                 </div>
                 <div class="row">
                   <span class="label">Model</span>
-                  <span class="value">${selectedModel}</span>
+                  <span class="value">${selectedModel || 'Not specified'}</span>
                 </div>
                 <div class="row">
                   <span class="label">Body Type</span>
-                  <span class="value">${selectedBody}</span>
+                  <span class="value">${selectedBody || 'Not specified'}</span>
                 </div>
                 <div class="row">
                   <span class="label">Category</span>
-                  <span class="value">${selectedCategory}</span>
+                  <span class="value">${selectedCategory || 'Not specified'}</span>
                 </div>
                 <div class="row">
                   <span class="label">Number of Vehicles</span>
-                  <span class="value">${vehicleCount}</span>
+                  <span class="value">${vehicleCount || 1}</span>
                 </div>
               </div>
             </div>
@@ -223,50 +334,34 @@ export async function POST(request: Request) {
               <div class="grid">
                 <div class="row row-full">
                   <span class="label">Package</span>
-                  <span class="value value-highlight">${selectedPackage?.name}</span>
+                  <span class="value value-highlight">${selectedPackage?.name || 'Not selected'}</span>
                 </div>
                 <div class="row">
                   <span class="label">Price</span>
-                  <span class="value value-highlight">${selectedPackage?.price}</span>
+                  <span class="value value-highlight">${selectedPackage?.price || '$0'}</span>
                 </div>
                 <div class="row row-full">
                   <span class="label">Description</span>
-                  <span class="value">${selectedPackage?.description}</span>
+                  <span class="value">${selectedPackage?.description || ''}</span>
                 </div>
               </div>
             </div>
 
             <!-- Add-ons -->
-            ${addonsList !== 'None' ? `
-              <div class="section">
-                <div class="section-title"><span class="icon">◈</span> Add-ons</div>
-                <div>
-                  ${Array.isArray(selectedAddOns) 
-                    ? selectedAddOns.map((addon: any) => 
-                        addon && typeof addon === 'object' 
-                          ? `<span class="addon-tag">${addon.name} × ${addon.count} ($${addon.price * addon.count})</span>`
-                          : ''
-                      ).join('')
-                    : Object.entries(selectedAddOns)
-                        .filter(([_, count]) => count > 0)
-                        .map(([name, count]) => {
-                          const addonOption = addOnOptions?.find((a: any) => a.id === name);
-                          const price = addonOption ? addonOption.price * count : '';
-                          return `<span class="addon-tag">${name} × ${count}${price ? ` ($${price})` : ''}</span>`;
-                        })
-                        .join('')
-                  }
-                </div>
-                ${addOnsTotal ? `<div style="margin-top: 8px; text-align: right; font-size: 13px; color: #1a3a6b; font-weight: 600;">Add-ons Total: ${addOnsTotal}</div>` : ''}
+            <div class="section">
+              <div class="section-title"><span class="icon">◈</span> Add-ons</div>
+              <div>
+                ${addonsHtml}
               </div>
-            ` : ''}
+              ${addOnsTotal ? `<div style="margin-top: 8px; text-align: right; font-size: 13px; color: #1a3a6b; font-weight: 600;">Add-ons Total: ${addOnsTotal}</div>` : ''}
+            </div>
 
             <!-- Vehicle Conditions -->
             ${selectedConditions && selectedConditions.length > 0 ? `
               <div class="section">
                 <div class="section-title"><span class="icon">◈</span> Vehicle Conditions</div>
                 <div>
-                  ${selectedConditions.map((c: string) => `<span class="condition-tag">${c}</span>`).join(' ')}
+                  ${conditionsHtml}
                   ${otherCondition ? `<span class="condition-tag">Other: ${otherCondition}</span>` : ''}
                 </div>
               </div>
@@ -288,7 +383,7 @@ export async function POST(request: Request) {
                 ` : ''}
                 <div class="row">
                   <span class="label">Arrival Window</span>
-                  <span class="value">${selectedArrivalWindows?.join(', ') || 'Not specified'}</span>
+                  <span class="value">${selectedArrivalWindows?.length > 0 ? selectedArrivalWindows.join(', ') : 'Not specified'}</span>
                 </div>
                 <div class="row">
                   <span class="label">Water Access</span>
@@ -324,10 +419,10 @@ export async function POST(request: Request) {
               <div class="total-box">
                 <div class="total-row">
                   <span class="total-label">Total Amount</span>
-                  <span class="total-amount">${totalPrice}</span>
+                  <span class="total-amount">${totalPrice || '$0'}</span>
                 </div>
                 <div style="margin-top: 6px; text-align: right; font-size: 11px; color: #94a3b8;">
-                  Includes package + add-ons (${vehicleCount} vehicle${vehicleCount > 1 ? 's' : ''})
+                  Includes package + add-ons (${vehicleCount || 1} vehicle${(vehicleCount || 1) > 1 ? 's' : ''})
                 </div>
               </div>
             </div>
@@ -344,7 +439,10 @@ export async function POST(request: Request) {
       </html>
     `;
 
-    // Create transporter with Gmail
+    // ============================================
+    // SEND EMAIL
+    // ============================================
+
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -356,14 +454,18 @@ export async function POST(request: Request) {
     const mailOptions = {
       from: `"Shining Property Service" <${process.env.GMAIL_USER}>`,
       to: 'shiningpropertyofficial@gmail.com',
-      subject: `Mobile Detailing Booking: ${selectedPackage?.name || 'Booking'} - ${firstName} ${lastName}`,
+      subject: `Mobile Detailing Booking: ${selectedPackage?.name || 'Booking'} - ${firstName || ''} ${lastName || ''}`,
       html: html,
       replyTo: email,
     };
 
     await transporter.sendMail(mailOptions);
 
-    return NextResponse.json({ success: true, message: 'Booking email sent successfully' });
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Booking email sent successfully' 
+    });
+
   } catch (error) {
     console.error('Error sending email:', error);
     return NextResponse.json({ 

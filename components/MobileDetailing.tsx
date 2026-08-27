@@ -1264,7 +1264,7 @@ useEffect(() => {
 
       try {
         // Send email via API
-        await fetch('/api/send-booking-email', {
+        await fetch('/api/send-mobile-booking-email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

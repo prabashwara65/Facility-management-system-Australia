@@ -16,9 +16,10 @@ import {
   AlertCircle,
   X,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-const iconMap = {
+const iconMap: Record<string, LucideIcon> = {
   Home: Home,
   Sparkles: Sparkles,
   Calendar: Calendar,

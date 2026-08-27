@@ -5,11 +5,9 @@ import { motion, Variants } from 'framer-motion';
 import { Plane } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-interface Suburb {
-  id: number;
+interface ServiceAreaRow {
   name: string;
   region: string;
-  status: string;
 }
 
 const containerVariants: Variants = {
@@ -49,8 +47,9 @@ export default function ServiceAreasSection() {
         }
 
         if (data && data.length > 0) {
-          const suburbNames = data.map(item => item.name);
-          const regionNames = [...new Set(data.map(item => item.region))];
+          const serviceAreas = data as ServiceAreaRow[];
+          const suburbNames = serviceAreas.map((item) => item.name);
+          const regionNames = [...new Set(serviceAreas.map((item) => item.region))];
           setSuburbs(suburbNames);
           setRegions(regionNames);
         } else {

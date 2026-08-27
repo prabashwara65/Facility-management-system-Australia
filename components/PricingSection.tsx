@@ -38,6 +38,14 @@ interface AddOn {
   selected?: boolean;
 }
 
+interface DisplayAddOn {
+  id: string;
+  name: string;
+  price: string;
+  description: string;
+  category: string;
+}
+
 const defaultTiers: Tier[] = [
   {
     id: 1,
@@ -419,7 +427,7 @@ export default function PricingSection() {
   const commercialData = getCategoryData('Commercial');
 
   // Group add-ons by category from database
-  const groupedAddOns = allAddOns.reduce((acc, addOn) => {
+  const groupedAddOns = allAddOns.reduce<Record<string, DisplayAddOn[]>>((acc, addOn) => {
     if (!acc[addOn.category]) {
       acc[addOn.category] = [];
     }
@@ -431,7 +439,7 @@ export default function PricingSection() {
       category: addOn.category,
     });
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {});
 
   if (loading) {
     return (
@@ -660,9 +668,9 @@ function ResidentialContent({
 
           {/* Add-ons by Category */}
           <div className="space-y-4">
-            {Object.entries(groupedAddOns).map(([category, addOns]) => {
+            {Object.entries(groupedAddOns as Record<string, DisplayAddOn[]>).map(([category, addOns]) => {
               const isExpanded = expandedAddOnCategory === category;
-              const selectedCount = addOns.filter((a: any) => selectedAddOns.includes(a.id)).length;
+              const selectedCount = addOns.filter((a) => selectedAddOns.includes(a.id)).length;
               
               return (
                 <div key={category} className="rounded-lg overflow-hidden"
@@ -713,7 +721,7 @@ function ResidentialContent({
                         className="overflow-hidden"
                       >
                         <div className="px-4 pb-4 space-y-2">
-                          {addOns.map((addOn: any) => {
+                          {addOns.map((addOn) => {
                             const isSelected = selectedAddOns.includes(addOn.id);
                             return (
                               <button

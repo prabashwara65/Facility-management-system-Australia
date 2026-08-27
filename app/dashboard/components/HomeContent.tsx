@@ -34,7 +34,24 @@ import {
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-// Types
+// ============================================
+// TYPES
+// ============================================
+
+interface Booking {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  service_type: string;
+  status: string;
+  total_price: number;
+  preferred_date: string;
+  created_at: string;
+  [key: string]: any;
+}
+
 interface BookingStats {
   total: number;
   pending: number;
@@ -44,11 +61,31 @@ interface BookingStats {
   revenue: number;
 }
 
+interface Service {
+  id: number;
+  category: string;
+  status: string;
+  is_active: boolean;
+  [key: string]: any;
+}
+
 interface ServiceStats {
   total: number;
   residential: number;
   commercial: number;
   active: number;
+}
+
+interface PricingTier {
+  id: number;
+  label: string;
+  is_popular: boolean;
+  [key: string]: any;
+}
+
+interface FAQ {
+  id: number;
+  [key: string]: any;
 }
 
 interface PricingStats {
@@ -57,9 +94,22 @@ interface PricingStats {
   popularTier: string;
 }
 
+interface PromiseFeature {
+  id: number;
+  status: string;
+  [key: string]: any;
+}
+
 interface PromiseStats {
   total: number;
   active: number;
+}
+
+interface Testimonial {
+  id: number;
+  status: string;
+  rating: number;
+  [key: string]: any;
 }
 
 interface TestimonialStats {
@@ -68,11 +118,22 @@ interface TestimonialStats {
   fiveStar: number;
 }
 
+interface ServiceArea {
+  id: number;
+  region: string;
+  status: string;
+  [key: string]: any;
+}
+
 interface AreaStats {
   total: number;
   active: number;
   regions: number;
 }
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 export default function HomeContent() {
   const [loading, setLoading] = useState(true);
@@ -111,12 +172,15 @@ export default function HomeContent() {
     active: 0,
     regions: 0,
   });
-  const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const supabase = createClient();
 
-  // Load all dashboard data
+  // ============================================
+  // LOAD DASHBOARD DATA
+  // ============================================
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
@@ -130,12 +194,23 @@ export default function HomeContent() {
       if (bookingsError) {
         console.error('Error loading bookings:', bookingsError);
       } else if (bookingsData) {
-        const total = bookingsData.length;
-        const pending = bookingsData.filter(b => b.status === 'pending' || b.status === 'Pending').length;
-        const confirmed = bookingsData.filter(b => b.status === 'confirmed' || b.status === 'Confirmed').length;
-        const completed = bookingsData.filter(b => b.status === 'completed' || b.status === 'Completed').length;
-        const cancelled = bookingsData.filter(b => b.status === 'cancelled' || b.status === 'Cancelled').length;
-        const revenue = bookingsData.reduce((sum, b) => sum + (b.total_price || 0), 0);
+        const typedBookings = bookingsData as Booking[];
+        const total = typedBookings.length;
+        const pending = typedBookings.filter((b: Booking) => 
+          b.status === 'pending' || b.status === 'Pending'
+        ).length;
+        const confirmed = typedBookings.filter((b: Booking) => 
+          b.status === 'confirmed' || b.status === 'Confirmed'
+        ).length;
+        const completed = typedBookings.filter((b: Booking) => 
+          b.status === 'completed' || b.status === 'Completed'
+        ).length;
+        const cancelled = typedBookings.filter((b: Booking) => 
+          b.status === 'cancelled' || b.status === 'Cancelled'
+        ).length;
+        const revenue = typedBookings.reduce((sum: number, b: Booking) => 
+          sum + (b.total_price || 0), 0
+        );
 
         setBookingStats({
           total,
@@ -147,7 +222,7 @@ export default function HomeContent() {
         });
 
         // Get recent 5 bookings
-        const sorted = [...bookingsData].sort((a, b) => 
+        const sorted = [...typedBookings].sort((a: Booking, b: Booking) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
         setRecentBookings(sorted.slice(0, 5));
@@ -161,11 +236,14 @@ export default function HomeContent() {
       if (servicesError) {
         console.error('Error loading services:', servicesError);
       } else if (servicesData) {
+        const typedServices = servicesData as Service[];
         setServiceStats({
-          total: servicesData.length,
-          residential: servicesData.filter(s => s.category === 'Residential').length,
-          commercial: servicesData.filter(s => s.category === 'Commercial').length,
-          active: servicesData.filter(s => s.status === 'Active' || s.is_active === true).length,
+          total: typedServices.length,
+          residential: typedServices.filter((s: Service) => s.category === 'Residential').length,
+          commercial: typedServices.filter((s: Service) => s.category === 'Commercial').length,
+          active: typedServices.filter((s: Service) => 
+            s.status === 'Active' || s.is_active === true
+          ).length,
         });
       }
 
@@ -179,10 +257,11 @@ export default function HomeContent() {
         .select('*');
 
       if (!tiersError && tiersData) {
-        const popular = tiersData.find(t => t.is_popular === true);
+        const typedTiers = tiersData as PricingTier[];
+        const popular = typedTiers.find((t: PricingTier) => t.is_popular === true);
         setPricingStats({
-          totalTiers: tiersData.length,
-          totalFAQs: faqsData?.length || 0,
+          totalTiers: typedTiers.length,
+          totalFAQs: (faqsData as FAQ[])?.length || 0,
           popularTier: popular?.label || 'None',
         });
       }
@@ -193,9 +272,10 @@ export default function HomeContent() {
         .select('*');
 
       if (!promisesError && promisesData) {
+        const typedPromises = promisesData as PromiseFeature[];
         setPromiseStats({
-          total: promisesData.length,
-          active: promisesData.filter(p => p.status === 'Active').length,
+          total: typedPromises.length,
+          active: typedPromises.filter((p: PromiseFeature) => p.status === 'Active').length,
         });
       }
 
@@ -205,10 +285,11 @@ export default function HomeContent() {
         .select('*');
 
       if (!testimonialsError && testimonialsData) {
+        const typedTestimonials = testimonialsData as Testimonial[];
         setTestimonialStats({
-          total: testimonialsData.length,
-          active: testimonialsData.filter(t => t.status === 'Active').length,
-          fiveStar: testimonialsData.filter(t => t.rating === 5).length,
+          total: typedTestimonials.length,
+          active: typedTestimonials.filter((t: Testimonial) => t.status === 'Active').length,
+          fiveStar: typedTestimonials.filter((t: Testimonial) => t.rating === 5).length,
         });
       }
 
@@ -218,10 +299,11 @@ export default function HomeContent() {
         .select('*');
 
       if (!areasError && areasData) {
-        const regions = [...new Set(areasData.map(a => a.region))];
+        const typedAreas = areasData as ServiceArea[];
+        const regions = [...new Set(typedAreas.map((a: ServiceArea) => a.region))];
         setAreaStats({
-          total: areasData.length,
-          active: areasData.filter(a => a.status === 'Active').length,
+          total: typedAreas.length,
+          active: typedAreas.filter((a: ServiceArea) => a.status === 'Active').length,
           regions: regions.length,
         });
       }
@@ -238,14 +320,24 @@ export default function HomeContent() {
     loadDashboardData();
   }, []);
 
-  // Format date
+  // ============================================
+  // HELPERS
+  // ============================================
+
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-AU', { 
+        day: 'numeric', 
+        month: 'short', 
+        year: 'numeric' 
+      });
+    } catch {
+      return 'Invalid date';
+    }
   };
 
-  // Get status color
   const getStatusColor = (status: string) => {
     const s = status?.toLowerCase() || '';
     if (s === 'pending') return '#f59e0b';
@@ -259,11 +351,26 @@ export default function HomeContent() {
     loadDashboardData();
   };
 
+  // ============================================
+  // RENDER
+  // ============================================
+
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px', color: '#94a3b8' }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '400px', 
+        color: '#94a3b8' 
+      }}>
         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
         <span style={{ marginLeft: '12px' }}>Loading dashboard...</span>
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -509,7 +616,7 @@ export default function HomeContent() {
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
-                          {booking.service_type}
+                          {booking.service_type || 'N/A'}
                         </span>
                         <span
                           style={{
@@ -529,7 +636,7 @@ export default function HomeContent() {
                     </div>
                   </div>
                   <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '4px', paddingLeft: '44px' }}>
-                    {formatDate(booking.preferred_date)}
+                    {formatDate(booking.preferred_date || booking.created_at)}
                   </div>
                 </div>
               ))
@@ -673,12 +780,6 @@ export default function HomeContent() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }
