@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import { Home, Sparkles, Calendar, ArrowRight } from "lucide-react";
+import { Home, Sparkles, Calendar, ArrowRight, type LucideIcon } from "lucide-react";
 import { createClient } from '@/lib/supabase/client';
 
-const iconMap = {
+// Define the icon map with proper typing
+const iconMap: Record<string, LucideIcon> = {
   Home: Home,
   Sparkles: Sparkles,
   Calendar: Calendar,
@@ -38,10 +39,19 @@ const defaultServices = [
   },
 ];
 
+// Define service type
+interface Service {
+  id: number;
+  icon: string;
+  title: string;
+  price: string;
+  description: string;
+}
+
 export default function Services() {
-  const [services, setServices] = useState(defaultServices);
+  const [services, setServices] = useState<Service[]>(defaultServices);
   const [isLoading, setIsLoading] = useState(true);
-  const sectionRef = useRef(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(sectionRef, { once: false, amount: 0.2 });
 
   const supabase = createClient();
@@ -51,8 +61,10 @@ export default function Services() {
     try {
       setIsLoading(true);
 
+      // Note: Make sure your table name is correct
+      // If your table is 'vehicle_services', use that instead of 'services'
       const { data, error } = await supabase
-        .from('services')
+        .from('services') // Change this to your actual table name
         .select('id, icon, title, price, description')
         .order('sort_order', { ascending: true });
 
@@ -65,7 +77,7 @@ export default function Services() {
 
       if (data && data.length > 0) {
         // Transform data to match component format
-        const transformed = data.map(service => ({
+        const transformed: Service[] = data.map((service: any) => ({
           id: service.id,
           icon: service.icon || 'Home',
           title: service.title,
@@ -111,7 +123,7 @@ export default function Services() {
       y: 0,
       scale: 1,
       transition: {
-        type: 'spring',
+        type: "spring" as const,
         stiffness: 120,
         damping: 15,
       },
