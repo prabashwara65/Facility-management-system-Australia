@@ -34,6 +34,7 @@ const navItems: NavItem[] = [
   { icon: Users, label: 'Testimonials' },
   { icon: MapPin, label: 'ServiceAreas' },
   { icon: Calendar, label: 'Bookings' },
+  { icon: Calendar, label: 'MobileDetailing' },
 ];
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {

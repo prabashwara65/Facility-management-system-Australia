@@ -1,10 +1,11 @@
 'use client';
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Star, 
-  Phone, 
   Check,
   Car,
   Truck,
@@ -20,7 +21,6 @@ import {
   Users,
   Clock as ClockIcon,
   ChevronRight,
-  Lock,
   Unlock,
   AlertCircle,
   ChevronDown,
@@ -30,7 +30,6 @@ import {
   Trash2,
   Home,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useTheme } from '@/app/context/ThemeProvider';
@@ -418,7 +417,7 @@ const generateDates = () => {
 const STORAGE_KEY = 'mobile_detailing_booking_data';
 
 // Save to local storage
-const saveToLocalStorage = (data: any) => {
+const saveToLocalStorage = (data: unknown) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
@@ -682,8 +681,9 @@ export default function MobileDetailing() {
     setSelectedAddOns(prev => {
       const newCount = (prev[addOnId] || 0) - 1;
       if (newCount <= 0) {
-        const { [addOnId]: _, ...rest } = prev;
-        return rest;
+        const next = { ...prev };
+        delete next[addOnId];
+        return next;
       }
       return { ...prev, [addOnId]: newCount };
     });
@@ -821,7 +821,7 @@ export default function MobileDetailing() {
 
       try {
         // Send email via API
-        const response = await fetch('/api/send-booking-email', {
+        await fetch('/api/send-booking-email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -941,6 +941,8 @@ export default function MobileDetailing() {
   const secondaryColor = currentTheme.colors[2];
   const bgColor = currentTheme.colors[0];
   const textColor = currentTheme.colors[3];
+  const glassPanelClass = 'rounded-2xl border border-white/10 bg-white/[0.07] shadow-2xl shadow-black/20 backdrop-blur-sm';
+  const glassCardClass = 'rounded-xl border border-white/10 bg-white/[0.06] shadow-lg shadow-black/10 backdrop-blur-sm';
 
   // Filter services based on selected category
   const filteredServices = Array.isArray(services) ? services.filter(service => 
@@ -950,7 +952,7 @@ export default function MobileDetailing() {
   const availableDates = generateDates();
 
   // Toast component
-  const Toast = () => {
+  const renderToast = () => {
     if (!toast) return null;
     return (
       <motion.div
@@ -983,17 +985,17 @@ export default function MobileDetailing() {
   };
 
   // Booking Type Selector Component
-  const BookingTypeSelector = () => {
+  const renderBookingTypeSelector = () => {
     if (bookingType) return null;
     
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-theme-panel rounded-2xl p-8 border border-theme-border text-center">
-          <h2 className="text-2xl font-serif font-bold text-theme-text mb-2">
+        <div className="bg-white/[0.07] rounded-2xl p-8 border border-white/10 text-center">
+          <h2 className="text-2xl font-serif font-bold text-white mb-2">
             Choose Your Service Type
           </h2>
-          <p className="text-theme-muted mb-8">
-            Select the type of service you'd like to book
+          <p className="text-white/55 mb-8">
+            Select the type of service you&apos;d like to book
           </p>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
@@ -1003,18 +1005,18 @@ export default function MobileDetailing() {
               onClick={() => {
                 router.push('/booking');
               }}
-              className="p-6 rounded-2xl border-2 border-theme-border hover:border-blue-500 transition-all bg-theme-card text-left"
+              className="p-6 rounded-2xl border-2 border-white/10 hover:border-blue-500 transition-all bg-white/[0.06] text-left"
             >
               <div className="flex items-center gap-4 mb-3">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
                   <Home className="w-6 h-6" style={{ color: primaryColor }} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-theme-text">Residential</h3>
-                  <p className="text-xs text-theme-muted">Home & Office Cleaning</p>
+                  <h3 className="font-bold text-white">Residential</h3>
+                  <p className="text-xs text-white/55">Home & Office Cleaning</p>
                 </div>
               </div>
-              <p className="text-sm text-theme-muted">
+              <p className="text-sm text-white/55">
                 Bond cleaning, regular cleaning, deep cleaning, and more
               </p>
             </motion.button>
@@ -1025,7 +1027,7 @@ export default function MobileDetailing() {
               onClick={() => {
                 setBookingType('mobile');
               }}
-              className="p-6 rounded-2xl border-2 border-blue-500 transition-all bg-theme-card text-left shadow-lg"
+              className="p-6 rounded-2xl border-2 border-blue-500 transition-all bg-white/[0.06] text-left shadow-lg"
               style={{ borderColor: secondaryColor }}
             >
               <div className="flex items-center gap-4 mb-3">
@@ -1033,11 +1035,11 @@ export default function MobileDetailing() {
                   <Car className="w-6 h-6" style={{ color: secondaryColor }} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-theme-text">Mobile Detailing</h3>
-                  <p className="text-xs text-theme-muted">Vehicle Detailing</p>
+                  <h3 className="font-bold text-white">Mobile Detailing</h3>
+                  <p className="text-xs text-white/55">Vehicle Detailing</p>
                 </div>
               </div>
-              <p className="text-sm text-theme-muted">
+              <p className="text-sm text-white/55">
                 Premium auto detailing with comprehensive interior & exterior services
               </p>
               <div className="mt-2">
@@ -1055,38 +1057,56 @@ export default function MobileDetailing() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-theme-bg text-theme-text pt-20">
+      <div
+        className="min-h-screen pt-20 font-sans text-white"
+        style={{
+          background: `linear-gradient(180deg, var(--theme-primary) 0%, ${primaryColor} 54%, #07182f 100%)`,
+        }}
+      >
         {/* Toast */}
-        <Toast />
+        {renderToast()}
 
         {/* Booking Type Selector - Show when no type selected */}
-        <BookingTypeSelector />
+        {renderBookingTypeSelector()}
 
         {/* Only show booking content when mobile detailing is selected */}
         {bookingType === 'mobile' && (
           <>
             {/* Hero Section */}
             <div 
-              className="relative border-b border-theme-border"
+              className="relative overflow-hidden border-b border-white/10"
               style={{ 
-                background: `linear-gradient(to right, ${primaryColor}40, ${secondaryColor}40)`
+                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor}66)`
               }}
             >
-              <div className="max-w-7xl mx-auto px-4 py-12 sm:py-16">
-                <div className="text-center">
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-bold text-hero-text mb-4">
-                    Book Your <span style={{ color: secondaryColor }}>Mobile Detailing</span>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.16),transparent_32%),linear-gradient(90deg,rgba(255,255,255,0.08),transparent)]" />
+              <div className="relative max-w-7xl mx-auto px-4 py-12 sm:py-16">
+                <div className="mx-auto max-w-3xl text-center">
+                  <span
+                    className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-white/75"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Mobile vehicle detailing
+                  </span>
+                  <h1 className="text-3xl sm:text-5xl md:text-6xl font-serif font-bold tracking-tight text-white mb-4">
+                    Book Your Mobile Detailing
                   </h1>
-                  <p className="text-base sm:text-lg text-hero-text-secondary max-w-2xl mx-auto">
-                    Select your vehicle, pick your services, choose a date, and we'll come to you.
+                  <p className="text-base sm:text-lg text-white/75 max-w-2xl mx-auto">
+                    Select your vehicle, pick your services, choose a date, and we&apos;ll come to you.
                   </p>
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs font-medium text-white/70">
+                    {['Melbourne metro', 'Fully insured', 'No payment to book'].map((item) => (
+                      <span key={item} className="rounded-full border border-white/10 bg-white/10 px-3 py-1">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
                   <button
                     onClick={() => {
                       setBookingType(null);
                       // Reset any booking state if needed
                     }}
-                    className="mt-4 text-sm font-medium hover:underline flex items-center gap-1 mx-auto"
-                    style={{ color: primaryColor }}
+                    className="mt-5 text-sm font-medium text-white/70 transition-colors hover:text-white hover:underline flex items-center gap-1 mx-auto"
                   >
                     ← Change service type
                   </button>
@@ -1095,8 +1115,8 @@ export default function MobileDetailing() {
             </div>
 
             {/* Progress Bar - 3 Steps */}
-            <div className="max-w-4xl mx-auto px-4 py-6">
-              <div className="relative">
+            <div className="max-w-5xl mx-auto px-4 py-8">
+              <div className="relative rounded-2xl border border-white/10 bg-white/[0.06] p-4 shadow-xl shadow-black/10 backdrop-blur-sm">
                 <div className="flex items-center justify-between">
                   {[
                     { id: 'services', label: 'Services', icon: <Calendar className="w-4 h-4" /> },
@@ -1115,22 +1135,22 @@ export default function MobileDetailing() {
                       <div key={step.id} className="flex flex-col items-center flex-1 relative">
                         {index < 2 && (
                           <div className={`absolute top-5 left-[calc(50%+20px)] w-[calc(100%-40px)] h-0.5 transition-all duration-500 ${
-                            (index === 0 && isStep1Complete) ? 'bg-green-500' : 'bg-theme-border'
+                            (index === 0 && isStep1Complete) || (index === 1 && isStep2Complete) ? 'bg-green-400' : 'bg-white/10'
                           }`} />
                         )}
                         
                         <div className={`relative z-10 flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-500 ${
                           isCompleted 
-                            ? 'bg-green-500 border-green-500 text-white' 
+                            ? 'bg-green-500 border-green-400 text-white' 
                             : isActive 
-                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-500'
-                              : 'border-theme-border bg-theme-card text-theme-muted'
+                              ? 'border-[var(--theme-secondary)] bg-white/15 text-white shadow-lg shadow-black/20'
+                              : 'border-white/15 bg-white/[0.05] text-white/45'
                         }`}>
                           {isCompleted ? <Check className="w-5 h-5" /> : step.icon}
                         </div>
                         
                         <span className={`mt-2 text-xs font-medium transition-all duration-500 ${
-                          isCompleted ? 'text-green-500' : isActive ? 'text-theme-text' : 'text-theme-muted'
+                          isCompleted ? 'text-green-300' : isActive ? 'text-white' : 'text-white/45'
                         }`}>
                           {step.label}
                         </span>
@@ -1145,17 +1165,17 @@ export default function MobileDetailing() {
             {!showAddOnsStep && !showDateTimeStep && !showInfoStep && (
               <>
                 <div className="max-w-7xl mx-auto px-4 pb-8">
-                  <div className="bg-theme-panel rounded-2xl p-6 border border-theme-border">
-                    <div className="flex items-center justify-between mb-6">
+                  <div className={`${glassPanelClass} p-5 sm:p-6`}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-theme-text">Step 1: Select your services</span>
+                        <span className="text-sm font-bold text-white">Step 1: Select your services</span>
                         {isStep1Complete && (
-                          <span className="text-xs text-green-500 font-medium">✓ Complete</span>
+                          <span className="rounded-full bg-green-500/15 px-2 py-1 text-xs text-green-300 font-medium">Complete</span>
                         )}
                       </div>
                       {isStep1Complete && (
                         <button 
-                          className="text-sm font-medium hover:underline"
+                          className="text-sm font-medium text-white/70 hover:text-white hover:underline"
                           style={{ color: secondaryColor }}
                           onClick={() => {
                             setSelectedPackage(null);
@@ -1173,7 +1193,7 @@ export default function MobileDetailing() {
                     <div className="mb-6">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                         <div className="relative flex-1 max-w-xs">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted" />
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/45" />
                           <input
                             type="text"
                             placeholder="Postcode"
@@ -1190,17 +1210,15 @@ export default function MobileDetailing() {
                                 setIsUnlocked(false);
                               }
                             }}
-                            className={`w-full pl-10 pr-4 py-2.5 rounded-xl border-2 bg-theme-card text-theme-text focus:outline-none transition-colors ${
-                              isZipValid ? 'border-green-500' : zipError ? 'border-red-500' : 'border-theme-border'
-                            }`}
-                            style={{ borderColor: isZipValid ? '#22c55e' : zipError ? '#ef4444' : 'var(--theme-border)' }}
+                            className="w-full rounded-xl border bg-white/[0.08] py-2.5 pl-10 pr-10 text-white outline-none transition-colors placeholder:text-white/35 focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
+                            style={{ borderColor: isZipValid ? '#22c55e' : zipError ? '#ef4444' : 'rgba(255,255,255,0.12)' }}
                           />
                           {isZipValid && <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />}
                         </div>
                         <button
                           onClick={handleZipSubmit}
                           className="px-6 py-2.5 rounded-xl text-white font-semibold transition-all hover:opacity-90 whitespace-nowrap"
-                          style={{ backgroundColor: primaryColor }}
+                          style={{ backgroundColor: secondaryColor }}
                         >
                           {isZipValid ? 'Verified ✓' : 'Enter Postcode'}
                         </button>
@@ -1221,7 +1239,7 @@ export default function MobileDetailing() {
 
                     {/* Vehicle Category Cards */}
                     <div className={`mb-6 transition-opacity duration-300 ${!isUnlocked ? 'opacity-50 pointer-events-none' : ''}`}>
-                      <p className="text-sm font-medium text-theme-text mb-3">Select your vehicle type</p>
+                      <p className="text-sm font-medium text-white mb-3">Select your vehicle type</p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {vehicleCategories.map((category) => {
                           const Icon = category.icon;
@@ -1233,18 +1251,18 @@ export default function MobileDetailing() {
                               whileTap={isUnlocked ? { scale: 0.97 } : {}}
                               onClick={() => handleSelectCategory(category.id)}
                               disabled={!isUnlocked}
-                              className={`p-4 rounded-xl border-2 transition-all ${
+                              className={`p-4 rounded-xl border transition-all ${
                                 isSelected 
-                                  ? 'border-blue-500 shadow-lg' 
-                                  : 'border-theme-border hover:border-theme-secondary'
+                                  ? 'shadow-lg shadow-black/20' 
+                                  : 'hover:border-white/25'
                               }`}
                               style={{
-                                backgroundColor: isSelected ? `${primaryColor}15` : 'var(--theme-card)',
-                                borderColor: isSelected ? secondaryColor : undefined,
+                                backgroundColor: isSelected ? `${secondaryColor}24` : 'rgba(255,255,255,0.06)',
+                                borderColor: isSelected ? secondaryColor : 'rgba(255,255,255,0.1)',
                               }}
                             >
-                              <Icon className={`w-8 h-8 mx-auto mb-2 ${isSelected ? 'text-blue-500' : 'text-theme-muted'}`} />
-                              <p className={`text-sm font-medium ${isSelected ? 'text-theme-text' : 'text-theme-muted'}`}>
+                              <Icon className={`w-8 h-8 mx-auto mb-2 ${isSelected ? 'text-white' : 'text-white/45'}`} />
+                              <p className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-white/60'}`}>
                                 {category.label}
                               </p>
                               {isSelected && (
@@ -1265,21 +1283,21 @@ export default function MobileDetailing() {
                         <div className="relative">
                           <button
                             onClick={() => setIsDropdownOpen(isDropdownOpen === 'year' ? null : 'year')}
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text flex items-center justify-between hover:border-theme-secondary transition-colors"
+                            className="w-full px-4 py-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white flex items-center justify-between hover:border-white/25 transition-colors"
                             style={{ borderColor: isDropdownOpen === 'year' ? secondaryColor : 'var(--theme-border)' }}
                           >
-                            <span className={selectedYear ? 'text-theme-text' : 'text-theme-muted'}>
+                            <span className={selectedYear ? 'text-white' : 'text-white/55'}>
                               {selectedYear || 'Select year'}
                             </span>
-                            <ChevronDown className={`w-4 h-4 text-theme-muted transition-transform ${isDropdownOpen === 'year' ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-4 h-4 text-white/55 transition-transform ${isDropdownOpen === 'year' ? 'rotate-180' : ''}`} />
                           </button>
                           {isDropdownOpen === 'year' && (
-                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-theme-card border border-theme-border rounded-xl shadow-lg z-20">
+                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
                               {years.map((year) => (
                                 <button
                                   key={year}
                                   onClick={() => { setSelectedYear(year); setIsDropdownOpen(null); }}
-                                  className="w-full px-4 py-2 text-left hover:bg-theme-panel transition-colors text-sm text-theme-text"
+                                  className="w-full px-4 py-2 text-left hover:bg-white/[0.07] transition-colors text-sm text-white"
                                 >
                                   {year}
                                 </button>
@@ -1292,21 +1310,21 @@ export default function MobileDetailing() {
                         <div className="relative">
                           <button
                             onClick={() => setIsDropdownOpen(isDropdownOpen === 'make' ? null : 'make')}
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text flex items-center justify-between hover:border-theme-secondary transition-colors"
+                            className="w-full px-4 py-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white flex items-center justify-between hover:border-white/25 transition-colors"
                             style={{ borderColor: isDropdownOpen === 'make' ? secondaryColor : 'var(--theme-border)' }}
                           >
-                            <span className={selectedMake ? 'text-theme-text' : 'text-theme-muted'}>
+                            <span className={selectedMake ? 'text-white' : 'text-white/55'}>
                               {selectedMake || 'Select brand'}
                             </span>
-                            <ChevronDown className={`w-4 h-4 text-theme-muted transition-transform ${isDropdownOpen === 'make' ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-4 h-4 text-white/55 transition-transform ${isDropdownOpen === 'make' ? 'rotate-180' : ''}`} />
                           </button>
                           {isDropdownOpen === 'make' && (
-                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-theme-card border border-theme-border rounded-xl shadow-lg z-20">
+                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
                               {makes.map((make) => (
                                 <button
                                   key={make}
                                   onClick={() => { setSelectedMake(make); setSelectedModel(''); setSelectedBody(''); setIsDropdownOpen(null); }}
-                                  className="w-full px-4 py-2 text-left hover:bg-theme-panel transition-colors text-sm text-theme-text"
+                                  className="w-full px-4 py-2 text-left hover:bg-white/[0.07] transition-colors text-sm text-white"
                                 >
                                   {make}
                                 </button>
@@ -1320,21 +1338,21 @@ export default function MobileDetailing() {
                           <button
                             onClick={() => setIsDropdownOpen(isDropdownOpen === 'model' ? null : 'model')}
                             disabled={!selectedMake}
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text flex items-center justify-between hover:border-theme-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full px-4 py-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white flex items-center justify-between hover:border-white/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ borderColor: isDropdownOpen === 'model' ? secondaryColor : 'var(--theme-border)' }}
                           >
-                            <span className={selectedModel ? 'text-theme-text' : 'text-theme-muted'}>
+                            <span className={selectedModel ? 'text-white' : 'text-white/55'}>
                               {selectedModel || 'Select model'}
                             </span>
-                            <ChevronDown className={`w-4 h-4 text-theme-muted transition-transform ${isDropdownOpen === 'model' ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-4 h-4 text-white/55 transition-transform ${isDropdownOpen === 'model' ? 'rotate-180' : ''}`} />
                           </button>
                           {isDropdownOpen === 'model' && selectedMake && (
-                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-theme-card border border-theme-border rounded-xl shadow-lg z-20">
+                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
                               {modelsByMake[selectedMake]?.map((model) => (
                                 <button
                                   key={model}
                                   onClick={() => { setSelectedModel(model); setSelectedBody(''); setIsDropdownOpen(null); }}
-                                  className="w-full px-4 py-2 text-left hover:bg-theme-panel transition-colors text-sm text-theme-text"
+                                  className="w-full px-4 py-2 text-left hover:bg-white/[0.07] transition-colors text-sm text-white"
                                 >
                                   {model}
                                 </button>
@@ -1348,21 +1366,21 @@ export default function MobileDetailing() {
                           <button
                             onClick={() => setIsDropdownOpen(isDropdownOpen === 'body' ? null : 'body')}
                             disabled={!selectedModel}
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text flex items-center justify-between hover:border-theme-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full px-4 py-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white flex items-center justify-between hover:border-white/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ borderColor: isDropdownOpen === 'body' ? secondaryColor : 'var(--theme-border)' }}
                           >
-                            <span className={selectedBody ? 'text-theme-text' : 'text-theme-muted'}>
+                            <span className={selectedBody ? 'text-white' : 'text-white/55'}>
                               {selectedBody || 'Select body'}
                             </span>
-                            <ChevronDown className={`w-4 h-4 text-theme-muted transition-transform ${isDropdownOpen === 'body' ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`w-4 h-4 text-white/55 transition-transform ${isDropdownOpen === 'body' ? 'rotate-180' : ''}`} />
                           </button>
                           {isDropdownOpen === 'body' && selectedMake && (
-                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-theme-card border border-theme-border rounded-xl shadow-lg z-20">
+                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
                               {bodyTypesByMake[selectedMake]?.map((body) => (
                                 <button
                                   key={body}
                                   onClick={() => { setSelectedBody(body); setIsDropdownOpen(null); }}
-                                  className="w-full px-4 py-2 text-left hover:bg-theme-panel transition-colors text-sm text-theme-text"
+                                  className="w-full px-4 py-2 text-left hover:bg-white/[0.07] transition-colors text-sm text-white"
                                 >
                                   {body}
                                 </button>
@@ -1375,13 +1393,13 @@ export default function MobileDetailing() {
 
                     {/* Vehicle Summary */}
                     {selectedYear && selectedMake && selectedModel && selectedBody && (
-                      <div className="mt-4 p-3 bg-theme-card rounded-xl border border-theme-border">
+                      <div className="mt-4 rounded-xl border border-green-400/25 bg-green-500/10 p-3">
                         <div className="flex items-center gap-4 text-sm flex-wrap">
-                          <span className="font-medium text-theme-text">Vehicle:</span>
-                          <span className="text-theme-muted">{selectedYear}</span>
-                          <span className="text-theme-muted">{selectedMake}</span>
-                          <span className="text-theme-muted">{selectedModel}</span>
-                          <span className="text-theme-muted">{selectedBody}</span>
+                          <span className="font-medium text-white">Vehicle:</span>
+                          <span className="text-white/70">{selectedYear}</span>
+                          <span className="text-white/70">{selectedMake}</span>
+                          <span className="text-white/70">{selectedModel}</span>
+                          <span className="text-white/70">{selectedBody}</span>
                           <Check className="w-4 h-4 text-green-500 ml-auto" />
                         </div>
                       </div>
@@ -1392,7 +1410,7 @@ export default function MobileDetailing() {
                 {/* Package Selection - Only shown when vehicle is fully selected */}
                 {selectedYear && selectedMake && selectedModel && selectedBody && (
                   <div className="max-w-7xl mx-auto px-4 pb-16">
-                    <h2 className="text-2xl font-serif font-bold text-center mb-6" style={{ color: primaryColor }}>
+                    <h2 className="text-2xl font-serif font-bold text-center mb-6 text-white">
                       Select Your Package
                     </h2>
                     
@@ -1415,14 +1433,15 @@ export default function MobileDetailing() {
                             layout
                           >
                             <div 
-                              className={`bg-theme-card backdrop-blur-sm border-2 rounded-2xl p-6 h-full flex flex-col transition-all duration-300 ${
+                              className={`relative rounded-2xl border p-6 h-full flex flex-col transition-all duration-300 backdrop-blur-sm ${
                                 isSelected 
-                                  ? 'border-blue-500 shadow-2xl' 
-                                  : 'border-theme-border hover:border-theme-secondary hover:shadow-xl'
+                                  ? 'shadow-2xl shadow-black/30' 
+                                  : 'hover:border-white/25 hover:shadow-xl hover:shadow-black/20'
                               }`}
                               style={{ 
-                                boxShadow: isSelected ? `0 0 0 4px ${primaryColor}20, 0 20px 60px ${primaryColor}30` : `0 4px 24px ${primaryColor}10`,
-                                borderColor: isSelected ? secondaryColor : undefined,
+                                backgroundColor: isSelected ? `${secondaryColor}18` : 'rgba(255,255,255,0.07)',
+                                borderColor: isSelected ? secondaryColor : 'rgba(255,255,255,0.1)',
+                                boxShadow: isSelected ? `0 0 0 4px ${secondaryColor}20, 0 20px 60px rgba(0,0,0,0.28)` : undefined,
                               }}
                             >
                               {isSelected && (
@@ -1443,15 +1462,15 @@ export default function MobileDetailing() {
                                     </div>
                                   )}
 
-                                  <h3 className="text-xl font-bold text-theme-text mb-1">{service.name}</h3>
+                                  <h3 className="text-xl font-bold text-white mb-1">{service.name}</h3>
                                   <p className="text-2xl font-bold" style={{ color: secondaryColor }}>{service.price}</p>
 
                                   <div className="flex items-center gap-2 mb-3">
                                     {renderStars(service.rating)}
-                                    <span className="text-theme-muted text-sm">({service.reviews.toLocaleString()})</span>
+                                    <span className="text-white/55 text-sm">({service.reviews.toLocaleString()})</span>
                                   </div>
 
-                                  <p className="text-theme-text/80 text-sm mb-4 flex-grow">{service.description}</p>
+                                  <p className="text-white/70 text-sm mb-4 flex-grow">{service.description}</p>
 
                                   <div className="space-y-2 mb-4">
                                     {service.exterior.length > 0 && (
@@ -1459,12 +1478,12 @@ export default function MobileDetailing() {
                                         <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: secondaryColor }}>Exterior</p>
                                         <div className="flex flex-wrap gap-1 mt-1">
                                           {service.exterior.slice(0, 3).map((item, idx) => (
-                                            <span key={idx} className="text-xs bg-theme-panel px-2 py-1 rounded-full text-theme-text/80">
+                                            <span key={idx} className="text-xs bg-white/10 px-2 py-1 rounded-full text-white/70">
                                               {item.split(' ').slice(0, 3).join(' ')}
                                             </span>
                                           ))}
                                           {service.exterior.length > 3 && (
-                                            <span className="text-xs text-theme-muted">+{service.exterior.length - 3} more</span>
+                                            <span className="text-xs text-white/45">+{service.exterior.length - 3} more</span>
                                           )}
                                         </div>
                                       </div>
@@ -1474,19 +1493,19 @@ export default function MobileDetailing() {
                                         <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: primaryColor }}>Interior</p>
                                         <div className="flex flex-wrap gap-1 mt-1">
                                           {service.interior.slice(0, 3).map((item, idx) => (
-                                            <span key={idx} className="text-xs bg-theme-panel px-2 py-1 rounded-full text-theme-text/80">
+                                            <span key={idx} className="text-xs bg-white/10 px-2 py-1 rounded-full text-white/70">
                                               {item.split(' ').slice(0, 3).join(' ')}
                                             </span>
                                           ))}
                                           {service.interior.length > 3 && (
-                                            <span className="text-xs text-theme-muted">+{service.interior.length - 3} more</span>
+                                            <span className="text-xs text-white/45">+{service.interior.length - 3} more</span>
                                           )}
                                         </div>
                                       </div>
                                     )}
                                   </div>
 
-                                  <div className="flex items-center gap-2 text-xs text-theme-muted mb-3">
+                                  <div className="flex items-center gap-2 text-xs text-white/55 mb-3">
                                     <ClockIcon className="w-3.5 h-3.5" />
                                     <span>Estimated {service.estimatedTime}</span>
                                   </div>
@@ -1530,12 +1549,12 @@ export default function MobileDetailing() {
                                   className="flex flex-col h-full w-full"
                                 >
                                   <div className="flex items-center gap-2 mb-2">
-                                    <h3 className="text-lg font-bold text-theme-text">{service.name}</h3>
+                                    <h3 className="text-lg font-bold text-white">{service.name}</h3>
                                     <span className="text-sm font-bold" style={{ color: secondaryColor }}>{service.price}</span>
                                   </div>
                                   
-                                  <p className="text-sm font-semibold text-theme-text mb-1">Vehicle Condition</p>
-                                  <p className="text-xs text-theme-muted mb-3">Select any that apply:</p>
+                                  <p className="text-sm font-semibold text-white mb-1">Vehicle Condition</p>
+                                  <p className="text-xs text-white/55 mb-3">Select any that apply:</p>
                                   
                                   <div className="space-y-2 flex-grow">
                                     {vehicleConditions.map((condition) => (
@@ -1545,7 +1564,7 @@ export default function MobileDetailing() {
                                         className={`w-full flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all ${
                                           selectedConditions.includes(condition)
                                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                            : 'border-theme-border hover:border-theme-secondary'
+                                            : 'border-white/10 hover:border-white/25'
                                         }`}
                                         style={{
                                           borderColor: selectedConditions.includes(condition) ? secondaryColor : undefined,
@@ -1560,7 +1579,7 @@ export default function MobileDetailing() {
                                             <Check className="w-3 h-3 text-white" />
                                           )}
                                         </div>
-                                        <span className="text-sm text-theme-text">{condition}</span>
+                                        <span className="text-sm text-white">{condition}</span>
                                       </button>
                                     ))}
                                   </div>
@@ -1571,16 +1590,16 @@ export default function MobileDetailing() {
                                       placeholder="Other (describe below)"
                                       value={otherCondition}
                                       onChange={(e) => setOtherCondition(e.target.value)}
-                                      className="w-full p-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors text-sm"
+                                      className="w-full p-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white focus:outline-none focus:border-[var(--theme-secondary)] transition-colors text-sm"
                                       style={{ borderColor: otherCondition ? secondaryColor : 'var(--theme-border)' }}
                                     />
                                   </div>
 
                                   {selectedConditions.length > 0 && (
-                                    <div className="mt-3 p-2.5 bg-theme-panel rounded-xl">
+                                    <div className="mt-3 p-2.5 bg-white/[0.07] rounded-xl">
                                       <div className="flex justify-between text-sm">
-                                        <span className="text-theme-muted">Conditions selected:</span>
-                                        <span className="font-medium text-theme-text">{selectedConditions.length}</span>
+                                        <span className="text-white/55">Conditions selected:</span>
+                                        <span className="font-medium text-white">{selectedConditions.length}</span>
                                       </div>
                                     </div>
                                   )}
@@ -1636,13 +1655,13 @@ export default function MobileDetailing() {
             {/* Step 2: Enhance Your Service - Add-ons */}
             {showAddOnsStep && isStep1Complete && !showDateTimeStep && !showInfoStep && (
               <div id="addons-section" className="max-w-4xl mx-auto px-4 pb-16">
-                <div className="bg-theme-panel rounded-2xl p-6 border border-theme-border">
+                <div className={`${glassPanelClass} p-5 sm:p-6`}>
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-serif font-bold" style={{ color: primaryColor }}>
+                      <h2 className="text-2xl font-serif font-bold text-white">
                         Enhance Your Service
                       </h2>
-                      <p className="text-sm text-theme-muted mt-1">
+                      <p className="text-sm text-white/65 mt-1">
                         Add optional extras to customize your detailing package
                       </p>
                     </div>
@@ -1656,14 +1675,14 @@ export default function MobileDetailing() {
                   </div>
 
                   {/* Selected Package Summary */}
-                  <div className="mb-6 p-4 bg-theme-card rounded-xl border border-theme-border">
+                  <div className={`${glassCardClass} mb-6 p-4`}>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div>
-                        <span className="text-sm text-theme-muted">Selected Package:</span>
-                        <span className="ml-2 font-semibold text-theme-text">{selectedPackage?.name}</span>
+                        <span className="text-sm text-white/55">Selected Package:</span>
+                        <span className="ml-2 font-semibold text-white">{selectedPackage?.name}</span>
                       </div>
                       <div>
-                        <span className="text-sm text-theme-muted">Price:</span>
+                        <span className="text-sm text-white/55">Price:</span>
                         <span className="ml-2 font-bold" style={{ color: secondaryColor }}>{selectedPackage?.price}</span>
                       </div>
                     </div>
@@ -1676,13 +1695,13 @@ export default function MobileDetailing() {
                       return (
                         <div
                           key={addOn.id}
-                          className="bg-theme-card rounded-xl border border-theme-border p-4 transition-all hover:border-theme-secondary"
+                          className="rounded-xl border border-white/10 bg-white/[0.06] p-4 transition-all hover:border-white/25"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h4 className="font-semibold text-theme-text">{addOn.name}</h4>
+                              <h4 className="font-semibold text-white">{addOn.name}</h4>
                               <button
-                                className="text-xs text-theme-muted hover:underline mt-0.5"
+                                className="text-xs text-white/50 hover:text-white hover:underline mt-0.5"
                                 onClick={() => {/* Show details modal */}}
                               >
                                 Details
@@ -1695,16 +1714,16 @@ export default function MobileDetailing() {
                                   <div className="flex items-center gap-1">
                                     <button
                                       onClick={() => handleRemoveAddOn(addOn.id)}
-                                      className="w-7 h-7 rounded-full border border-theme-border flex items-center justify-center hover:bg-theme-panel transition-colors"
+                                      className="w-7 h-7 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
                                     >
-                                      <Minus className="w-3 h-3 text-theme-muted" />
+                                      <Minus className="w-3 h-3 text-white/60" />
                                     </button>
-                                    <span className="w-6 text-center text-sm font-medium text-theme-text">{count}</span>
+                                    <span className="w-6 text-center text-sm font-medium text-white">{count}</span>
                                     <button
                                       onClick={() => handleAddAddOn(addOn.id)}
-                                      className="w-7 h-7 rounded-full border border-theme-border flex items-center justify-center hover:bg-theme-panel transition-colors"
+                                      className="w-7 h-7 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
                                     >
-                                      <Plus className="w-3 h-3 text-theme-muted" />
+                                      <Plus className="w-3 h-3 text-white/60" />
                                     </button>
                                   </div>
                                 </div>
@@ -1740,22 +1759,22 @@ export default function MobileDetailing() {
                   </div>
 
                   {/* Vehicle Count */}
-                  <div className="mt-6 p-4 bg-theme-card rounded-xl border border-theme-border">
+                  <div className={`${glassCardClass} mt-6 p-4`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-theme-text">Number of vehicles</span>
+                      <span className="text-sm text-white">Number of vehicles</span>
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setVehicleCount(Math.max(1, vehicleCount - 1))}
-                          className="w-8 h-8 rounded-full border border-theme-border flex items-center justify-center hover:bg-theme-panel transition-colors"
+                          className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
                         >
-                          <Minus className="w-4 h-4 text-theme-muted" />
+                          <Minus className="w-4 h-4 text-white/60" />
                         </button>
-                        <span className="text-lg font-bold text-theme-text w-8 text-center">{vehicleCount}</span>
+                        <span className="text-lg font-bold text-white w-8 text-center">{vehicleCount}</span>
                         <button
                           onClick={() => setVehicleCount(vehicleCount + 1)}
-                          className="w-8 h-8 rounded-full border border-theme-border flex items-center justify-center hover:bg-theme-panel transition-colors"
+                          className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
                         >
-                          <Plus className="w-4 h-4 text-theme-muted" />
+                          <Plus className="w-4 h-4 text-white/60" />
                         </button>
                       </div>
                     </div>
@@ -1768,14 +1787,14 @@ export default function MobileDetailing() {
                   </div>
 
                   {/* Total and Continue */}
-                  <div className="mt-6 pt-4 border-t border-theme-border">
+                  <div className="mt-6 pt-4 border-t border-white/10">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div>
-                        <span className="text-sm text-theme-muted">Add-ons total:</span>
+                        <span className="text-sm text-white/55">Add-ons total:</span>
                         <span className="ml-2 text-lg font-bold" style={{ color: secondaryColor }}>
                           ${getAddOnTotal()}
                         </span>
-                        <span className="ml-4 text-sm text-theme-muted">Vehicles: {vehicleCount}</span>
+                        <span className="ml-4 text-sm text-white/55">Vehicles: {vehicleCount}</span>
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -1796,13 +1815,13 @@ export default function MobileDetailing() {
             {/* Step 3: Date & Time Selection */}
             {showDateTimeStep && isStep1Complete && !showInfoStep && (
               <div id="datetime-section" className="max-w-4xl mx-auto px-4 pb-16">
-                <div className="bg-theme-panel rounded-2xl p-6 border border-theme-border">
+                <div className={`${glassPanelClass} p-5 sm:p-6`}>
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-serif font-bold" style={{ color: primaryColor }}>
+                      <h2 className="text-2xl font-serif font-bold text-white">
                         Choose Date & Time
                       </h2>
-                      <p className="text-sm text-theme-muted mt-1">
+                      <p className="text-sm text-white/65 mt-1">
                         Select your preferred appointment date and arrival window
                       </p>
                     </div>
@@ -1816,19 +1835,19 @@ export default function MobileDetailing() {
                   </div>
 
                   {/* Selected Package Summary */}
-                  <div className="mb-6 p-4 bg-theme-card rounded-xl border border-theme-border">
+                  <div className={`${glassCardClass} mb-6 p-4`}>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div>
-                        <span className="text-sm text-theme-muted">Selected Package:</span>
-                        <span className="ml-2 font-semibold text-theme-text">{selectedPackage?.name}</span>
+                        <span className="text-sm text-white/55">Selected Package:</span>
+                        <span className="ml-2 font-semibold text-white">{selectedPackage?.name}</span>
                       </div>
                       <div>
-                        <span className="text-sm text-theme-muted">Price:</span>
+                        <span className="text-sm text-white/55">Price:</span>
                         <span className="ml-2 font-bold" style={{ color: secondaryColor }}>{selectedPackage?.price}</span>
                       </div>
                       {getAddOnTotal() > 0 && (
                         <div>
-                          <span className="text-sm text-theme-muted">Add-ons:</span>
+                          <span className="text-sm text-white/55">Add-ons:</span>
                           <span className="ml-2 font-bold" style={{ color: secondaryColor }}>+${getAddOnTotal()}</span>
                         </div>
                       )}
@@ -1837,7 +1856,7 @@ export default function MobileDetailing() {
 
                   {/* Appointment Date */}
                   <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-theme-text mb-3">Appointment Date</h3>
+                    <h3 className="text-sm font-semibold text-white mb-3">Appointment Date</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {availableDates.map((date, index) => {
                         const isSelected = selectedDate?.getTime() === date.getTime();
@@ -1849,20 +1868,20 @@ export default function MobileDetailing() {
                             className={`p-3 rounded-xl border-2 text-center transition-all ${
                               isSelected
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                                : 'border-theme-border hover:border-theme-secondary'
+                                : 'border-white/10 hover:border-white/25'
                             }`}
                             style={{
                               borderColor: isSelected ? secondaryColor : undefined,
                               backgroundColor: isSelected ? `${secondaryColor}15` : undefined,
                             }}
                           >
-                            <p className="text-sm font-medium text-theme-text">
+                            <p className="text-sm font-medium text-white">
                               {date.toLocaleDateString('en-AU', { weekday: 'short' })}
                             </p>
-                            <p className="text-lg font-bold text-theme-text">
+                            <p className="text-lg font-bold text-white">
                               {date.toLocaleDateString('en-AU', { day: 'numeric' })}
                             </p>
-                            <p className="text-xs text-theme-muted">
+                            <p className="text-xs text-white/55">
                               {date.toLocaleDateString('en-AU', { month: 'short' })}
                             </p>
                             {isToday && (
@@ -1879,9 +1898,9 @@ export default function MobileDetailing() {
 
                   {/* Arrival Window */}
                   <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-theme-text mb-3">
+                    <h3 className="text-sm font-semibold text-white mb-3">
                       Arrival Window
-                      <span className="text-xs font-normal text-theme-muted ml-2">
+                      <span className="text-xs font-normal text-white/50 ml-2">
                         Choose more than one if flexible
                       </span>
                     </h3>
@@ -1895,15 +1914,15 @@ export default function MobileDetailing() {
                             className={`p-3 rounded-xl border-2 text-center transition-all ${
                               isSelected
                                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                                : 'border-theme-border hover:border-theme-secondary'
+                                : 'border-white/10 hover:border-white/25'
                             }`}
                             style={{
                               borderColor: isSelected ? secondaryColor : undefined,
                               backgroundColor: isSelected ? `${secondaryColor}15` : undefined,
                             }}
                           >
-                            <Clock className="w-5 h-5 mx-auto mb-1 text-theme-muted" />
-                            <p className="text-sm font-medium text-theme-text">{window}</p>
+                            <Clock className="w-5 h-5 mx-auto mb-1 text-white/55" />
+                            <p className="text-sm font-medium text-white">{window}</p>
                             {isSelected && (
                               <Check className="w-4 h-4 mx-auto mt-1 text-green-500" />
                             )}
@@ -1925,7 +1944,7 @@ export default function MobileDetailing() {
                     
                     {showBackupDate && (
                       <div className="mt-3">
-                        <h3 className="text-sm font-semibold text-theme-text mb-3">Backup Date</h3>
+                        <h3 className="text-sm font-semibold text-white mb-3">Backup Date</h3>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                           {availableDates.slice(1, 8).map((date, index) => {
                             const isSelected = backupDate?.getTime() === date.getTime();
@@ -1936,20 +1955,20 @@ export default function MobileDetailing() {
                                 className={`p-3 rounded-xl border-2 text-center transition-all ${
                                   isSelected
                                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                                    : 'border-theme-border hover:border-theme-secondary'
+                                    : 'border-white/10 hover:border-white/25'
                                 }`}
                                 style={{
                                   borderColor: isSelected ? secondaryColor : undefined,
                                   backgroundColor: isSelected ? `${secondaryColor}15` : undefined,
                                 }}
                               >
-                                <p className="text-sm font-medium text-theme-text">
+                                <p className="text-sm font-medium text-white">
                                   {date.toLocaleDateString('en-AU', { weekday: 'short' })}
                                 </p>
-                                <p className="text-lg font-bold text-theme-text">
+                                <p className="text-lg font-bold text-white">
                                   {date.toLocaleDateString('en-AU', { day: 'numeric' })}
                                 </p>
-                                <p className="text-xs text-theme-muted">
+                                <p className="text-xs text-white/55">
                                   {date.toLocaleDateString('en-AU', { month: 'short' })}
                                 </p>
                                 {isSelected && (
@@ -1965,24 +1984,24 @@ export default function MobileDetailing() {
 
                   {/* Summary of selections */}
                   {selectedDate && selectedArrivalWindows.length > 0 && (
-                    <div className="mb-6 p-4 bg-theme-card rounded-xl border border-green-500/30">
-                      <p className="text-sm font-medium text-theme-text">
+                    <div className="mb-6 p-4 rounded-xl border border-green-400/25 bg-green-500/10">
+                      <p className="text-sm font-medium text-white">
                         <span className="text-green-500">✓</span> Selected:
                         <span className="ml-2">{formatDate(selectedDate)}</span>
-                        <span className="ml-2 text-theme-muted">•</span>
+                        <span className="ml-2 text-white/45">•</span>
                         <span className="ml-2">{selectedArrivalWindows.join(', ')}</span>
                         {backupDate && (
-                          <span className="ml-2 text-theme-muted">• Backup: {formatDate(backupDate)}</span>
+                          <span className="ml-2 text-white/55">• Backup: {formatDate(backupDate)}</span>
                         )}
                       </p>
                     </div>
                   )}
 
                   {/* Navigation Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-theme-border">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
                     <button
                       onClick={handleBackToAddons}
-                      className="flex-1 px-6 py-3 rounded-xl border-2 border-theme-border text-theme-muted font-semibold hover:bg-theme-panel transition-colors"
+                      className="flex-1 px-6 py-3 rounded-xl border border-white/10 text-white/65 font-semibold hover:bg-white/10 transition-colors"
                     >
                       Back
                     </button>
@@ -2013,13 +2032,13 @@ export default function MobileDetailing() {
             {/* Step 4: Your Information */}
             {showInfoStep && isStep2Complete && (
               <div id="info-section" className="max-w-6xl mx-auto px-4 pb-16">
-                <div className="bg-theme-panel rounded-2xl p-6 border border-theme-border">
+                <div className={`${glassPanelClass} p-5 sm:p-6`}>
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-serif font-bold" style={{ color: primaryColor }}>
+                      <h2 className="text-2xl font-serif font-bold text-white">
                         Your Information
                       </h2>
-                      <p className="text-sm text-theme-muted mt-1">
+                      <p className="text-sm text-white/65 mt-1">
                         Please provide your contact and location details
                       </p>
                     </div>
@@ -2035,115 +2054,115 @@ export default function MobileDetailing() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - Form */}
                     <div className="lg:col-span-2">
-                      <div className="bg-theme-card rounded-xl p-6 border border-theme-border">
+                      <div className="rounded-xl border border-white/10 bg-white/[0.06] p-5 sm:p-6 shadow-lg shadow-black/10">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* First Name */}
                           <div>
-                            <label className="block text-sm font-medium text-theme-text mb-1">
+                            <label className="block text-sm font-medium text-white mb-1">
                               First Name <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
                               value={firstName}
                               onChange={(e) => setFirstName(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="First Name"
                             />
                           </div>
 
                           {/* Last Name */}
                           <div>
-                            <label className="block text-sm font-medium text-theme-text mb-1">
+                            <label className="block text-sm font-medium text-white mb-1">
                               Last Name <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
                               value={lastName}
                               onChange={(e) => setLastName(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="Last Name"
                             />
                           </div>
 
                           {/* Email */}
                           <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-theme-text mb-1">
+                            <label className="block text-sm font-medium text-white mb-1">
                               Email <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="email"
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="john@example.com"
                             />
                           </div>
 
                           {/* Mobile Phone */}
                           <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-theme-text mb-1">
+                            <label className="block text-sm font-medium text-white mb-1">
                               Mobile Phone <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="tel"
                               value={phone}
                               onChange={(e) => setPhone(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="555-123-4567"
                             />
                           </div>
 
                           {/* Address */}
                           <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-theme-text mb-1">
+                            <label className="block text-sm font-medium text-white mb-1">
                               Address <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
                               value={address}
                               onChange={(e) => setAddress(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="Start typing your address..."
                             />
                           </div>
 
                           {/* Address Unit */}
                           <div>
-                            <label className="block text-sm font-medium text-theme-text mb-1">
+                            <label className="block text-sm font-medium text-white mb-1">
                               Address Unit
                             </label>
                             <input
                               type="text"
                               value={addressUnit}
                               onChange={(e) => setAddressUnit(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="Apt / Suite"
                             />
                           </div>
 
                           {/* City */}
                           <div>
-                            <label className="block text-sm font-medium text-theme-text mb-1">
+                            <label className="block text-sm font-medium text-white mb-1">
                               City <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
                               value={city}
                               onChange={(e) => setCity(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="City"
                             />
                           </div>
 
                           {/* State */}
                           <div>
-                            <label className="block text-sm font-medium text-theme-text mb-1">
+                            <label className="block text-sm font-medium text-white mb-1">
                               State <span className="text-red-500">*</span>
                             </label>
                             <select
                               value={state}
                               onChange={(e) => setState(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                             >
                               <option value="">Select State</option>
                               <option value="VIC">Victoria</option>
@@ -2159,35 +2178,35 @@ export default function MobileDetailing() {
 
                           {/* Zip Code */}
                           <div>
-                            <label className="block text-sm font-medium text-theme-text mb-1">
+                            <label className="block text-sm font-medium text-white mb-1">
                               Zip Code <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
                               value={infoZipCode}
                               onChange={(e) => setInfoZipCode(e.target.value)}
-                              className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
+                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="10001"
                             />
                           </div>
                         </div>
 
                         {/* Location Details */}
-                        <div className="mt-6 pt-6 border-t border-theme-border">
-                          <h3 className="text-sm font-semibold text-theme-text mb-4">Location Details</h3>
-                          <p className="text-xs text-theme-muted mb-3">Not required to book</p>
+                        <div className="mt-6 pt-6 border-t border-white/10">
+                          <h3 className="text-sm font-semibold text-white mb-4">Location Details</h3>
+                          <p className="text-xs text-white/55 mb-3">Not required to book</p>
                           
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {/* Water Access */}
                             <div>
-                              <label className="block text-sm text-theme-text mb-2">Water access</label>
+                              <label className="block text-sm text-white mb-2">Water access</label>
                               <div className="flex gap-3">
                                 <button
                                   onClick={() => setWaterAccess('yes')}
                                   className={`px-4 py-2 rounded-lg border-2 transition-all ${
                                     waterAccess === 'yes'
                                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                      : 'border-theme-border hover:border-theme-secondary'
+                                      : 'border-white/10 hover:border-white/25'
                                   }`}
                                   style={{
                                     borderColor: waterAccess === 'yes' ? secondaryColor : undefined,
@@ -2201,7 +2220,7 @@ export default function MobileDetailing() {
                                   className={`px-4 py-2 rounded-lg border-2 transition-all ${
                                     waterAccess === 'no'
                                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                      : 'border-theme-border hover:border-theme-secondary'
+                                      : 'border-white/10 hover:border-white/25'
                                   }`}
                                   style={{
                                     borderColor: waterAccess === 'no' ? secondaryColor : undefined,
@@ -2215,14 +2234,14 @@ export default function MobileDetailing() {
 
                             {/* Electricity */}
                             <div>
-                              <label className="block text-sm text-theme-text mb-2">Electricity</label>
+                              <label className="block text-sm text-white mb-2">Electricity</label>
                               <div className="flex gap-3">
                                 <button
                                   onClick={() => setElectricity('yes')}
                                   className={`px-4 py-2 rounded-lg border-2 transition-all ${
                                     electricity === 'yes'
                                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                      : 'border-theme-border hover:border-theme-secondary'
+                                      : 'border-white/10 hover:border-white/25'
                                   }`}
                                   style={{
                                     borderColor: electricity === 'yes' ? secondaryColor : undefined,
@@ -2236,7 +2255,7 @@ export default function MobileDetailing() {
                                   className={`px-4 py-2 rounded-lg border-2 transition-all ${
                                     electricity === 'no'
                                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                      : 'border-theme-border hover:border-theme-secondary'
+                                      : 'border-white/10 hover:border-white/25'
                                   }`}
                                   style={{
                                     borderColor: electricity === 'no' ? secondaryColor : undefined,
@@ -2250,14 +2269,14 @@ export default function MobileDetailing() {
 
                             {/* Covered Area */}
                             <div>
-                              <label className="block text-sm text-theme-text mb-2">Covered area</label>
+                              <label className="block text-sm text-white mb-2">Covered area</label>
                               <div className="flex gap-3">
                                 <button
                                   onClick={() => setCoveredArea('yes')}
                                   className={`px-4 py-2 rounded-lg border-2 transition-all ${
                                     coveredArea === 'yes'
                                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                      : 'border-theme-border hover:border-theme-secondary'
+                                      : 'border-white/10 hover:border-white/25'
                                   }`}
                                   style={{
                                     borderColor: coveredArea === 'yes' ? secondaryColor : undefined,
@@ -2271,7 +2290,7 @@ export default function MobileDetailing() {
                                   className={`px-4 py-2 rounded-lg border-2 transition-all ${
                                     coveredArea === 'no'
                                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                      : 'border-theme-border hover:border-theme-secondary'
+                                      : 'border-white/10 hover:border-white/25'
                                   }`}
                                   style={{
                                     borderColor: coveredArea === 'no' ? secondaryColor : undefined,
@@ -2286,30 +2305,30 @@ export default function MobileDetailing() {
                         </div>
 
                         {/* Extra Information */}
-                        <div className="mt-6 pt-6 border-t border-theme-border">
-                          <label className="block text-sm font-medium text-theme-text mb-2">
-                            Extra Information <span className="text-xs text-theme-muted font-normal">Optional</span>
+                        <div className="mt-6 pt-6 border-t border-white/10">
+                          <label className="block text-sm font-medium text-white mb-2">
+                            Extra Information <span className="text-xs text-white/55 font-normal">Optional</span>
                           </label>
-                          <p className="text-xs text-theme-muted mb-3">Any extra information you would like to share with us?</p>
+                          <p className="text-xs text-white/55 mb-3">Any extra information you would like to share with us?</p>
                           <textarea
                             value={extraInfo}
                             onChange={(e) => setExtraInfo(e.target.value)}
                             rows={3}
-                            className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors resize-none"
+                            className="w-full px-4 py-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white focus:outline-none focus:border-[var(--theme-secondary)] transition-colors resize-none"
                             placeholder="Any additional details..."
                           />
                         </div>
 
                         {/* Marketing Opt-in */}
-                        <div className="mt-6 pt-6 border-t border-theme-border">
+                        <div className="mt-6 pt-6 border-t border-white/10">
                           <label className="flex items-start gap-3 cursor-pointer">
                             <input
                               type="checkbox"
                               checked={marketingOptIn}
                               onChange={(e) => setMarketingOptIn(e.target.checked)}
-                              className="mt-1 w-4 h-4 rounded border-theme-border text-blue-600 focus:ring-blue-500"
+                              className="mt-1 w-4 h-4 rounded border-white/10 text-blue-600 focus:ring-blue-500"
                             />
-                            <span className="text-sm text-theme-text">
+                            <span className="text-sm text-white">
                               Yes! Email me exclusive discounts and promotions. We respect your privacy — see our Privacy Policy.
                             </span>
                           </label>
@@ -2319,36 +2338,36 @@ export default function MobileDetailing() {
 
                     {/* Right Column - Order Summary */}
                     <div className="lg:col-span-1">
-                      <div className="bg-theme-card rounded-xl p-6 border border-theme-border sticky top-24">
-                        <h3 className="text-lg font-bold text-theme-text mb-4">Order Summary</h3>
+                      <div className="bg-white/[0.06] rounded-xl p-6 border border-white/10 sticky top-24">
+                        <h3 className="text-lg font-bold text-white mb-4">Order Summary</h3>
                         
                         {/* Service Area Postcode */}
                         <div className="mb-4">
-                          <p className="text-xs text-theme-muted">Service Area Postcode</p>
-                          <p className="text-sm font-medium text-theme-text">{zipCode || 'Not entered'}</p>
+                          <p className="text-xs text-white/55">Service Area Postcode</p>
+                          <p className="text-sm font-medium text-white">{zipCode || 'Not entered'}</p>
                         </div>
 
                         {/* Requested Date */}
                         <div className="mb-4">
-                          <p className="text-xs text-theme-muted">Requested Date</p>
-                          <p className="text-sm font-medium text-theme-text">{selectedDate ? formatDate(selectedDate) : 'Not selected'}</p>
+                          <p className="text-xs text-white/55">Requested Date</p>
+                          <p className="text-sm font-medium text-white">{selectedDate ? formatDate(selectedDate) : 'Not selected'}</p>
                         </div>
 
                         {/* Requested Windows */}
                         <div className="mb-4">
-                          <p className="text-xs text-theme-muted">Requested Arrival Windows</p>
-                          <p className="text-sm font-medium text-theme-text">{selectedArrivalWindows.join(', ') || 'Not selected'}</p>
+                          <p className="text-xs text-white/55">Requested Arrival Windows</p>
+                          <p className="text-sm font-medium text-white">{selectedArrivalWindows.join(', ') || 'Not selected'}</p>
                         </div>
 
                         {/* Package */}
                         <div className="mb-2 flex justify-between">
-                          <span className="text-sm text-theme-text">{selectedPackage?.name}</span>
+                          <span className="text-sm text-white">{selectedPackage?.name}</span>
                           <span className="text-sm font-bold" style={{ color: secondaryColor }}>{selectedPackage?.price}</span>
                         </div>
 
                         {/* Vehicle */}
                         <div className="mb-4">
-                          <p className="text-sm text-theme-muted">
+                          <p className="text-sm text-white/55">
                             {selectedYear} {selectedMake} {selectedModel} {selectedBody}
                           </p>
                         </div>
@@ -2359,8 +2378,8 @@ export default function MobileDetailing() {
                           if (addOn && count > 0) {
                             return (
                               <div key={id} className="flex justify-between text-sm mb-1">
-                                <span className="text-theme-text">{addOn.name} × {count}</span>
-                                <span className="text-theme-muted">+${addOn.price * count}</span>
+                                <span className="text-white">{addOn.name} × {count}</span>
+                                <span className="text-white/55">+${addOn.price * count}</span>
                               </div>
                             );
                           }
@@ -2368,9 +2387,9 @@ export default function MobileDetailing() {
                         })}
 
                         {/* Subtotal */}
-                        <div className="mt-4 pt-4 border-t border-theme-border flex justify-between">
-                          <span className="text-sm text-theme-muted">Subtotal ({vehicleCount} vehicle{vehicleCount > 1 ? 's' : ''})</span>
-                          <span className="text-sm font-bold text-theme-text">
+                        <div className="mt-4 pt-4 border-t border-white/10 flex justify-between">
+                          <span className="text-sm text-white/55">Subtotal ({vehicleCount} vehicle{vehicleCount > 1 ? 's' : ''})</span>
+                          <span className="text-sm font-bold text-white">
                             ${parseInt(selectedPackage?.price?.replace('$', '') || '0') + getAddOnTotal()}
                           </span>
                         </div>
@@ -2383,16 +2402,16 @@ export default function MobileDetailing() {
                         </div>
 
                         {/* Total */}
-                        <div className="mt-4 pt-4 border-t border-theme-border flex justify-between">
-                          <span className="text-base font-bold text-theme-text">Total</span>
+                        <div className="mt-4 pt-4 border-t border-white/10 flex justify-between">
+                          <span className="text-base font-bold text-white">Total</span>
                           <span className="text-xl font-bold" style={{ color: secondaryColor }}>
                             ${parseInt(selectedPackage?.price?.replace('$', '') || '0') + getAddOnTotal()}
                           </span>
                         </div>
 
                         {/* Terms */}
-                        <div className="mt-4 pt-4 border-t border-theme-border">
-                          <p className="text-xs text-theme-muted leading-relaxed">
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                          <p className="text-xs text-white/55 leading-relaxed">
                             By completing this booking, you agree to our Privacy Policy, Terms of Service and agree to receive updates via SMS messages regarding your order status. Message and data rates may apply.
                           </p>
                         </div>
@@ -2401,7 +2420,7 @@ export default function MobileDetailing() {
                         <div className="mt-6 flex flex-col gap-3">
                           <button
                             onClick={handleBackToDateTime}
-                            className="w-full px-6 py-3 rounded-xl border-2 border-theme-border text-theme-muted font-semibold hover:bg-theme-panel transition-colors"
+                            className="w-full px-6 py-3 rounded-xl border-2 border-white/10 text-white/55 font-semibold hover:bg-white/[0.07] transition-colors"
                           >
                             Back
                           </button>
@@ -2426,28 +2445,28 @@ export default function MobileDetailing() {
             )}
 
             {/* Trust Section */}
-            <div className="bg-theme-panel border-t border-theme-border py-12">
+            <div className="bg-white/[0.07] border-t border-white/10 py-12">
               <div className="max-w-7xl mx-auto px-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                   <div>
                     <Shield className="w-8 h-8 mx-auto mb-3" style={{ color: secondaryColor }} />
-                    <p className="text-theme-text font-semibold">100% Satisfaction</p>
-                    <p className="text-theme-muted text-sm">Guaranteed</p>
+                    <p className="text-white font-semibold">100% Satisfaction</p>
+                    <p className="text-white/55 text-sm">Guaranteed</p>
                   </div>
                   <div>
                     <Award className="w-8 h-8 mx-auto mb-3" style={{ color: secondaryColor }} />
-                    <p className="text-theme-text font-semibold">Fully Insured</p>
-                    <p className="text-theme-muted text-sm">& Bonded</p>
+                    <p className="text-white font-semibold">Fully Insured</p>
+                    <p className="text-white/55 text-sm">& Bonded</p>
                   </div>
                   <div>
                     <Clock className="w-8 h-8 mx-auto mb-3" style={{ color: secondaryColor }} />
-                    <p className="text-theme-text font-semibold">We Come to You</p>
-                    <p className="text-theme-muted text-sm">Mobile Service</p>
+                    <p className="text-white font-semibold">We Come to You</p>
+                    <p className="text-white/55 text-sm">Mobile Service</p>
                   </div>
                   <div>
                     <MapPin className="w-8 h-8 mx-auto mb-3" style={{ color: secondaryColor }} />
-                    <p className="text-theme-text font-semibold">Melbourne Metro</p>
-                    <p className="text-theme-muted text-sm">No Travel Fees</p>
+                    <p className="text-white font-semibold">Melbourne Metro</p>
+                    <p className="text-white/55 text-sm">No Travel Fees</p>
                   </div>
                 </div>
               </div>
@@ -2612,7 +2631,7 @@ export default function MobileDetailing() {
                             className={`px-4 py-2.5 text-sm font-medium transition-all border-b-2 ${
                               activeTab === 'exterior'
                                 ? 'text-blue-600 dark:text-blue-400'
-                                : 'border-transparent hover:text-theme-text'
+                                : 'border-transparent hover:text-white'
                             }`}
                             style={activeTab === 'exterior' ? { borderColor: secondaryColor, color: secondaryColor } : { color: `${textColor}50` }}
                           >
@@ -2625,7 +2644,7 @@ export default function MobileDetailing() {
                             className={`px-4 py-2.5 text-sm font-medium transition-all border-b-2 ${
                               activeTab === 'interior'
                                 ? 'text-blue-600 dark:text-blue-400'
-                                : 'border-transparent hover:text-theme-text'
+                                : 'border-transparent hover:text-white'
                             }`}
                             style={activeTab === 'interior' ? { borderColor: primaryColor, color: primaryColor } : { color: `${textColor}50` }}
                           >

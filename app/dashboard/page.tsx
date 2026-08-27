@@ -11,6 +11,7 @@ import PromiseContent from './components/pages/PromiseContent';
 import TestimonialsContent from './components/pages/TestimonialsContent';
 import ServiceAreasContent from './components/pages/ServiceAreasContent';
 import BookingSection from './components/pages/BookingSection';
+import MobileDetailing from './components/pages/MobileDetailing';
 
 
 function getInitialAuthState() {
@@ -59,8 +60,10 @@ export default function DashboardPage() {
         return <TestimonialsContent />;
       case 'ServiceAreas':
         return <ServiceAreasContent />;
-        case 'Bookings':
+      case 'Bookings':
         return <BookingSection />;
+      case 'MobileDetailing':
+        return <MobileDetailing />;
       default:
         return <HomeContent />;
     }
