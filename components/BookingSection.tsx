@@ -42,6 +42,9 @@ interface ResidentialBookingData {
   packagePrice?: string;
   addOnsTotal?: string;
   totalPrice?: string;
+  service?: string;
+  price?: string;
+  addons?: { name: string; price: string }[];
 }
 
 interface AddOn {
@@ -74,6 +77,7 @@ const addOnsData: AddOn[] = [
 
 // Storage key for residential booking
 const RESIDENTIAL_BOOKING_KEY = 'residential_booking_data';
+const RESIDENTIAL_BOOKING_EVENT = 'residential-booking-updated';
 
 // Load from local storage
 const loadFromLocalStorage = (): ResidentialBookingData | null => {
@@ -88,8 +92,11 @@ const loadFromLocalStorage = (): ResidentialBookingData | null => {
 const clearLocalStorage = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(RESIDENTIAL_BOOKING_KEY);
+    window.dispatchEvent(new CustomEvent(RESIDENTIAL_BOOKING_EVENT));
   }
 };
+
+const isSelectedAddOn = (addOn: { name: string; price: string } | null): addOn is { name: string; price: string } => addOn !== null;
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -205,23 +212,52 @@ export default function BookingSection() {
 
   // Load booking data from local storage
   useEffect(() => {
-    const savedData = loadFromLocalStorage();
-    if (savedData && savedData.selectedTier) {
+    const applyBookingData = (savedData: ResidentialBookingData | null) => {
+      if (!savedData?.selectedTier) {
+        setBookingData(null);
+        setAddOnsWithPrices([]);
+        setAddOnsList([]);
+        setAddOnsSummary('');
+        return;
+      }
+
       setBookingData(savedData);
 
-      // Generate add-ons summary with prices
-      if (savedData.selectedAddOns && savedData.selectedAddOns.length > 0) {
-        const addOnDetails = savedData.selectedAddOns.map(id => {
-          const addon = addOnsData.find(a => a.id === id);
-          return addon ? { name: addon.name, price: addon.price, count: 1 } : null;
-        }).filter(Boolean) as { name: string; price: string; count: number }[];
-        
-        setAddOnsWithPrices(addOnDetails);
-        const names = addOnDetails.map(a => a.name);
-        setAddOnsList(names);
-        setAddOnsSummary(names.join(', '));
+      const addOnDetails = savedData.addons && savedData.addons.length > 0
+        ? savedData.addons.map((addon) => ({ name: addon.name, price: addon.price, count: 1 }))
+        : (savedData.selectedAddOns || [])
+          .map(id => {
+            const addon = addOnsData.find(a => a.id === id);
+            return addon ? { name: addon.name, price: addon.price, count: 1 } : null;
+          })
+          .filter(Boolean) as { name: string; price: string; count: number }[];
+
+      setAddOnsWithPrices(addOnDetails);
+      const names = addOnDetails.map(a => a.name);
+      setAddOnsList(names);
+      setAddOnsSummary(names.join(', '));
+    };
+
+    applyBookingData(loadFromLocalStorage());
+
+    const handleBookingUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<ResidentialBookingData | undefined>;
+      applyBookingData(customEvent.detail || loadFromLocalStorage());
+    };
+
+    const handleStorageUpdate = (event: StorageEvent) => {
+      if (event.key === RESIDENTIAL_BOOKING_KEY) {
+        applyBookingData(event.newValue ? JSON.parse(event.newValue) : null);
       }
-    }
+    };
+
+    window.addEventListener(RESIDENTIAL_BOOKING_EVENT, handleBookingUpdate);
+    window.addEventListener('storage', handleStorageUpdate);
+
+    return () => {
+      window.removeEventListener(RESIDENTIAL_BOOKING_EVENT, handleBookingUpdate);
+      window.removeEventListener('storage', handleStorageUpdate);
+    };
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -255,17 +291,19 @@ export default function BookingSection() {
       
       // Calculate add-ons total
       let addOnsTotal = 0;
-      const addOnsWithCount = savedData?.selectedAddOns?.map(id => {
-        const addon = addOnsData.find(a => a.id === id);
-        if (addon) {
-          const price = parseInt(addon.price.replace(/[^0-9]/g, ''));
-          if (!isNaN(price)) {
-            addOnsTotal += price;
-          }
-          return { name: addon.name, price: addon.price };
+      const addOnsWithCount = savedData?.addons && savedData.addons.length > 0
+        ? savedData.addons
+        : savedData?.selectedAddOns?.map(id => {
+          const addon = addOnsData.find(a => a.id === id);
+          return addon ? { name: addon.name, price: addon.price } : null;
+        }).filter(isSelectedAddOn) || [];
+
+      addOnsWithCount.forEach((addon) => {
+        const price = parseInt(addon.price.replace(/[^0-9]/g, ''));
+        if (!isNaN(price)) {
+          addOnsTotal += price;
         }
-        return null;
-      }).filter(Boolean) || [];
+      });
 
       const totalPrice = packagePrice + addOnsTotal;
 
@@ -371,7 +409,7 @@ export default function BookingSection() {
 
       // Show success toast
       setToast({
-        message: '✅ Booking confirmed! We will contact you shortly.',
+        message: 'Booking confirmed! We will contact you shortly.',
         type: 'success'
       });
 
@@ -383,7 +421,7 @@ export default function BookingSection() {
     } catch (error) {
       console.error('Error:', error);
       setToast({
-        message: '❌ Failed to submit booking. Please try again.',
+        message: 'Failed to submit booking. Please try again.',
         type: 'error'
       });
     } finally {

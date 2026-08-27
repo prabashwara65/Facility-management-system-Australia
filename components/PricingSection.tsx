@@ -55,6 +55,24 @@ interface DisplayAddOn {
   category: string;
 }
 
+interface SelectedBookingAddOn {
+  name: string;
+  price: string;
+}
+
+interface ResidentialBookingData {
+  selectedTier?: string;
+  selectedAddOns?: string[];
+  category?: string;
+  timestamp: string;
+  service?: string;
+  price?: string;
+  addons?: SelectedBookingAddOn[];
+  finalized?: boolean;
+}
+
+const isSelectedBookingAddOn = (addOn: SelectedBookingAddOn | null): addOn is SelectedBookingAddOn => addOn !== null;
+
 const defaultTiers: Tier[] = [
   {
     id: 1,
@@ -144,10 +162,12 @@ const categoryIcons: Record<string, React.ReactNode> = {
 
 // Storage key for residential booking
 const RESIDENTIAL_BOOKING_KEY = 'residential_booking_data';
+const RESIDENTIAL_BOOKING_EVENT = 'residential-booking-updated';
 
-const saveToLocalStorage = (data: any) => {
+const saveToLocalStorage = (data: ResidentialBookingData) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem(RESIDENTIAL_BOOKING_KEY, JSON.stringify(data));
+    window.dispatchEvent(new CustomEvent(RESIDENTIAL_BOOKING_EVENT, { detail: data }));
   }
 };
 
@@ -289,15 +309,25 @@ export default function PricingSection() {
   // Save to local storage whenever selections change
   useEffect(() => {
     if (selectedTier) {
+      const selectedAddOnDetails = selectedAddOns
+        .map(id => {
+          const addon = allAddOns.find(a => a.id.toString() === id);
+          return addon ? { name: addon.name, price: addon.price } : null;
+        })
+        .filter(Boolean) as SelectedBookingAddOn[];
+
       const dataToSave = {
         selectedTier,
         selectedAddOns,
         category: 'Residential',
+        service: selectedTier,
+        price: selectedTierData?.price,
+        addons: selectedAddOnDetails,
         timestamp: new Date().toISOString(),
       };
       saveToLocalStorage(dataToSave);
     }
-  }, [selectedTier, selectedAddOns]);
+  }, [selectedTier, selectedAddOns, selectedTierData, allAddOns]);
 
   const handleCategoryChange = (category: ServiceCategory) => {
     if (category === activeCategory) return;
@@ -330,13 +360,15 @@ export default function PricingSection() {
   const handleBookNow = () => {
     if (selectedTierData) {
       const bookingData = {
+        selectedTier: selectedTierData.label,
+        selectedAddOns,
         service: selectedTierData.label,
         price: selectedTierData.price,
         category: selectedTierData.category,
         addons: selectedAddOns.map(id => {
           const addon = allAddOns.find(a => a.id.toString() === id);
           return addon ? { name: addon.name, price: addon.price } : null;
-        }).filter(Boolean),
+        }).filter(isSelectedBookingAddOn),
         timestamp: new Date().toISOString(),
       };
       
@@ -344,8 +376,11 @@ export default function PricingSection() {
         ...bookingData,
         finalized: true,
       });
-      
-      window.location.href = '/booking';
+
+      document.querySelector('#booking')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
     }
   };
 

@@ -30,6 +30,7 @@ import {
   Minus,
   Trash2,
   Home,
+  Loader2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
@@ -590,6 +591,7 @@ export default function MobileDetailing() {
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVehicleDataLoading, setIsVehicleDataLoading] = useState(true);
   const [vehicleDataError, setVehicleDataError] = useState('');
   const [loadedServices, setLoadedServices] = useState<Service[]>(services);
@@ -1195,7 +1197,8 @@ useEffect(() => {
   };
 
   const handleCompleteBooking = async () => {
-    if (isInfoComplete) {
+    if (isInfoComplete && !isSubmitting) {
+      setIsSubmitting(true);
       // Calculate total price
       const packagePrice = parseInt(selectedPackage?.price?.replace('$', '') || '0');
       const addonsTotal = getAddOnTotal();
@@ -1314,17 +1317,12 @@ useEffect(() => {
         setMarketingOptIn(false);
 
         setToast({ 
-          message: '✅ Booking confirmed! We will contact you shortly.', 
+          message: 'Booking confirmed! We will contact you shortly.', 
           type: 'success' 
         });
 
         // Scroll to top to show toast
         window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        // Auto-hide toast after 6 seconds
-        setTimeout(() => {
-          setToast(null);
-        }, 6000);
 
       } catch (error) {
         console.error('Error sending email:', error);
@@ -1337,9 +1335,8 @@ useEffect(() => {
           type: 'success' 
         });
         
-        setTimeout(() => {
-          setToast(null);
-        }, 6000);
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -1386,6 +1383,14 @@ useEffect(() => {
   const textColor = currentTheme.colors[3];
   const glassPanelClass = 'rounded-2xl border border-white/10 bg-white/[0.07] shadow-2xl shadow-black/20 backdrop-blur-sm';
   const glassCardClass = 'rounded-xl border border-white/10 bg-white/[0.06] shadow-lg shadow-black/10 backdrop-blur-sm';
+  const dropdownMenuClass = 'absolute top-full left-0 right-0 z-40 mt-2 max-h-60 overflow-y-auto rounded-xl border border-white/15 bg-slate-950/95 py-1 shadow-2xl shadow-black/40 backdrop-blur-xl';
+  const dropdownItemClass = 'w-full px-4 py-2.5 text-left text-sm text-white transition-colors hover:bg-white/[0.12] focus:bg-white/[0.12] focus:outline-none';
+  const isSameDate = (firstDate: Date | null, secondDate: Date) => (
+    Boolean(firstDate) &&
+    firstDate?.getFullYear() === secondDate.getFullYear() &&
+    firstDate?.getMonth() === secondDate.getMonth() &&
+    firstDate?.getDate() === secondDate.getDate()
+  );
 
   // Filter services based on selected category
   const filteredServices = Array.isArray(servicesForBooking) ? servicesForBooking.filter(service => 
@@ -1393,6 +1398,16 @@ useEffect(() => {
   ) : [];
 
   const availableDates = generateDates();
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setToast(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [toast]);
 
   // Toast component
   const renderToast = () => {
@@ -1402,23 +1417,23 @@ useEffect(() => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
-        className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-md mx-4"
+        className="fixed left-1/2 top-4 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 sm:top-20"
       >
         <div
-          className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 ${
-            toast.type === 'success' 
-              ? 'bg-green-500 text-white' 
-              : toast.type === 'error' 
-                ? 'bg-red-500 text-white' 
-                : 'bg-blue-500 text-white'
-          }`}
+          className="flex items-start gap-3 rounded-2xl border px-4 py-3 text-white shadow-2xl shadow-black/30 sm:px-5 sm:py-4"
+          style={{
+            backgroundColor: primaryColor,
+            borderColor: `${secondaryColor}55`,
+          }}
         >
           {toast.type === 'success' && <Check className="w-5 h-5 flex-shrink-0" />}
           {toast.type === 'error' && <AlertCircle className="w-5 h-5 flex-shrink-0" />}
-          <span className="text-sm font-medium flex-1">{toast.message}</span>
+          {toast.type === 'info' && <Sparkles className="w-5 h-5 flex-shrink-0" />}
+          <span className="min-w-0 flex-1 text-sm font-medium leading-snug">{toast.message}</span>
           <button
             onClick={() => setToast(null)}
-            className="text-white/70 hover:text-white transition-colors"
+            className="-mr-1 rounded-full p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Close message"
           >
             <X className="w-4 h-4" />
           </button>
@@ -1745,12 +1760,12 @@ useEffect(() => {
                             <ChevronDown className={`w-4 h-4 text-white/55 transition-transform ${isDropdownOpen === 'year' ? 'rotate-180' : ''}`} />
                           </button>
                           {isDropdownOpen === 'year' && (
-                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
+                            <div className={dropdownMenuClass}>
                               {years.map((year) => (
                                 <button
                                   key={year}
                                   onClick={() => { setSelectedYear(year); setIsDropdownOpen(null); }}
-                                  className="w-full px-4 py-2 text-left hover:bg-white/[0.07] transition-colors text-sm text-white"
+                                  className={dropdownItemClass}
                                 >
                                   {year}
                                 </button>
@@ -1772,12 +1787,12 @@ useEffect(() => {
                             <ChevronDown className={`w-4 h-4 text-white/55 transition-transform ${isDropdownOpen === 'make' ? 'rotate-180' : ''}`} />
                           </button>
                           {isDropdownOpen === 'make' && (
-                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
+                            <div className={dropdownMenuClass}>
                               {makesForBooking.map((make) => (
                                 <button
                                   key={make}
                                   onClick={() => { setSelectedMake(make); setSelectedModel(''); setSelectedBody(''); setIsDropdownOpen(null); }}
-                                  className="w-full px-4 py-2 text-left hover:bg-white/[0.07] transition-colors text-sm text-white"
+                                  className={dropdownItemClass}
                                 >
                                   {make}
                                 </button>
@@ -1800,12 +1815,12 @@ useEffect(() => {
                             <ChevronDown className={`w-4 h-4 text-white/55 transition-transform ${isDropdownOpen === 'model' ? 'rotate-180' : ''}`} />
                           </button>
                           {isDropdownOpen === 'model' && selectedMake && (
-                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
+                            <div className={dropdownMenuClass}>
                               {(modelsByMakeForBooking[selectedMake] || []).map((model) => (
                                 <button
                                   key={model}
                                   onClick={() => { setSelectedModel(model); setSelectedBody(''); setIsDropdownOpen(null); }}
-                                  className="w-full px-4 py-2 text-left hover:bg-white/[0.07] transition-colors text-sm text-white"
+                                  className={dropdownItemClass}
                                 >
                                   {model}
                                 </button>
@@ -1828,12 +1843,12 @@ useEffect(() => {
                             <ChevronDown className={`w-4 h-4 text-white/55 transition-transform ${isDropdownOpen === 'body' ? 'rotate-180' : ''}`} />
                           </button>
                           {isDropdownOpen === 'body' && selectedMake && selectedModel && (
-                            <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
+                            <div className={dropdownMenuClass}>
                               {(bodyTypesByMakeForBooking[selectedMake] || []).map((body) => (
                                 <button
                                   key={body}
                                   onClick={() => { setSelectedBody(body); setIsDropdownOpen(null); }}
-                                  className="w-full px-4 py-2 text-left hover:bg-white/[0.07] transition-colors text-sm text-white"
+                                  className={dropdownItemClass}
                                 >
                                   {body}
                                 </button>
@@ -1869,7 +1884,7 @@ useEffect(() => {
                     
                     <div className={`grid gap-6 transition-all duration-500 ${
                       selectedPackage 
-                        ? 'grid-cols-1 max-w-md mx-auto' 
+                        ? 'grid-cols-1 max-w-lg mx-auto' 
                         : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                     }`}>
                       {filteredServices.map((service) => {
@@ -1886,10 +1901,10 @@ useEffect(() => {
                             layout
                           >
                             <div 
-                              className={`relative rounded-2xl border p-6 h-full flex flex-col transition-all duration-300 backdrop-blur-sm ${
+                              className={`relative rounded-2xl border h-full flex flex-col transition-all duration-300 backdrop-blur-sm ${
                                 isSelected 
-                                  ? 'shadow-2xl shadow-black/30' 
-                                  : 'hover:border-white/25 hover:shadow-xl hover:shadow-black/20'
+                                  ? 'p-4 sm:p-5 shadow-2xl shadow-black/30' 
+                                  : 'p-6 hover:border-white/25 hover:shadow-xl hover:shadow-black/20'
                               }`}
                               style={{ 
                                 backgroundColor: isSelected ? `${secondaryColor}18` : 'rgba(255,255,255,0.07)',
@@ -1898,7 +1913,7 @@ useEffect(() => {
                               }}
                             >
                               {isSelected && (
-                                <div className="absolute -top-2 -right-2">
+                                <div className="absolute right-3 top-3">
                                   <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
                                     <Check className="w-4 h-4 text-white" />
                                   </div>
@@ -2001,40 +2016,47 @@ useEffect(() => {
                                   transition={{ duration: 0.4 }}
                                   className="flex flex-col h-full w-full"
                                 >
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <h3 className="text-lg font-bold text-white">{service.name}</h3>
+                                  <div className="flex flex-col gap-1 mb-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <h3 className="min-w-0 text-lg font-bold text-white">{service.name}</h3>
                                     <span className="text-sm font-bold" style={{ color: secondaryColor }}>{service.price}</span>
                                   </div>
                                   
                                   <p className="text-sm font-semibold text-white mb-1">Vehicle Condition</p>
                                   <p className="text-xs text-white/55 mb-3">Select any that apply:</p>
                                   
-                                  <div className="space-y-2 flex-grow">
-                                    {vehicleConditionsForBooking.map((condition) => (
-                                      <button
-                                        key={condition}
-                                        onClick={() => toggleCondition(condition)}
-                                        className={`w-full flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all ${
-                                          selectedConditions.includes(condition)
-                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                            : 'border-white/10 hover:border-white/25'
-                                        }`}
-                                        style={{
-                                          borderColor: selectedConditions.includes(condition) ? secondaryColor : undefined,
-                                        }}
-                                      >
-                                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
-                                          selectedConditions.includes(condition)
-                                            ? 'border-blue-500 bg-blue-500'
-                                            : 'border-gray-300'
-                                        }`}>
-                                          {selectedConditions.includes(condition) && (
-                                            <Check className="w-3 h-3 text-white" />
-                                          )}
-                                        </div>
-                                        <span className="text-sm text-white">{condition}</span>
-                                      </button>
-                                    ))}
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {vehicleConditionsForBooking.map((condition) => {
+                                      const isConditionSelected = selectedConditions.includes(condition);
+                                      return (
+                                        <button
+                                          key={condition}
+                                          type="button"
+                                          onClick={() => toggleCondition(condition)}
+                                          className={`min-w-0 w-full flex items-center gap-2.5 rounded-lg border p-2 text-left transition-all ${
+                                            isConditionSelected
+                                              ? 'shadow-lg shadow-black/15'
+                                              : 'border-white/10 bg-white/[0.05] hover:border-white/25 hover:bg-white/[0.08]'
+                                          }`}
+                                          style={{
+                                            borderColor: isConditionSelected ? secondaryColor : undefined,
+                                            backgroundColor: isConditionSelected ? `${secondaryColor}24` : undefined,
+                                          }}
+                                          >
+                                          <div
+                                            className="w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0"
+                                            style={{
+                                              borderColor: isConditionSelected ? secondaryColor : 'rgba(255,255,255,0.35)',
+                                              backgroundColor: isConditionSelected ? secondaryColor : 'transparent',
+                                            }}
+                                          >
+                                            {isConditionSelected && (
+                                              <Check className="w-2.5 h-2.5 text-white" />
+                                            )}
+                                          </div>
+                                          <span className="min-w-0 break-words text-xs sm:text-sm text-white">{condition}</span>
+                                        </button>
+                                      );
+                                    })}
                                   </div>
                                   
                                   <div className="mt-3">
@@ -2059,7 +2081,7 @@ useEffect(() => {
 
                                   <button
                                     onClick={() => handleSelectPackage(service)}
-                                    className="mt-4 w-full text-center px-4 py-2.5 rounded-xl border-2 transition-all font-medium text-sm"
+                                    className="mt-4 w-full text-center px-4 py-2.5 rounded-xl border-2 bg-white/[0.08] transition-all font-semibold text-sm shadow-lg shadow-black/10"
                                     style={{ 
                                       color: secondaryColor, 
                                       borderColor: `${secondaryColor}40`,
@@ -2107,9 +2129,9 @@ useEffect(() => {
 
             {/* Step 2: Enhance Your Service - Add-ons */}
             {showAddOnsStep && isStep1Complete && !showDateTimeStep && !showInfoStep && (
-              <div id="addons-section" className="max-w-4xl mx-auto px-4 pb-16">
+              <div id="addons-section" className="max-w-7xl mx-auto px-4 pb-16">
                 <div className={`${glassPanelClass} p-5 sm:p-6`}>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                     <div>
                       <h2 className="text-2xl font-serif font-bold text-white">
                         Enhance Your Service
@@ -2120,8 +2142,8 @@ useEffect(() => {
                     </div>
                     <button
                       onClick={handleBackToServices}
-                      className="text-sm font-medium hover:underline"
-                      style={{ color: secondaryColor }}
+                      className="rounded-xl border px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all hover:bg-white/[0.14]"
+                      style={{ borderColor: `${secondaryColor}55`, backgroundColor: 'rgba(255,255,255,0.08)' }}
                     >
                       ← Back to Services
                     </button>
@@ -2142,7 +2164,7 @@ useEffect(() => {
                   </div>
 
                   {/* Add-ons Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {addOnOptionsForBooking.map((addOn) => {
                       const count = getAddOnCount(addOn.id);
                       return (
@@ -2267,9 +2289,9 @@ useEffect(() => {
 
             {/* Step 3: Date & Time Selection */}
             {showDateTimeStep && isStep1Complete && !showInfoStep && (
-              <div id="datetime-section" className="max-w-4xl mx-auto px-4 pb-16">
+              <div id="datetime-section" className="max-w-7xl mx-auto px-4 pb-16">
                 <div className={`${glassPanelClass} p-5 sm:p-6`}>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                     <div>
                       <h2 className="text-2xl font-serif font-bold text-white">
                         Choose Date & Time
@@ -2280,8 +2302,8 @@ useEffect(() => {
                     </div>
                     <button
                       onClick={handleBackToAddons}
-                      className="text-sm font-medium hover:underline"
-                      style={{ color: secondaryColor }}
+                      className="rounded-xl border px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all hover:bg-white/[0.14]"
+                      style={{ borderColor: `${secondaryColor}55`, backgroundColor: 'rgba(255,255,255,0.08)' }}
                     >
                       ← Back
                     </button>
@@ -2307,123 +2329,83 @@ useEffect(() => {
                     </div>
                   </div>
 
-                  {/* Appointment Date */}
-                  <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-white mb-3">Appointment Date</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {availableDates.map((date, index) => {
-                        const isSelected = selectedDate?.getTime() === date.getTime();
-                        const isToday = date.toDateString() === new Date().toDateString();
-                        return (
-                          <button
-                            key={index}
-                            onClick={() => setSelectedDate(date)}
-                            className={`p-3 rounded-xl border-2 text-center transition-all ${
-                              isSelected
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                                : 'border-white/10 hover:border-white/25'
-                            }`}
-                            style={{
-                              borderColor: isSelected ? secondaryColor : undefined,
-                              backgroundColor: isSelected ? `${secondaryColor}15` : undefined,
-                            }}
-                          >
-                            <p className="text-sm font-medium text-white">
-                              {date.toLocaleDateString('en-AU', { weekday: 'short' })}
-                            </p>
-                            <p className="text-lg font-bold text-white">
-                              {date.toLocaleDateString('en-AU', { day: 'numeric' })}
-                            </p>
-                            <p className="text-xs text-white/55">
-                              {date.toLocaleDateString('en-AU', { month: 'short' })}
-                            </p>
-                            {isToday && (
-                              <span className="text-xs text-green-500 font-medium">Today</span>
-                            )}
-                            {isSelected && (
-                              <Check className="w-4 h-4 mx-auto mt-1 text-green-500" />
-                            )}
-                          </button>
-                        );
-                      })}
+                  <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)] gap-6">
+                    {/* Appointment Date */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-white mb-3">Appointment Date</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-7 gap-3">
+                        {availableDates.map((date, index) => {
+                          const isSelected = isSameDate(selectedDate, date);
+                          const isToday = isSameDate(new Date(), date);
+                          return (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => setSelectedDate(new Date(date))}
+                              aria-pressed={isSelected}
+                              className={`relative min-h-[112px] p-3 rounded-xl border-2 text-center transition-all ${
+                                isSelected
+                                  ? 'shadow-lg shadow-black/25 ring-2 ring-white/20'
+                                  : 'border-white/10 bg-white/[0.05] hover:border-white/25 hover:bg-white/[0.08]'
+                              }`}
+                              style={{
+                                borderColor: isSelected ? secondaryColor : undefined,
+                                backgroundColor: isSelected ? `${secondaryColor}28` : undefined,
+                              }}
+                            >
+                              {isSelected && (
+                                <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                                  <Check className="w-3.5 h-3.5 text-white" />
+                                </span>
+                              )}
+                              <p className="text-sm font-medium text-white">
+                                {date.toLocaleDateString('en-AU', { weekday: 'short' })}
+                              </p>
+                              <p className="text-2xl font-bold text-white">
+                                {date.toLocaleDateString('en-AU', { day: 'numeric' })}
+                              </p>
+                              <p className="text-xs text-white/55">
+                                {date.toLocaleDateString('en-AU', { month: 'short' })}
+                              </p>
+                              {isToday && (
+                                <span className="mt-2 inline-flex rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-300">Today</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Arrival Window */}
-                  <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-white mb-3">
-                      Arrival Window
-                      <span className="text-xs font-normal text-white/50 ml-2">
-                        Choose more than one if flexible
-                      </span>
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {arrivalWindowsForBooking.map((window) => {
-                        const isSelected = selectedArrivalWindows.includes(window);
-                        return (
-                          <button
-                            key={window}
-                            onClick={() => toggleArrivalWindow(window)}
-                            className={`p-3 rounded-xl border-2 text-center transition-all ${
-                              isSelected
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                                : 'border-white/10 hover:border-white/25'
-                            }`}
-                            style={{
-                              borderColor: isSelected ? secondaryColor : undefined,
-                              backgroundColor: isSelected ? `${secondaryColor}15` : undefined,
-                            }}
-                          >
-                            <Clock className="w-5 h-5 mx-auto mb-1 text-white/55" />
-                            <p className="text-sm font-medium text-white">{window}</p>
-                            {isSelected && (
-                              <Check className="w-4 h-4 mx-auto mt-1 text-green-500" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Backup Date */}
-                  <div className="mb-6">
-                    <button
-                      onClick={() => setShowBackupDate(!showBackupDate)}
-                      className="text-sm font-medium hover:underline flex items-center gap-2"
-                      style={{ color: secondaryColor }}
-                    >
-                      {showBackupDate ? '−' : '+'} Add Backup Date
-                    </button>
-                    
-                    {showBackupDate && (
-                      <div className="mt-3">
-                        <h3 className="text-sm font-semibold text-white mb-3">Backup Date</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                          {availableDates.slice(1, 8).map((date, index) => {
-                            const isSelected = backupDate?.getTime() === date.getTime();
+                    <div className="space-y-6">
+                      {/* Arrival Window */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-white mb-3">
+                          Arrival Window
+                          <span className="block text-xs font-normal text-white/50 sm:inline sm:ml-2">
+                            Choose more than one if flexible
+                          </span>
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
+                          {arrivalWindowsForBooking.map((window) => {
+                            const isSelected = selectedArrivalWindows.includes(window);
                             return (
                               <button
-                                key={index}
-                                onClick={() => setBackupDate(date)}
-                                className={`p-3 rounded-xl border-2 text-center transition-all ${
+                                key={window}
+                                type="button"
+                                onClick={() => toggleArrivalWindow(window)}
+                                aria-pressed={isSelected}
+                                className={`min-h-[68px] p-3 rounded-xl border-2 text-center transition-all ${
                                   isSelected
-                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                                    : 'border-white/10 hover:border-white/25'
+                                    ? 'shadow-lg shadow-black/20 ring-2 ring-white/15'
+                                    : 'border-white/10 bg-white/[0.05] hover:border-white/25 hover:bg-white/[0.08]'
                                 }`}
                                 style={{
                                   borderColor: isSelected ? secondaryColor : undefined,
-                                  backgroundColor: isSelected ? `${secondaryColor}15` : undefined,
+                                  backgroundColor: isSelected ? `${secondaryColor}24` : undefined,
                                 }}
                               >
-                                <p className="text-sm font-medium text-white">
-                                  {date.toLocaleDateString('en-AU', { weekday: 'short' })}
-                                </p>
-                                <p className="text-lg font-bold text-white">
-                                  {date.toLocaleDateString('en-AU', { day: 'numeric' })}
-                                </p>
-                                <p className="text-xs text-white/55">
-                                  {date.toLocaleDateString('en-AU', { month: 'short' })}
-                                </p>
+                                <Clock className="w-5 h-5 mx-auto mb-1 text-white/55" />
+                                <p className="text-sm font-medium text-white">{window}</p>
                                 {isSelected && (
                                   <Check className="w-4 h-4 mx-auto mt-1 text-green-500" />
                                 )}
@@ -2432,12 +2414,67 @@ useEffect(() => {
                           })}
                         </div>
                       </div>
-                    )}
+
+                      {/* Backup Date */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setShowBackupDate(!showBackupDate)}
+                          className="text-sm font-medium hover:underline flex items-center gap-2"
+                          style={{ color: secondaryColor }}
+                        >
+                          {showBackupDate ? '−' : '+'} Add Backup Date
+                        </button>
+                        
+                        {showBackupDate && (
+                          <div className="mt-3">
+                            <h3 className="text-sm font-semibold text-white mb-3">Backup Date</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 gap-3">
+                              {availableDates.slice(1, 8).map((date, index) => {
+                                const isSelected = isSameDate(backupDate, date);
+                                return (
+                                  <button
+                                    key={index}
+                                    type="button"
+                                    onClick={() => setBackupDate(new Date(date))}
+                                    aria-pressed={isSelected}
+                                    className={`relative min-h-[104px] p-3 rounded-xl border-2 text-center transition-all ${
+                                      isSelected
+                                        ? 'shadow-lg shadow-black/20 ring-2 ring-white/15'
+                                        : 'border-white/10 bg-white/[0.05] hover:border-white/25 hover:bg-white/[0.08]'
+                                    }`}
+                                    style={{
+                                      borderColor: isSelected ? secondaryColor : undefined,
+                                      backgroundColor: isSelected ? `${secondaryColor}24` : undefined,
+                                    }}
+                                  >
+                                    {isSelected && (
+                                      <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                                        <Check className="w-3.5 h-3.5 text-white" />
+                                      </span>
+                                    )}
+                                    <p className="text-sm font-medium text-white">
+                                      {date.toLocaleDateString('en-AU', { weekday: 'short' })}
+                                    </p>
+                                    <p className="text-lg font-bold text-white">
+                                      {date.toLocaleDateString('en-AU', { day: 'numeric' })}
+                                    </p>
+                                    <p className="text-xs text-white/55">
+                                      {date.toLocaleDateString('en-AU', { month: 'short' })}
+                                    </p>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Summary of selections */}
                   {selectedDate && selectedArrivalWindows.length > 0 && (
-                    <div className="mb-6 p-4 rounded-xl border border-green-400/25 bg-green-500/10">
+                    <div className="mt-6 mb-6 p-4 rounded-xl border border-green-400/25 bg-green-500/10">
                       <p className="text-sm font-medium text-white">
                         <span className="text-green-500">✓</span> Selected:
                         <span className="ml-2">{formatDate(selectedDate)}</span>
@@ -2454,7 +2491,8 @@ useEffect(() => {
                   <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
                     <button
                       onClick={handleBackToAddons}
-                      className="flex-1 px-6 py-3 rounded-xl border border-white/10 text-white/65 font-semibold hover:bg-white/10 transition-colors"
+                      className="flex-1 px-6 py-3 rounded-xl border text-white font-semibold shadow-lg shadow-black/10 transition-colors hover:bg-white/[0.14]"
+                      style={{ borderColor: `${secondaryColor}55`, backgroundColor: 'rgba(255,255,255,0.08)' }}
                     >
                       Back
                     </button>
@@ -2484,9 +2522,9 @@ useEffect(() => {
 
             {/* Step 4: Your Information */}
             {showInfoStep && isStep2Complete && (
-              <div id="info-section" className="max-w-6xl mx-auto px-4 pb-16">
+              <div id="info-section" className="max-w-7xl mx-auto px-4 pb-16">
                 <div className={`${glassPanelClass} p-5 sm:p-6`}>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                     <div>
                       <h2 className="text-2xl font-serif font-bold text-white">
                         Your Information
@@ -2497,16 +2535,16 @@ useEffect(() => {
                     </div>
                     <button
                       onClick={handleBackToDateTime}
-                      className="text-sm font-medium hover:underline"
-                      style={{ color: secondaryColor }}
+                      className="rounded-xl border px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all hover:bg-white/[0.14]"
+                      style={{ borderColor: `${secondaryColor}55`, backgroundColor: 'rgba(255,255,255,0.08)' }}
                     >
                       ← Back
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     {/* Left Column - Form */}
-                    <div className="lg:col-span-2">
+                    <div className="lg:col-span-3">
                       <div className="rounded-xl border border-white/10 bg-white/[0.06] p-5 sm:p-6 shadow-lg shadow-black/10">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* First Name */}
@@ -2615,17 +2653,18 @@ useEffect(() => {
                             <select
                               value={state}
                               onChange={(e) => setState(e.target.value)}
-                              className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
+                              className="w-full rounded-xl border border-white/10 px-4 py-2.5 text-white outline-none transition-colors focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
+                              style={{ backgroundColor: 'rgba(15, 23, 42, 0.95)' }}
                             >
-                              <option value="">Select State</option>
-                              <option value="VIC">Victoria</option>
-                              <option value="NSW">New South Wales</option>
-                              <option value="QLD">Queensland</option>
-                              <option value="SA">South Australia</option>
-                              <option value="WA">Western Australia</option>
-                              <option value="TAS">Tasmania</option>
-                              <option value="NT">Northern Territory</option>
-                              <option value="ACT">Australian Capital Territory</option>
+                              <option value="" className="bg-slate-950 text-white">Select State</option>
+                              <option value="VIC" className="bg-slate-950 text-white">Victoria</option>
+                              <option value="NSW" className="bg-slate-950 text-white">New South Wales</option>
+                              <option value="QLD" className="bg-slate-950 text-white">Queensland</option>
+                              <option value="SA" className="bg-slate-950 text-white">South Australia</option>
+                              <option value="WA" className="bg-slate-950 text-white">Western Australia</option>
+                              <option value="TAS" className="bg-slate-950 text-white">Tasmania</option>
+                              <option value="NT" className="bg-slate-950 text-white">Northern Territory</option>
+                              <option value="ACT" className="bg-slate-950 text-white">Australian Capital Territory</option>
                             </select>
                           </div>
 
@@ -2790,7 +2829,7 @@ useEffect(() => {
                     </div>
 
                     {/* Right Column - Order Summary */}
-                    <div className="lg:col-span-1">
+                    <div className="lg:col-span-2">
                       <div className="bg-white/[0.06] rounded-xl p-6 border border-white/10 sticky top-24">
                         <h3 className="text-lg font-bold text-white mb-4">Order Summary</h3>
                         
@@ -2873,7 +2912,8 @@ useEffect(() => {
                         <div className="mt-6 flex flex-col gap-3">
                           <button
                             onClick={handleBackToDateTime}
-                            className="w-full px-6 py-3 rounded-xl border-2 border-white/10 text-white/55 font-semibold hover:bg-white/[0.07] transition-colors"
+                            className="w-full px-6 py-3 rounded-xl border text-white font-semibold shadow-lg shadow-black/10 transition-colors hover:bg-white/[0.14]"
+                            style={{ borderColor: `${secondaryColor}55`, backgroundColor: 'rgba(255,255,255,0.08)' }}
                           >
                             Back
                           </button>
@@ -2881,13 +2921,14 @@ useEffect(() => {
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={handleCompleteBooking}
-                            disabled={!isInfoComplete}
-                            className={`w-full px-6 py-3 rounded-xl text-white font-bold text-lg transition-all hover:opacity-90 ${
-                              !isInfoComplete ? 'opacity-50 cursor-not-allowed' : ''
+                            disabled={!isInfoComplete || isSubmitting}
+                            className={`flex w-full items-center justify-center gap-2 px-6 py-3 rounded-xl text-white font-bold text-lg transition-all hover:opacity-90 ${
+                              !isInfoComplete || isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                             style={{ backgroundColor: primaryColor }}
                           >
-                            Complete Booking
+                            {isSubmitting && <Loader2 className="h-5 w-5 animate-spin" />}
+                            {isSubmitting ? 'Booking...' : 'Complete Booking'}
                           </motion.button>
                         </div>
                       </div>
