@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from "next/link";
 import { motion, Variants } from "framer-motion";
-import { Home, Sparkles, Calendar, ArrowRight } from "lucide-react";
+import { Home, Sparkles, Calendar, ArrowRight, type LucideIcon } from "lucide-react";
 import { createClient } from '@/lib/supabase/client';
 
 // Swiper imports
@@ -15,14 +15,22 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
-const iconMap = {
+interface Service {
+  id: number;
+  icon: string;
+  title: string;
+  price: string;
+  description: string;
+}
+
+const iconMap: Record<string, LucideIcon> = {
   Home: Home,
   Sparkles: Sparkles,
   Calendar: Calendar,
 };
 
 // Default fallback data (only used if Supabase fails)
-const defaultServices = [
+const defaultServices: Service[] = [
   {
     id: 1,
     icon: 'Home',
@@ -45,14 +53,6 @@ const defaultServices = [
     description: "Weekly or fortnightly maintenance cleans tailored to your home and schedule.",
   },
 ];
-
-interface Service {
-  id: number;
-  icon: string;
-  title: string;
-  price: string;
-  description: string;
-}
 
 // Card variants matching testimonials style
 const cardVariants: Variants = {
@@ -93,7 +93,7 @@ export default function Services() {
       }
 
       if (data && data.length > 0) {
-        const transformed = data.map(service => ({
+        const transformed = (data as Service[]).map((service) => ({
           id: service.id,
           icon: service.icon || 'Home',
           title: service.title,
