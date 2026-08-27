@@ -1,7 +1,10 @@
 // app/admin/dashboard/page.tsx
 'use client';
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useState, useEffect } from 'react';
+import type { ComponentType } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -11,11 +14,9 @@ import {
   X,
   Check,
   ChevronDown,
-  ChevronRight,
   AlertCircle,
   Save,
   RefreshCw,
-  Clock,
   Calendar,
   Package,
   Car,
@@ -23,32 +24,14 @@ import {
   Warehouse,
   Bus,
   Home,
-  User,
   Loader2,
   Tag,
   Layers,
-  List,
   Clock as ClockIcon,
-  DollarSign,
-  Star,
-  Users,
-  MapPin,
-  Phone,
-  Mail,
   ChevronUp,
   ArrowRight,
   FolderTree,
-  Grid,
   List as ListIcon,
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Eye,
-  EyeOff,
-  Settings,
-  Award,
-  Shield,
-  MessageSquare,
 } from 'lucide-react';
 import { useTheme } from '@/app/context/ThemeProvider';
 import { createClient } from '@/lib/supabase/client';
@@ -75,7 +58,7 @@ interface VehicleModel {
   make_id: number;
   name: string;
   created_at?: string;
-  make_name?: string; // Virtual field for display
+  make_name?: string;
 }
 
 interface VehicleBodyType {
@@ -83,7 +66,7 @@ interface VehicleBodyType {
   make_id: number;
   name: string;
   created_at?: string;
-  make_name?: string; // Virtual field for display
+  make_name?: string;
 }
 
 interface VehicleService {
@@ -167,17 +150,63 @@ interface VehicleBooking {
   cancelled_at?: string;
 }
 
+type AdminTab = 'services' | 'addons' | 'categories' | 'makes' | 'models' | 'bodytypes' | 'conditions' | 'windows' | 'bookings';
+type ToastType = 'success' | 'error' | 'info';
+type FormValue = string | number | boolean | string[] | Record<string, number> | null | undefined;
+type EditFormData = Record<string, FormValue>;
+type ValidationResult<T> = { value: T; error?: never } | { error: string; value?: never };
+type ServicePayload = Omit<VehicleService, 'id' | 'created_at' | 'updated_at'>;
+type AddOnPayload = Omit<VehicleAddOn, 'created_at' | 'updated_at'>;
+type CategoryPayload = VehicleCategory;
+type NamePayload = Pick<VehicleMake, 'name'>;
+type WindowPayload = Pick<VehicleArrivalWindow, 'window_time' | 'display_order'>;
+type DashboardItem =
+  | VehicleCategory
+  | VehicleMake
+  | VehicleModel
+  | VehicleBodyType
+  | VehicleService
+  | VehicleAddOn
+  | VehicleCondition
+  | VehicleArrivalWindow
+  | VehicleBooking;
+
+interface JoinedVehicleMake {
+  id: number;
+  name: string;
+}
+
+interface VehicleModelRow extends Omit<VehicleModel, 'make_name'> {
+  vehicle_makes?: JoinedVehicleMake | null;
+}
+
+interface VehicleBodyTypeRow extends Omit<VehicleBodyType, 'make_name'> {
+  vehicle_makes?: JoinedVehicleMake | null;
+}
+
 // ============================================
 // ICON MAP
 // ============================================
 
-const iconMap: Record<string, any> = {
+const iconMap: Record<string, ComponentType<{ className?: string }>> = {
   Car: Car,
   Truck: Truck,
   Warehouse: Warehouse,
   Bus: Bus,
   Home: Home,
 };
+
+const tabs: { id: AdminTab; label: string; icon: ComponentType<{ className?: string }> }[] = [
+  { id: 'services', label: 'Services', icon: Package },
+  { id: 'addons', label: 'Add-ons', icon: Plus },
+  { id: 'categories', label: 'Categories', icon: Car },
+  { id: 'makes', label: 'Brands', icon: Tag },
+  { id: 'models', label: 'Models', icon: Layers },
+  { id: 'bodytypes', label: 'Body Types', icon: Truck },
+  { id: 'conditions', label: 'Conditions', icon: AlertCircle },
+  { id: 'windows', label: 'Windows', icon: ClockIcon },
+  { id: 'bookings', label: 'Bookings', icon: Calendar },
+];
 
 // ============================================
 // DASHBOARD COMPONENT
@@ -192,16 +221,19 @@ export default function AdminDashboard() {
   // ============================================
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'services' | 'addons' | 'categories' | 'makes' | 'models' | 'bodytypes' | 'conditions' | 'windows' | 'bookings'>('models');
+  const [activeTab, setActiveTab] = useState<AdminTab>('models');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'hierarchical' | 'table'>('hierarchical');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [editFormData, setEditFormData] = useState<any>({});
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [selectedItem, setSelectedItem] = useState<DashboardItem | null>(null);
+  const [editFormData, setEditFormData] = useState<EditFormData>({});
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [expandedBrands, setExpandedBrands] = useState<Set<number>>(new Set());
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Data states
   const [services, setServices] = useState<VehicleService[]>([]);
@@ -216,11 +248,167 @@ export default function AdminDashboard() {
 
   const primaryColor = currentTheme?.colors?.[1] || '#3b82f6';
   const secondaryColor = currentTheme?.colors?.[2] || '#8b5cf6';
-  const textColor = currentTheme?.colors?.[3] || '#1a1a2e';
-
   // ============================================
   // HELPER FUNCTIONS
   // ============================================
+
+  const getErrorMessage = (error: unknown) => {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'object' && error && 'message' in error) {
+      const message = (error as { message?: unknown }).message;
+      return typeof message === 'string' ? message : 'Something went wrong';
+    }
+    return 'Something went wrong';
+  };
+
+  const hasId = (item: DashboardItem | null): item is DashboardItem & { id: string | number } => {
+    return !!item && 'id' in item && item.id !== undefined && item.id !== null;
+  };
+
+  const toFormData = (item: DashboardItem): EditFormData => ({ ...item }) as EditFormData;
+
+  const requiredString = (value: FormValue) => typeof value === 'string' ? value.trim() : '';
+
+  const positiveNumber = (value: FormValue, fallback = 0) => {
+    const number = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : fallback;
+  };
+
+  const sanitizeService = (data: EditFormData): ValidationResult<ServicePayload> => {
+    const name = requiredString(data.name);
+    const description = requiredString(data.description);
+    if (!name) return { error: 'Service name is required' };
+    if (!description) return { error: 'Service description is required' };
+
+    return {
+      value: {
+        name,
+        price: positiveNumber(data.price),
+        rating: Math.min(5, positiveNumber(data.rating)),
+        reviews: Math.floor(positiveNumber(data.reviews)),
+        popular: Boolean(data.popular),
+        description,
+        vehicle_type: requiredString(data.vehicle_type) || 'car',
+        estimated_time: requiredString(data.estimated_time) || '60 minutes',
+      },
+    };
+  };
+
+  const sanitizeAddOn = (data: EditFormData): ValidationResult<AddOnPayload> => {
+    const id = requiredString(data.id);
+    const name = requiredString(data.name);
+    if (!id) return { error: 'Add-on ID is required' };
+    if (!name) return { error: 'Add-on name is required' };
+
+    return {
+      value: {
+        id,
+        name,
+        price: positiveNumber(data.price),
+        description: requiredString(data.description),
+        details: requiredString(data.details),
+        per_seat: Boolean(data.per_seat),
+      },
+    };
+  };
+
+  const sanitizeCategory = (data: EditFormData): ValidationResult<CategoryPayload> => {
+    const id = requiredString(data.id).toLowerCase().replace(/\s+/g, '-');
+    const label = requiredString(data.label);
+    if (!id) return { error: 'Category ID is required' };
+    if (!label) return { error: 'Category label is required' };
+
+    return {
+      value: {
+        id,
+        label,
+        icon_name: requiredString(data.icon_name) || 'Car',
+      },
+    };
+  };
+
+  const sanitizeNameOnly = (data: EditFormData, label: string): ValidationResult<NamePayload> => {
+    const name = requiredString(data.name);
+    if (!name) return { error: `${label} name is required` };
+    return { value: { name } };
+  };
+
+  const sanitizeWindow = (data: EditFormData): ValidationResult<WindowPayload> => {
+    const windowTime = requiredString(data.window_time);
+    if (!windowTime) return { error: 'Window time is required' };
+    return {
+      value: {
+        window_time: windowTime,
+        display_order: Math.floor(positiveNumber(data.display_order)),
+      },
+    };
+  };
+
+  const showToast = (message: string, type: ToastType) => {
+    setToast({ message, type });
+    window.setTimeout(() => setToast(null), 5000);
+  };
+
+  const closeModal = () => {
+    setShowAddModal(false);
+    setShowEditModal(false);
+    setShowDeleteModal(false);
+    setSelectedItem(null);
+    setEditFormData({});
+  };
+
+  const openAddModal = (defaults: EditFormData) => {
+    setSelectedItem(null);
+    setEditFormData(defaults);
+    setShowAddModal(true);
+  };
+
+  const getEmptyFormForTab = (tab: AdminTab): EditFormData => {
+    switch (tab) {
+      case 'services':
+        return {
+          name: '',
+          price: 0,
+          rating: 0,
+          reviews: 0,
+          popular: false,
+          description: '',
+          vehicle_type: 'car',
+          estimated_time: '60 minutes',
+        };
+      case 'addons':
+        return {
+          id: `new-${Date.now()}`,
+          name: '',
+          price: 0,
+          description: '',
+          details: '',
+          per_seat: false,
+        };
+      case 'categories':
+        return { id: '', label: '', icon_name: 'Car' };
+      case 'models':
+      case 'bodytypes':
+        return { make_id: 0, name: '' };
+      case 'windows':
+        return { window_time: '', display_order: windows.length + 1 };
+      case 'makes':
+      case 'conditions':
+      case 'bookings':
+      default:
+        return { name: '' };
+    }
+  };
+
+  const runMutation = async (action: () => Promise<void>) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await action();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const getBrandName = (makeId: number): string => {
     if (!makeId || makeId === 0) return 'No Brand Assigned';
@@ -250,6 +438,7 @@ export default function AdminDashboard() {
       setServices(data || []);
     } catch (error) {
       console.error('Error fetching services:', error);
+      throw error;
     }
   };
 
@@ -263,6 +452,7 @@ export default function AdminDashboard() {
       setAddOns(data || []);
     } catch (error) {
       console.error('Error fetching add-ons:', error);
+      throw error;
     }
   };
 
@@ -276,6 +466,7 @@ export default function AdminDashboard() {
       setCategories(data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      throw error;
     }
   };
 
@@ -289,6 +480,7 @@ export default function AdminDashboard() {
       setMakes(data || []);
     } catch (error) {
       console.error('Error fetching makes:', error);
+      throw error;
     }
   };
 
@@ -307,7 +499,7 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      const transformedData = data?.map((item: any) => ({
+      const transformedData = (data as VehicleModelRow[] | null)?.map((item) => ({
         ...item,
         make_name: item.vehicle_makes?.name || 'Unknown Brand'
       })) || [];
@@ -315,6 +507,7 @@ export default function AdminDashboard() {
       setModels(transformedData);
     } catch (error) {
       console.error('Error fetching models:', error);
+      throw error;
     }
   };
 
@@ -333,7 +526,7 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      const transformedData = data?.map((item: any) => ({
+      const transformedData = (data as VehicleBodyTypeRow[] | null)?.map((item) => ({
         ...item,
         make_name: item.vehicle_makes?.name || 'Unknown Brand'
       })) || [];
@@ -341,6 +534,7 @@ export default function AdminDashboard() {
       setBodyTypes(transformedData);
     } catch (error) {
       console.error('Error fetching body types:', error);
+      throw error;
     }
   };
 
@@ -354,6 +548,7 @@ export default function AdminDashboard() {
       setConditions(data || []);
     } catch (error) {
       console.error('Error fetching conditions:', error);
+      throw error;
     }
   };
 
@@ -367,6 +562,7 @@ export default function AdminDashboard() {
       setWindows(data || []);
     } catch (error) {
       console.error('Error fetching windows:', error);
+      throw error;
     }
   };
 
@@ -380,12 +576,14 @@ export default function AdminDashboard() {
       setBookings(data || []);
     } catch (error) {
       console.error('Error fetching bookings:', error);
+      throw error;
     }
   };
 
   const fetchAllData = async () => {
     setLoading(true);
-    await Promise.all([
+    setLoadError(null);
+    const results = await Promise.allSettled([
       fetchServices(),
       fetchAddOns(),
       fetchCategories(),
@@ -396,11 +594,18 @@ export default function AdminDashboard() {
       fetchWindows(),
       fetchBookings(),
     ]);
+    const failed = results.filter(result => result.status === 'rejected');
+    if (failed.length > 0) {
+      setLoadError(`${failed.length} data source${failed.length > 1 ? 's' : ''} failed to load. Some dashboard sections may be incomplete.`);
+      showToast('Some mobile detailing data could not be loaded', 'error');
+    }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchAllData();
+    // The dashboard intentionally loads once on mount; fetchAllData closes over current Supabase client state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ============================================
@@ -408,40 +613,42 @@ export default function AdminDashboard() {
   // ============================================
 
   // --- MAKES ---
-  const handleAddMake = async (data: any) => {
+  const handleAddMake = async (data: EditFormData) => {
     try {
-      if (!data.name || data.name.trim() === '') {
+      const name = requiredString(data.name);
+      if (!name) {
         showToast('Brand name is required', 'error');
         return;
       }
       const { error } = await supabase
         .from('vehicle_makes')
-        .insert([{ name: data.name.trim() }]);
+        .insert([{ name }]);
       if (error) throw error;
       showToast('Brand added successfully!', 'success');
-      fetchMakes();
-      setShowAddModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchMakes();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
-  const handleUpdateMake = async (id: number, data: any) => {
+  const handleUpdateMake = async (id: number, data: EditFormData) => {
     try {
-      if (!data.name || data.name.trim() === '') {
+      const name = requiredString(data.name);
+      if (!name) {
         showToast('Brand name is required', 'error');
         return;
       }
       const { error } = await supabase
         .from('vehicle_makes')
-        .update({ name: data.name.trim() })
+        .update({ name })
         .eq('id', id);
       if (error) throw error;
       showToast('Brand updated successfully!', 'success');
-      fetchMakes();
-      setShowEditModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchMakes();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
@@ -459,62 +666,66 @@ export default function AdminDashboard() {
         .eq('id', id);
       if (error) throw error;
       showToast('Brand deleted successfully!', 'success');
-      fetchMakes();
-      setShowDeleteModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchMakes();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
   // --- MODELS ---
-  const handleAddModel = async (data: any) => {
+  const handleAddModel = async (data: EditFormData) => {
     try {
-      if (!data.name || data.name.trim() === '') {
+      const name = requiredString(data.name);
+      const makeId = positiveNumber(data.make_id);
+      if (!name) {
         showToast('Model name is required', 'error');
         return;
       }
-      if (!data.make_id || data.make_id === 0) {
+      if (!makeId) {
         showToast('Please select a brand', 'error');
         return;
       }
       const { error } = await supabase
         .from('vehicle_models')
         .insert([{
-          make_id: data.make_id,
-          name: data.name.trim()
+          make_id: makeId,
+          name
         }]);
       if (error) throw error;
       showToast('Model added successfully!', 'success');
-      fetchModels();
-      setShowAddModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchModels();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
-  const handleUpdateModel = async (id: number, data: any) => {
+  const handleUpdateModel = async (id: number, data: EditFormData) => {
     try {
-      if (!data.name || data.name.trim() === '') {
+      const name = requiredString(data.name);
+      const makeId = positiveNumber(data.make_id);
+      if (!name) {
         showToast('Model name is required', 'error');
         return;
       }
-      if (!data.make_id || data.make_id === 0) {
+      if (!makeId) {
         showToast('Please select a brand', 'error');
         return;
       }
       const { error } = await supabase
         .from('vehicle_models')
         .update({
-          make_id: data.make_id,
-          name: data.name.trim()
+          make_id: makeId,
+          name
         })
         .eq('id', id);
       if (error) throw error;
       showToast('Model updated successfully!', 'success');
-      fetchModels();
-      setShowEditModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchModels();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
@@ -526,62 +737,66 @@ export default function AdminDashboard() {
         .eq('id', id);
       if (error) throw error;
       showToast('Model deleted successfully!', 'success');
-      fetchModels();
-      setShowDeleteModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchModels();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
   // --- BODY TYPES ---
-  const handleAddBodyType = async (data: any) => {
+  const handleAddBodyType = async (data: EditFormData) => {
     try {
-      if (!data.name || data.name.trim() === '') {
+      const name = requiredString(data.name);
+      const makeId = positiveNumber(data.make_id);
+      if (!name) {
         showToast('Body type name is required', 'error');
         return;
       }
-      if (!data.make_id || data.make_id === 0) {
+      if (!makeId) {
         showToast('Please select a brand', 'error');
         return;
       }
       const { error } = await supabase
         .from('vehicle_body_types')
         .insert([{
-          make_id: data.make_id,
-          name: data.name.trim()
+          make_id: makeId,
+          name
         }]);
       if (error) throw error;
       showToast('Body type added successfully!', 'success');
-      fetchBodyTypes();
-      setShowAddModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchBodyTypes();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
-  const handleUpdateBodyType = async (id: number, data: any) => {
+  const handleUpdateBodyType = async (id: number, data: EditFormData) => {
     try {
-      if (!data.name || data.name.trim() === '') {
+      const name = requiredString(data.name);
+      const makeId = positiveNumber(data.make_id);
+      if (!name) {
         showToast('Body type name is required', 'error');
         return;
       }
-      if (!data.make_id || data.make_id === 0) {
+      if (!makeId) {
         showToast('Please select a brand', 'error');
         return;
       }
       const { error } = await supabase
         .from('vehicle_body_types')
         .update({
-          make_id: data.make_id,
-          name: data.name.trim()
+          make_id: makeId,
+          name
         })
         .eq('id', id);
       if (error) throw error;
       showToast('Body type updated successfully!', 'success');
-      fetchBodyTypes();
-      setShowEditModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchBodyTypes();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
@@ -593,37 +808,45 @@ export default function AdminDashboard() {
         .eq('id', id);
       if (error) throw error;
       showToast('Body type deleted successfully!', 'success');
-      fetchBodyTypes();
-      setShowDeleteModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchBodyTypes();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
-  // --- SERVICES, ADD-ONS, CATEGORIES, CONDITIONS, WINDOWS, BOOKINGS ---
-  // (Keep existing handlers for these tables)
-
-  const handleAddService = async (data: any) => {
+  // --- SERVICES ---
+  const handleAddService = async (data: EditFormData) => {
     try {
-      const { error } = await supabase.from('vehicle_services').insert([data]);
+      const sanitized = sanitizeService(data);
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const { error } = await supabase.from('vehicle_services').insert([sanitized.value]);
       if (error) throw error;
       showToast('Service added successfully!', 'success');
-      fetchServices();
-      setShowAddModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchServices();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
-  const handleUpdateService = async (id: number, data: any) => {
+  const handleUpdateService = async (id: number, data: EditFormData) => {
     try {
-      const { error } = await supabase.from('vehicle_services').update(data).eq('id', id);
+      const sanitized = sanitizeService(data);
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const { error } = await supabase.from('vehicle_services').update(sanitized.value).eq('id', id);
       if (error) throw error;
       showToast('Service updated successfully!', 'success');
-      fetchServices();
-      setShowEditModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchServices();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
@@ -632,22 +855,243 @@ export default function AdminDashboard() {
       const { error } = await supabase.from('vehicle_services').delete().eq('id', id);
       if (error) throw error;
       showToast('Service deleted successfully!', 'success');
-      fetchServices();
-      setShowDeleteModal(false);
-    } catch (error: any) {
-      showToast(`Error: ${error.message}`, 'error');
+      await fetchServices();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
     }
   };
 
-  // Add more handlers for addons, categories, conditions, windows, bookings...
+  // --- ADD-ONS ---
+  const handleAddAddOn = async (data: EditFormData) => {
+    try {
+      const sanitized = sanitizeAddOn(data);
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const { error } = await supabase.from('vehicle_add_on_options').insert([sanitized.value]);
+      if (error) throw error;
+      showToast('Add-on added successfully!', 'success');
+      await fetchAddOns();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
 
-  // ============================================
-  // TOAST
-  // ============================================
+  const handleUpdateAddOn = async (id: string, data: EditFormData) => {
+    try {
+      const sanitized = sanitizeAddOn({ ...data, id });
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const payload = {
+        name: sanitized.value.name,
+        price: sanitized.value.price,
+        description: sanitized.value.description,
+        details: sanitized.value.details,
+        per_seat: sanitized.value.per_seat,
+      };
+      const { error } = await supabase.from('vehicle_add_on_options').update(payload).eq('id', id);
+      if (error) throw error;
+      showToast('Add-on updated successfully!', 'success');
+      await fetchAddOns();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 5000);
+  const handleDeleteAddOn = async (id: string) => {
+    try {
+      const { error } = await supabase.from('vehicle_add_on_options').delete().eq('id', id);
+      if (error) throw error;
+      showToast('Add-on deleted successfully!', 'success');
+      await fetchAddOns();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  // --- CATEGORIES ---
+  const handleAddCategory = async (data: EditFormData) => {
+    try {
+      const sanitized = sanitizeCategory(data);
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const { error } = await supabase.from('vehicle_categories').insert([sanitized.value]);
+      if (error) throw error;
+      showToast('Category added successfully!', 'success');
+      await fetchCategories();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  const handleUpdateCategory = async (id: string, data: EditFormData) => {
+    try {
+      const sanitized = sanitizeCategory({ ...data, id });
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const payload = {
+        label: sanitized.value.label,
+        icon_name: sanitized.value.icon_name,
+      };
+      const { error } = await supabase.from('vehicle_categories').update(payload).eq('id', id);
+      if (error) throw error;
+      showToast('Category updated successfully!', 'success');
+      await fetchCategories();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      const { error } = await supabase.from('vehicle_categories').delete().eq('id', id);
+      if (error) throw error;
+      showToast('Category deleted successfully!', 'success');
+      await fetchCategories();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  // --- CONDITIONS ---
+  const handleAddCondition = async (data: EditFormData) => {
+    try {
+      const sanitized = sanitizeNameOnly(data, 'Condition');
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const { error } = await supabase.from('vehicle_conditions').insert([sanitized.value]);
+      if (error) throw error;
+      showToast('Condition added successfully!', 'success');
+      await fetchConditions();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  const handleUpdateCondition = async (id: number, data: EditFormData) => {
+    try {
+      const sanitized = sanitizeNameOnly(data, 'Condition');
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const { error } = await supabase.from('vehicle_conditions').update(sanitized.value).eq('id', id);
+      if (error) throw error;
+      showToast('Condition updated successfully!', 'success');
+      await fetchConditions();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  const handleDeleteCondition = async (id: number) => {
+    try {
+      const { error } = await supabase.from('vehicle_conditions').delete().eq('id', id);
+      if (error) throw error;
+      showToast('Condition deleted successfully!', 'success');
+      await fetchConditions();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  // --- WINDOWS ---
+  const handleAddWindow = async (data: EditFormData) => {
+    try {
+      const sanitized = sanitizeWindow(data);
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const { error } = await supabase.from('vehicle_arrival_windows').insert([sanitized.value]);
+      if (error) throw error;
+      showToast('Window added successfully!', 'success');
+      await fetchWindows();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  const handleUpdateWindow = async (id: number, data: EditFormData) => {
+    try {
+      const sanitized = sanitizeWindow(data);
+      if ('error' in sanitized) {
+        showToast(sanitized.error ?? 'Invalid form data', 'error');
+        return;
+      }
+      const { error } = await supabase.from('vehicle_arrival_windows').update(sanitized.value).eq('id', id);
+      if (error) throw error;
+      showToast('Window updated successfully!', 'success');
+      await fetchWindows();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  const handleDeleteWindow = async (id: number) => {
+    try {
+      const { error } = await supabase.from('vehicle_arrival_windows').delete().eq('id', id);
+      if (error) throw error;
+      showToast('Window deleted successfully!', 'success');
+      await fetchWindows();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  // --- BOOKINGS ---
+  const handleUpdateBookingStatus = async (id: string, status: VehicleBooking['status']) => {
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from('vehicle_bookings')
+        .update({
+          status,
+          confirmed_at: status === 'confirmed' ? now : undefined,
+          completed_at: status === 'completed' ? now : undefined,
+          cancelled_at: status === 'cancelled' ? now : undefined,
+        })
+        .eq('id', id);
+      if (error) throw error;
+      showToast(`Booking ${status}!`, 'success');
+      await fetchBookings();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
+  };
+
+  const handleDeleteBooking = async (id: string) => {
+    try {
+      const { error } = await supabase.from('vehicle_bookings').delete().eq('id', id);
+      if (error) throw error;
+      showToast('Booking deleted successfully!', 'success');
+      await fetchBookings();
+      closeModal();
+    } catch (error: unknown) {
+      showToast(`Error: ${getErrorMessage(error)}`, 'error');
+    }
   };
 
   // ============================================
@@ -666,11 +1110,239 @@ export default function AdminDashboard() {
   };
 
   // ============================================
+  // SERVICES TABLE
+  // ============================================
+
+  const renderServicesTable = () => {
+    const filtered = services.filter(s =>
+      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase text-theme-muted bg-theme-panel">
+            <tr>
+              <th className="px-4 py-3 text-left">Name</th>
+              <th className="px-4 py-3 text-left">Price</th>
+              <th className="px-4 py-3 text-left">Rating</th>
+              <th className="px-4 py-3 text-left">Vehicle Type</th>
+              <th className="px-4 py-3 text-left">Popular</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((service) => (
+              <tr key={service.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
+                <td className="px-4 py-3 font-medium text-theme-text">{service.name}</td>
+                <td className="px-4 py-3" style={{ color: secondaryColor }}>${service.price}</td>
+                <td className="px-4 py-3 text-theme-text">★ {service.rating} ({service.reviews})</td>
+                <td className="px-4 py-3 text-theme-muted capitalize">{service.vehicle_type}</td>
+                <td className="px-4 py-3">
+                  {service.popular && (
+                    <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                      Popular
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => { setSelectedItem(service); setEditFormData(toFormData(service)); setShowEditModal(true); }}
+                      className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                      style={{ color: primaryColor }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => { setSelectedItem(service); setShowDeleteModal(true); }}
+                      className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // ============================================
+  // ADD-ONS TABLE
+  // ============================================
+
+  const renderAddOnsTable = () => {
+    const filtered = addOns.filter(a =>
+      a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      a.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase text-theme-muted bg-theme-panel">
+            <tr>
+              <th className="px-4 py-3 text-left">Name</th>
+              <th className="px-4 py-3 text-left">Price</th>
+              <th className="px-4 py-3 text-left">Per Seat</th>
+              <th className="px-4 py-3 text-left">Description</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((addOn) => (
+              <tr key={addOn.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
+                <td className="px-4 py-3 font-medium text-theme-text">{addOn.name}</td>
+                <td className="px-4 py-3" style={{ color: secondaryColor }}>${addOn.price}</td>
+                <td className="px-4 py-3 text-theme-text">{addOn.per_seat ? 'Yes' : 'No'}</td>
+                <td className="px-4 py-3 text-theme-muted text-sm">{addOn.description}</td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => { setSelectedItem(addOn); setEditFormData(toFormData(addOn)); setShowEditModal(true); }}
+                      className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                      style={{ color: primaryColor }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => { setSelectedItem(addOn); setShowDeleteModal(true); }}
+                      className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // ============================================
+  // CATEGORIES TABLE
+  // ============================================
+
+  const renderCategoriesTable = () => {
+    const filtered = categories.filter(c =>
+      c.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase text-theme-muted bg-theme-panel">
+            <tr>
+              <th className="px-4 py-3 text-left">ID</th>
+              <th className="px-4 py-3 text-left">Label</th>
+              <th className="px-4 py-3 text-left">Icon</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((category) => {
+              const IconComponent = iconMap[category.icon_name] || Car;
+              return (
+                <tr key={category.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
+                  <td className="px-4 py-3 text-theme-muted text-sm">{category.id}</td>
+                  <td className="px-4 py-3 font-medium text-theme-text">{category.label}</td>
+                  <td className="px-4 py-3">
+                    <IconComponent className="w-5 h-5 text-theme-muted" />
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => { setSelectedItem(category); setEditFormData(toFormData(category)); setShowEditModal(true); }}
+                        className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                        style={{ color: primaryColor }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => { setSelectedItem(category); setShowDeleteModal(true); }}
+                        className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // ============================================
+  // MAKES TABLE (Brands)
+  // ============================================
+
+  const renderMakesTable = () => {
+    const filtered = makes.filter(m =>
+      m.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase text-theme-muted bg-theme-panel">
+            <tr>
+              <th className="px-4 py-3 text-left">ID</th>
+              <th className="px-4 py-3 text-left">Brand Name</th>
+              <th className="px-4 py-3 text-left">Models</th>
+              <th className="px-4 py-3 text-left">Body Types</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((make) => {
+              const modelCount = models.filter(m => m.make_id === make.id).length;
+              const bodyTypeCount = bodyTypes.filter(b => b.make_id === make.id).length;
+              return (
+                <tr key={make.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
+                  <td className="px-4 py-3 text-theme-muted text-sm">{make.id}</td>
+                  <td className="px-4 py-3 font-medium text-theme-text">{make.name}</td>
+                  <td className="px-4 py-3 text-theme-muted text-sm">{modelCount}</td>
+                  <td className="px-4 py-3 text-theme-muted text-sm">{bodyTypeCount}</td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => { setSelectedItem(make); setEditFormData({ name: make.name }); setShowEditModal(true); }}
+                        className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                        style={{ color: primaryColor }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => { setSelectedItem(make); setShowDeleteModal(true); }}
+                        className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // ============================================
   // HIERARCHICAL VIEW - MODELS
   // ============================================
 
   const renderModelsHierarchical = () => {
-    // Group models by brand
     const groupedModels: Record<number, VehicleModel[]> = {};
     models.forEach(model => {
       if (!groupedModels[model.make_id]) {
@@ -679,7 +1351,6 @@ export default function AdminDashboard() {
       groupedModels[model.make_id].push(model);
     });
 
-    // Filter brands based on search
     const filteredBrands = makes.filter(b =>
       b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (groupedModels[b.id] || []).some(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -709,7 +1380,6 @@ export default function AdminDashboard() {
 
     return (
       <div className="space-y-4">
-        {/* Legend */}
         <div className="flex items-center gap-6 px-4 py-2 bg-theme-card rounded-xl border border-theme-border text-sm">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-full" style={{ backgroundColor: secondaryColor }}></div>
@@ -735,7 +1405,6 @@ export default function AdminDashboard() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-theme-card rounded-xl border border-theme-border overflow-hidden transition-all"
             >
-              {/* Brand Header */}
               <div
                 className="flex items-center justify-between p-4 cursor-pointer hover:bg-theme-panel/50 transition-colors"
                 onClick={() => {
@@ -785,13 +1454,10 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Models Grid */}
               {isExpanded && (
                 <div className="p-4 pt-0 border-t border-theme-border">
                   {brandModels.length === 0 ? (
-                    <div className="text-center py-8 text-theme-muted">
-                      No models for this brand. Click "Add Model" to create one.
-                    </div>
+                    <div className="text-center py-8 text-theme-muted">No models for this brand. Click &quot;Add Model&quot; to create one.</div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                       {brandModels.map((model) => (
@@ -807,12 +1473,10 @@ export default function AdminDashboard() {
                                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: primaryColor }}></div>
                                 <h4 className="font-semibold text-theme-text truncate">{model.name}</h4>
                               </div>
-
                               <div className="mt-2 flex items-center gap-2 text-xs text-theme-muted">
                                 <span className="font-medium">Brand:</span>
                                 <span className="text-theme-text">{getModelBrandName(model)}</span>
                               </div>
-
                               <div className="mt-1 flex items-center gap-2 text-xs text-theme-muted">
                                 <span className="font-medium">Body Types:</span>
                                 <span className="text-theme-text">
@@ -821,22 +1485,15 @@ export default function AdminDashboard() {
                                     : 'No body types available'}
                                 </span>
                               </div>
-
                               <div className="mt-2 flex flex-wrap gap-1.5">
-                                <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                  ID: {model.id}
-                                </span>
+                                <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">ID: {model.id}</span>
                               </div>
                             </div>
-
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
                               <button
                                 onClick={() => {
                                   setSelectedItem(model);
-                                  setEditFormData({
-                                    make_id: model.make_id,
-                                    name: model.name
-                                  });
+                                  setEditFormData({ make_id: model.make_id, name: model.name });
                                   setShowEditModal(true);
                                 }}
                                 className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
@@ -861,6 +1518,67 @@ export default function AdminDashboard() {
             </motion.div>
           );
         })}
+      </div>
+    );
+  };
+
+  // ============================================
+  // TABLE VIEW - MODELS
+  // ============================================
+
+  const renderModelsTable = () => {
+    const filtered = models.filter(m =>
+      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getModelBrandName(m).toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase text-theme-muted bg-theme-panel">
+            <tr>
+              <th className="px-4 py-3 text-left">ID</th>
+              <th className="px-4 py-3 text-left">Brand</th>
+              <th className="px-4 py-3 text-left">Model Name</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((model) => (
+              <tr key={model.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
+                <td className="px-4 py-3 text-theme-muted text-sm">{model.id}</td>
+                <td className="px-4 py-3 font-medium text-theme-text">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: secondaryColor }}></span>
+                    {getModelBrandName(model)}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-theme-text">{model.name}</td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedItem(model);
+                        setEditFormData({ make_id: model.make_id, name: model.name });
+                        setShowEditModal(true);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                      style={{ color: primaryColor }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => { setSelectedItem(model); setShowDeleteModal(true); }}
+                      className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   };
@@ -984,9 +1702,7 @@ export default function AdminDashboard() {
               {isExpanded && (
                 <div className="p-4 pt-0 border-t border-theme-border">
                   {brandBodyTypes.length === 0 ? (
-                    <div className="text-center py-8 text-theme-muted">
-                      No body types for this brand. Click "Add Body Type" to create one.
-                    </div>
+                    <div className="text-center py-8 text-theme-muted">No body types for this brand. Click &quot;Add Body Type&quot; to create one.</div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                       {brandBodyTypes.map((bodyType) => (
@@ -1002,12 +1718,10 @@ export default function AdminDashboard() {
                                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: '#f59e0b' }}></div>
                                 <h4 className="font-semibold text-theme-text truncate">{bodyType.name}</h4>
                               </div>
-
                               <div className="mt-2 flex items-center gap-2 text-xs text-theme-muted">
                                 <span className="font-medium">Brand:</span>
                                 <span className="text-theme-text">{getBodyTypeBrandName(bodyType)}</span>
                               </div>
-
                               <div className="mt-1 flex items-center gap-2 text-xs text-theme-muted">
                                 <span className="font-medium">Models:</span>
                                 <span className="text-theme-text">
@@ -1016,22 +1730,15 @@ export default function AdminDashboard() {
                                     : 'No models available'}
                                 </span>
                               </div>
-
                               <div className="mt-2 flex flex-wrap gap-1.5">
-                                <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                  ID: {bodyType.id}
-                                </span>
+                                <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">ID: {bodyType.id}</span>
                               </div>
                             </div>
-
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
                               <button
                                 onClick={() => {
                                   setSelectedItem(bodyType);
-                                  setEditFormData({
-                                    make_id: bodyType.make_id,
-                                    name: bodyType.name
-                                  });
+                                  setEditFormData({ make_id: bodyType.make_id, name: bodyType.name });
                                   setShowEditModal(true);
                                 }}
                                 className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
@@ -1056,70 +1763,6 @@ export default function AdminDashboard() {
             </motion.div>
           );
         })}
-      </div>
-    );
-  };
-
-  // ============================================
-  // TABLE VIEW - MODELS
-  // ============================================
-
-  const renderModelsTable = () => {
-    const filtered = models.filter(m =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      getModelBrandName(m).toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    return (
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-xs uppercase text-theme-muted bg-theme-panel">
-            <tr>
-              <th className="px-4 py-3 text-left">ID</th>
-              <th className="px-4 py-3 text-left">Brand</th>
-              <th className="px-4 py-3 text-left">Model Name</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((model) => (
-              <tr key={model.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
-                <td className="px-4 py-3 text-theme-muted text-sm">{model.id}</td>
-                <td className="px-4 py-3 font-medium text-theme-text">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: secondaryColor }}></span>
-                    {getModelBrandName(model)}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-theme-text">{model.name}</td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedItem(model);
-                        setEditFormData({
-                          make_id: model.make_id,
-                          name: model.name
-                        });
-                        setShowEditModal(true);
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                      style={{ color: primaryColor }}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => { setSelectedItem(model); setShowDeleteModal(true); }}
-                      className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     );
   };
@@ -1161,10 +1804,7 @@ export default function AdminDashboard() {
                     <button
                       onClick={() => {
                         setSelectedItem(bodyType);
-                        setEditFormData({
-                          make_id: bodyType.make_id,
-                          name: bodyType.name
-                        });
+                        setEditFormData({ make_id: bodyType.make_id, name: bodyType.name });
                         setShowEditModal(true);
                       }}
                       className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
@@ -1189,12 +1829,12 @@ export default function AdminDashboard() {
   };
 
   // ============================================
-  // RENDER OTHER TABLES
+  // CONDITIONS TABLE
   // ============================================
 
-  const renderMakesTable = () => {
-    const filtered = makes.filter(m =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const renderConditionsTable = () => {
+    const filtered = conditions.filter(c =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -1203,33 +1843,172 @@ export default function AdminDashboard() {
           <thead className="text-xs uppercase text-theme-muted bg-theme-panel">
             <tr>
               <th className="px-4 py-3 text-left">ID</th>
-              <th className="px-4 py-3 text-left">Brand Name</th>
-              <th className="px-4 py-3 text-left">Models</th>
-              <th className="px-4 py-3 text-left">Body Types</th>
+              <th className="px-4 py-3 text-left">Name</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((make) => {
-              const modelCount = models.filter(m => m.make_id === make.id).length;
-              const bodyTypeCount = bodyTypes.filter(b => b.make_id === make.id).length;
+            {filtered.map((condition) => (
+              <tr key={condition.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
+                <td className="px-4 py-3 text-theme-muted text-sm">{condition.id}</td>
+                <td className="px-4 py-3 font-medium text-theme-text">{condition.name}</td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => { setSelectedItem(condition); setEditFormData(toFormData(condition)); setShowEditModal(true); }}
+                      className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                      style={{ color: primaryColor }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => { setSelectedItem(condition); setShowDeleteModal(true); }}
+                      className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // ============================================
+  // WINDOWS TABLE
+  // ============================================
+
+  const renderWindowsTable = () => {
+    const filtered = windows.filter(w =>
+      w.window_time.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase text-theme-muted bg-theme-panel">
+            <tr>
+              <th className="px-4 py-3 text-left">ID</th>
+              <th className="px-4 py-3 text-left">Window Time</th>
+              <th className="px-4 py-3 text-left">Display Order</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((window) => (
+              <tr key={window.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
+                <td className="px-4 py-3 text-theme-muted text-sm">{window.id}</td>
+                <td className="px-4 py-3 font-medium text-theme-text">{window.window_time}</td>
+                <td className="px-4 py-3 text-theme-muted text-sm">{window.display_order}</td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => { setSelectedItem(window); setEditFormData(toFormData(window)); setShowEditModal(true); }}
+                      className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                      style={{ color: primaryColor }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => { setSelectedItem(window); setShowDeleteModal(true); }}
+                      className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  // ============================================
+  // BOOKINGS TABLE
+  // ============================================
+
+  const renderBookingsTable = () => {
+    const filtered = bookings.filter(b =>
+      b.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.vehicle_make.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.vehicle_model.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs uppercase text-theme-muted bg-theme-panel">
+            <tr>
+              <th className="px-4 py-3 text-left">Customer</th>
+              <th className="px-4 py-3 text-left">Vehicle</th>
+              <th className="px-4 py-3 text-left">Package</th>
+              <th className="px-4 py-3 text-left">Date</th>
+              <th className="px-4 py-3 text-left">Total</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((booking) => {
+              const IconComponent = iconMap[booking.vehicle_category === 'car' ? 'Car' :
+                                       booking.vehicle_category === 'truck' ? 'Truck' :
+                                       booking.vehicle_category === 'van' ? 'Warehouse' :
+                                       booking.vehicle_category === 'suv' ? 'Bus' : 'Car'];
               return (
-                <tr key={make.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
-                  <td className="px-4 py-3 text-theme-muted text-sm">{make.id}</td>
-                  <td className="px-4 py-3 font-medium text-theme-text">{make.name}</td>
-                  <td className="px-4 py-3 text-theme-muted text-sm">{modelCount}</td>
-                  <td className="px-4 py-3 text-theme-muted text-sm">{bodyTypeCount}</td>
+                <tr key={booking.id} className="border-b border-theme-border hover:bg-theme-panel/50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div>
+                      <p className="font-medium text-theme-text">{booking.first_name} {booking.last_name}</p>
+                      <p className="text-xs text-theme-muted">{booking.email}</p>
+                      <p className="text-xs text-theme-muted">{booking.phone}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <IconComponent className="w-4 h-4 text-theme-muted" />
+                      <span className="text-theme-text text-sm">
+                        {booking.vehicle_year} {booking.vehicle_make}
+                      </span>
+                      <span className="text-xs text-theme-muted">{booking.vehicle_model}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-theme-text text-sm">{booking.package_name}</span>
+                    <p className="text-xs text-theme-muted">{booking.vehicle_count} vehicle{booking.vehicle_count > 1 ? 's' : ''}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col">
+                      <span className="text-theme-text text-sm">{new Date(booking.appointment_date).toLocaleDateString('en-AU')}</span>
+                      <span className="text-xs text-theme-muted">{booking.selected_windows?.join(', ')}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 font-bold" style={{ color: secondaryColor }}>
+                    ${booking.total_price}
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={booking.status}
+                      onChange={(e) => handleUpdateBookingStatus(booking.id, e.target.value as VehicleBooking['status'])}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold border-0 cursor-pointer ${getStatusBadge(booking.status)}`}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => { setSelectedItem(make); setEditFormData({ name: make.name }); setShowEditModal(true); }}
-                        className="p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                        style={{ color: primaryColor }}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => { setSelectedItem(make); setShowDeleteModal(true); }}
+                        onClick={() => { setSelectedItem(booking); setShowDeleteModal(true); }}
                         className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-500"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1249,48 +2028,75 @@ export default function AdminDashboard() {
   // MODAL COMPONENT
   // ============================================
 
-  const AddEditModal = () => {
-    const isEditing = !!selectedItem?.id;
+  const renderAddEditModal = () => {
+    const isEditing = hasId(selectedItem);
     const title = isEditing ? 'Edit Item' : 'Add New Item';
     const isModelOrBodyType = activeTab === 'models' || activeTab === 'bodytypes';
     const isModel = activeTab === 'models';
+    const selectedMakeId = positiveNumber(editFormData.make_id);
 
-    const handleSave = () => {
+    const handleSave = () => runMutation(async () => {
       switch (activeTab) {
         case 'services':
           if (isEditing) {
-            handleUpdateService(selectedItem.id, editFormData);
+            await handleUpdateService(Number(selectedItem.id), editFormData);
           } else {
-            handleAddService(editFormData);
+            await handleAddService(editFormData);
           }
           break;
-        // Add more cases for other tables
+        case 'addons':
+          if (isEditing) {
+            await handleUpdateAddOn(String(selectedItem.id), editFormData);
+          } else {
+            await handleAddAddOn(editFormData);
+          }
+          break;
+        case 'categories':
+          if (isEditing) {
+            await handleUpdateCategory(String(selectedItem.id), editFormData);
+          } else {
+            await handleAddCategory(editFormData);
+          }
+          break;
         case 'makes':
           if (isEditing) {
-            handleUpdateMake(selectedItem.id, editFormData);
+            await handleUpdateMake(Number(selectedItem.id), editFormData);
           } else {
-            handleAddMake(editFormData);
+            await handleAddMake(editFormData);
           }
           break;
         case 'models':
           if (isEditing) {
-            handleUpdateModel(selectedItem.id, editFormData);
+            await handleUpdateModel(Number(selectedItem.id), editFormData);
           } else {
-            handleAddModel(editFormData);
+            await handleAddModel(editFormData);
           }
           break;
         case 'bodytypes':
           if (isEditing) {
-            handleUpdateBodyType(selectedItem.id, editFormData);
+            await handleUpdateBodyType(Number(selectedItem.id), editFormData);
           } else {
-            handleAddBodyType(editFormData);
+            await handleAddBodyType(editFormData);
           }
           break;
-        // Add more cases...
+        case 'conditions':
+          if (isEditing) {
+            await handleUpdateCondition(Number(selectedItem.id), editFormData);
+          } else {
+            await handleAddCondition(editFormData);
+          }
+          break;
+        case 'windows':
+          if (isEditing) {
+            await handleUpdateWindow(Number(selectedItem.id), editFormData);
+          } else {
+            await handleAddWindow(editFormData);
+          }
+          break;
         default:
           break;
       }
-    };
+    });
 
     return (
       <motion.div
@@ -1298,7 +2104,7 @@ export default function AdminDashboard() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={() => { setShowEditModal(false); setShowAddModal(false); }}
+        onClick={closeModal}
       >
         <motion.div
           initial={{ scale: 0.9, y: 20 }}
@@ -1310,7 +2116,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-theme-text">{title}</h2>
             <button
-              onClick={() => { setShowEditModal(false); setShowAddModal(false); }}
+              onClick={closeModal}
               className="p-2 rounded-lg hover:bg-theme-card transition-colors text-theme-muted"
             >
               <X className="w-5 h-5" />
@@ -1318,13 +2124,12 @@ export default function AdminDashboard() {
           </div>
 
           <div className="space-y-4">
-            {/* Brand Dropdown for Models and Body Types */}
             {isModelOrBodyType && (
               <div>
                 <label className="block text-sm font-medium text-theme-text mb-1">Select Brand</label>
                 <select
-                  value={editFormData.make_id || 0}
-                  onChange={(e) => setEditFormData({ ...editFormData, make_id: parseInt(e.target.value) })}
+                  value={selectedMakeId}
+                  onChange={(e) => setEditFormData({ ...editFormData, make_id: Number(e.target.value) })}
                   className="w-full px-4 py-2.5 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
                 >
                   <option value={0}>Select a brand...</option>
@@ -1337,16 +2142,16 @@ export default function AdminDashboard() {
                 {makes.length === 0 && (
                   <p className="text-xs text-yellow-500 mt-1">No brands available. Please add a brand first.</p>
                 )}
-                {editFormData.make_id && editFormData.make_id !== 0 && (
+                {selectedMakeId !== 0 && (
                   <div className="mt-2 p-3 bg-theme-card rounded-lg border border-green-500/30">
                     <p className="text-xs text-theme-muted">
-                      Selected Brand: <span className="font-medium text-theme-text">{getBrandName(editFormData.make_id)}</span>
+                      Selected Brand: <span className="font-medium text-theme-text">{getBrandName(selectedMakeId)}</span>
                     </p>
                     <p className="text-xs text-theme-muted mt-1">
                       {isModel ? 'Models' : 'Body Types'} for this brand: {
                         isModel
-                          ? models.filter(m => m.make_id === editFormData.make_id).length
-                          : bodyTypes.filter(b => b.make_id === editFormData.make_id).length
+                          ? models.filter(m => m.make_id === selectedMakeId).length
+                          : bodyTypes.filter(b => b.make_id === selectedMakeId).length
                       } item(s)
                     </p>
                   </div>
@@ -1354,7 +2159,6 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* Dynamic form fields */}
             {Object.entries(editFormData).map(([key, value]) => {
               if (['id', 'created_at', 'updated_at', 'confirmed_at', 'completed_at', 'cancelled_at', 'make_id'].includes(key)) return null;
 
@@ -1363,7 +2167,7 @@ export default function AdminDashboard() {
                   <div key={key} className="flex items-center gap-3">
                     <input
                       type="checkbox"
-                      checked={editFormData[key] || false}
+                      checked={value}
                       onChange={(e) => setEditFormData({ ...editFormData, [key]: e.target.checked })}
                       className="w-5 h-5 rounded border-theme-border text-blue-600 focus:ring-blue-500"
                     />
@@ -1378,7 +2182,7 @@ export default function AdminDashboard() {
                     <label className="block text-sm font-medium text-theme-text mb-1 capitalize">{key.replace(/_/g, ' ')}</label>
                     <input
                       type="number"
-                      value={editFormData[key] ?? ''}
+                      value={value}
                       onChange={(e) => setEditFormData({ ...editFormData, [key]: parseFloat(e.target.value) || 0 })}
                       className="w-full px-4 py-2 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
                     />
@@ -1425,7 +2229,7 @@ export default function AdminDashboard() {
                   <label className="block text-sm font-medium text-theme-text mb-1 capitalize">{key.replace(/_/g, ' ')}</label>
                   <input
                     type="text"
-                    value={editFormData[key] ?? ''}
+                    value={typeof value === 'string' || typeof value === 'number' ? value : ''}
                     onChange={(e) => setEditFormData({ ...editFormData, [key]: e.target.value })}
                     className="w-full px-4 py-2 rounded-xl border-2 border-theme-border bg-theme-card text-theme-text focus:outline-none focus:border-theme-secondary transition-colors"
                     placeholder={`Enter ${key.replace(/_/g, ' ')}`}
@@ -1438,14 +2242,16 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-3 mt-6 pt-4 border-t border-theme-border">
             <button
               onClick={handleSave}
+              disabled={saving}
               className="flex-1 px-6 py-3 rounded-xl text-white font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-2"
               style={{ backgroundColor: primaryColor }}
             >
-              <Save className="w-4 h-4" />
-              Save Changes
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
             <button
-              onClick={() => { setShowEditModal(false); setShowAddModal(false); }}
+              onClick={closeModal}
+              disabled={saving}
               className="px-6 py-3 rounded-xl border-2 border-theme-border text-theme-muted font-semibold hover:bg-theme-card transition-colors"
             >
               Cancel
@@ -1460,14 +2266,56 @@ export default function AdminDashboard() {
   // DELETE MODAL
   // ============================================
 
-  const DeleteModal = () => {
+  const renderDeleteModal = () => {
+    if (!hasId(selectedItem)) return null;
+
+    const handleConfirmDelete = async () => {
+      if (deleting) return;
+      setDeleting(true);
+      try {
+        switch (activeTab) {
+          case 'services':
+            await handleDeleteService(Number(selectedItem.id));
+            break;
+          case 'addons':
+            await handleDeleteAddOn(String(selectedItem.id));
+            break;
+          case 'categories':
+            await handleDeleteCategory(String(selectedItem.id));
+            break;
+          case 'makes':
+            await handleDeleteMake(Number(selectedItem.id));
+            break;
+          case 'models':
+            await handleDeleteModel(Number(selectedItem.id));
+            break;
+          case 'bodytypes':
+            await handleDeleteBodyType(Number(selectedItem.id));
+            break;
+          case 'conditions':
+            await handleDeleteCondition(Number(selectedItem.id));
+            break;
+          case 'windows':
+            await handleDeleteWindow(Number(selectedItem.id));
+            break;
+          case 'bookings':
+            await handleDeleteBooking(String(selectedItem.id));
+            break;
+          default:
+            break;
+        }
+      } finally {
+        setDeleting(false);
+      }
+    };
+
     return (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={() => setShowDeleteModal(false)}
+        onClick={closeModal}
       >
         <motion.div
           initial={{ scale: 0.9, y: 20 }}
@@ -1485,22 +2333,16 @@ export default function AdminDashboard() {
           <p className="text-theme-muted text-center mb-6">Are you sure you want to delete this item? This action cannot be undone.</p>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                switch (activeTab) {
-                  case 'services': handleDeleteService(selectedItem.id); break;
-                  case 'makes': handleDeleteMake(selectedItem.id); break;
-                  case 'models': handleDeleteModel(selectedItem.id); break;
-                  case 'bodytypes': handleDeleteBodyType(selectedItem.id); break;
-                  // Add more cases...
-                  default: break;
-                }
-              }}
+              onClick={handleConfirmDelete}
+              disabled={deleting}
               className="flex-1 px-6 py-3 rounded-xl text-white font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-2 bg-red-500"
             >
-              Delete
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              {deleting ? 'Deleting...' : 'Delete'}
             </button>
             <button
-              onClick={() => setShowDeleteModal(false)}
+              onClick={closeModal}
+              disabled={deleting}
               className="px-6 py-3 rounded-xl border-2 border-theme-border text-theme-muted font-semibold hover:bg-theme-card transition-colors"
             >
               Cancel
@@ -1512,7 +2354,7 @@ export default function AdminDashboard() {
   };
 
   // ============================================
-  // MAIN RENDER
+  // RENDER CONTENT
   // ============================================
 
   const renderContent = () => {
@@ -1540,9 +2382,12 @@ export default function AdminDashboard() {
     }
   };
 
+  // ============================================
+  // MAIN RENDER
+  // ============================================
+
   return (
     <div className="min-h-screen bg-theme-bg text-theme-text">
-      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -1594,23 +2439,13 @@ export default function AdminDashboard() {
       {/* Navigation Tabs */}
       <div className="max-w-7xl mx-auto px-4 pt-4">
         <div className="flex flex-wrap gap-2 border-b border-theme-border">
-          {[
-            { id: 'services', label: 'Services', icon: Package },
-            { id: 'addons', label: 'Add-ons', icon: Plus },
-            { id: 'categories', label: 'Categories', icon: Car },
-            { id: 'makes', label: 'Brands', icon: Tag },
-            { id: 'models', label: 'Models', icon: Layers },
-            { id: 'bodytypes', label: 'Body Types', icon: Truck },
-            { id: 'conditions', label: 'Conditions', icon: AlertCircle },
-            { id: 'windows', label: 'Windows', icon: ClockIcon },
-            { id: 'bookings', label: 'Bookings', icon: Calendar },
-          ].map((tab) => {
+          {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as AdminTab)}
                 className={`px-4 py-2.5 text-sm font-medium transition-all border-b-2 flex items-center gap-2 ${
                   isActive
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -1628,7 +2463,6 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Toolbar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4 w-full sm:w-auto">
             <div className="relative w-full sm:w-72">
@@ -1642,7 +2476,6 @@ export default function AdminDashboard() {
               />
             </div>
 
-            {/* View Mode Toggle */}
             {(activeTab === 'models' || activeTab === 'bodytypes') && (
               <div className="flex items-center gap-1 p-1 rounded-xl border border-theme-border bg-theme-card">
                 <button
@@ -1670,57 +2503,7 @@ export default function AdminDashboard() {
           </div>
 
           <button
-            onClick={() => {
-              const emptyForm: any = {};
-              switch (activeTab) {
-                case 'services':
-                  emptyForm.name = '';
-                  emptyForm.price = 0;
-                  emptyForm.rating = 0;
-                  emptyForm.reviews = 0;
-                  emptyForm.popular = false;
-                  emptyForm.description = '';
-                  emptyForm.vehicle_type = 'car';
-                  emptyForm.estimated_time = '60 minutes';
-                  break;
-                case 'addons':
-                  emptyForm.id = `new-${Date.now()}`;
-                  emptyForm.name = '';
-                  emptyForm.price = 0;
-                  emptyForm.description = '';
-                  emptyForm.details = '';
-                  emptyForm.per_seat = false;
-                  break;
-                case 'categories':
-                  emptyForm.id = '';
-                  emptyForm.label = '';
-                  emptyForm.icon_name = 'Car';
-                  break;
-                case 'makes':
-                  emptyForm.name = '';
-                  break;
-                case 'models':
-                  emptyForm.make_id = 0;
-                  emptyForm.name = '';
-                  break;
-                case 'bodytypes':
-                  emptyForm.make_id = 0;
-                  emptyForm.name = '';
-                  break;
-                case 'conditions':
-                  emptyForm.name = '';
-                  break;
-                case 'windows':
-                  emptyForm.window_time = '';
-                  emptyForm.display_order = 0;
-                  break;
-                default:
-                  emptyForm.name = '';
-              }
-              setSelectedItem(null);
-              setEditFormData(emptyForm);
-              setShowAddModal(true);
-            }}
+            onClick={() => openAddModal(getEmptyFormForTab(activeTab))}
             className="px-4 py-2.5 rounded-xl text-white font-semibold transition-all hover:opacity-90 flex items-center gap-2 whitespace-nowrap"
             style={{ backgroundColor: secondaryColor }}
           >
@@ -1729,7 +2512,16 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        {/* Loading State */}
+        {loadError && (
+          <div className="mb-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-500 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Partial load issue</p>
+              <p>{loadError}</p>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: primaryColor }} />
@@ -1741,12 +2533,11 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Modals */}
       <AnimatePresence>
-        {(showAddModal || showEditModal) && <AddEditModal />}
+        {(showAddModal || showEditModal) && renderAddEditModal()}
       </AnimatePresence>
       <AnimatePresence>
-        {showDeleteModal && <DeleteModal />}
+        {showDeleteModal && renderDeleteModal()}
       </AnimatePresence>
     </div>
   );

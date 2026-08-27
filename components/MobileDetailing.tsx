@@ -3,6 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useEffect } from 'react';
+import type { ComponentType } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Star, 
@@ -33,6 +34,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useTheme } from '@/app/context/ThemeProvider';
+import { createClient } from '@/lib/supabase/client';
 
 interface Service {
   id: number;
@@ -46,6 +48,75 @@ interface Service {
   interior: string[];
   vehicleType: 'car' | 'truck' | 'van' | 'suv' | 'all';
   estimatedTime: string;
+}
+
+interface AddOnOption {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  details: string;
+  perSeat?: boolean;
+}
+
+interface VehicleCategory {
+  id: string;
+  label: string;
+  icon_name?: string;
+  icon: ComponentType<{ className?: string }>;
+}
+
+interface VehicleMake {
+  id: number;
+  name: string;
+  category_id?: string | null;
+}
+
+interface VehicleModel {
+  id: number;
+  make_id: number;
+  name: string;
+}
+
+interface VehicleBodyType {
+  id: number;
+  make_id: number;
+  model_id?: number | null;
+  name: string;
+}
+
+interface VehicleServiceRow {
+  id: number;
+  name: string;
+  price: number | string;
+  rating: number | string | null;
+  reviews: number | null;
+  popular: boolean | null;
+  description: string | null;
+  vehicle_type: Service['vehicleType'] | null;
+  estimated_time: string | null;
+}
+
+interface VehicleServiceItemRow {
+  service_id: number;
+  item: string;
+}
+
+interface VehicleAddOnRow {
+  id: string;
+  name: string;
+  price: number | string;
+  description: string | null;
+  details: string | null;
+  per_seat: boolean | null;
+}
+
+interface VehicleConditionRow {
+  name: string;
+}
+
+interface VehicleArrivalWindowRow {
+  window_time: string;
 }
 
 const services: Service[] = [
@@ -208,7 +279,7 @@ const services: Service[] = [
 ];
 
 // Enhanced Add-on options with details
-const addOnOptions = [
+const addOnOptions: AddOnOption[] = [
   { 
     id: 'pet-hair', 
     name: 'Pet Hair Removal', 
@@ -343,7 +414,15 @@ const bodyTypesByMake: Record<string, string[]> = {
 };
 
 // Vehicle Categories with Icons
-const vehicleCategories = [
+const vehicleIconMap: Record<string, ComponentType<{ className?: string }>> = {
+  Car,
+  Truck,
+  Warehouse,
+  Bus,
+  Home,
+};
+
+const vehicleCategories: VehicleCategory[] = [
   { id: 'car', label: 'Cars', icon: Car },
   { id: 'truck', label: 'Trucks', icon: Truck },
   { id: 'van', label: 'Vans', icon: Warehouse },
@@ -400,6 +479,23 @@ const arrivalWindows = [
   '12pm - 3pm',
   '2pm - 5pm',
 ];
+
+const fallbackVehicleMakes = makes.map((name, index) => ({ id: index + 1, name }));
+const fallbackMakeIdByName = new Map(fallbackVehicleMakes.map((make) => [make.name, make.id]));
+const fallbackVehicleModels = Object.entries(modelsByMake).flatMap(([makeName, modelNames]) =>
+  modelNames.map((name, modelIndex) => ({
+    id: (fallbackMakeIdByName.get(makeName) || 0) * 1000 + modelIndex + 1,
+    make_id: fallbackMakeIdByName.get(makeName) || 0,
+    name,
+  }))
+);
+const fallbackVehicleBodyTypes = Object.entries(bodyTypesByMake).flatMap(([makeName, bodyNames]) =>
+  bodyNames.map((name, bodyIndex) => ({
+    id: (fallbackMakeIdByName.get(makeName) || 0) * 1000 + bodyIndex + 1,
+    make_id: fallbackMakeIdByName.get(makeName) || 0,
+    name,
+  }))
+);
 
 // Generate next 14 days
 const generateDates = () => {
@@ -494,6 +590,16 @@ export default function MobileDetailing() {
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [isVehicleDataLoading, setIsVehicleDataLoading] = useState(true);
+  const [vehicleDataError, setVehicleDataError] = useState('');
+  const [loadedServices, setLoadedServices] = useState<Service[]>(services);
+  const [loadedAddOns, setLoadedAddOns] = useState<AddOnOption[]>(addOnOptions);
+  const [loadedCategories, setLoadedCategories] = useState<VehicleCategory[]>(vehicleCategories);
+  const [loadedMakes, setLoadedMakes] = useState<VehicleMake[]>(fallbackVehicleMakes);
+  const [loadedModels, setLoadedModels] = useState<VehicleModel[]>(fallbackVehicleModels);
+  const [loadedBodyTypes, setLoadedBodyTypes] = useState<VehicleBodyType[]>(fallbackVehicleBodyTypes);
+  const [loadedConditions, setLoadedConditions] = useState<string[]>(vehicleConditions);
+  const [loadedArrivalWindows, setLoadedArrivalWindows] = useState<string[]>(arrivalWindows);
 
   // Load saved data from local storage on mount
   useEffect(() => {
@@ -545,6 +651,143 @@ export default function MobileDetailing() {
       setExtraInfo(savedData.extraInfo || '');
       setMarketingOptIn(savedData.marketingOptIn || false);
     }
+  }, []);
+
+  useEffect(() => {
+    const loadVehicleData = async () => {
+      const supabase = createClient();
+      setIsVehicleDataLoading(true);
+      setVehicleDataError('');
+
+      try {
+        const [
+          servicesResult,
+          exteriorResult,
+          interiorResult,
+          addOnsResult,
+          categoriesResult,
+          makesResult,
+          modelsResult,
+          bodyTypesResult,
+          conditionsResult,
+          windowsResult,
+        ] = await Promise.all([
+          supabase.from('vehicle_services').select('*').order('id'),
+          supabase.from('vehicle_service_exterior_items').select('service_id, item').order('display_order'),
+          supabase.from('vehicle_service_interior_items').select('service_id, item').order('display_order'),
+          supabase.from('vehicle_add_on_options').select('*').order('name'),
+          supabase.from('vehicle_categories').select('*').order('label'),
+          supabase.from('vehicle_makes').select('*').order('name'),
+          supabase.from('vehicle_models').select('*').order('name'),
+          supabase.from('vehicle_body_types').select('*').order('name'),
+          supabase.from('vehicle_conditions').select('name').order('name'),
+          supabase.from('vehicle_arrival_windows').select('window_time').order('display_order'),
+        ]);
+
+        const results = [
+          servicesResult,
+          exteriorResult,
+          interiorResult,
+          addOnsResult,
+          categoriesResult,
+          makesResult,
+          modelsResult,
+          bodyTypesResult,
+          conditionsResult,
+          windowsResult,
+        ];
+        const failedResult = results.find((result) => result.error);
+        if (failedResult?.error) {
+          throw failedResult.error;
+        }
+
+        const exteriorByService = ((exteriorResult.data || []) as VehicleServiceItemRow[]).reduce<Record<number, string[]>>((acc, item) => {
+          acc[item.service_id] = [...(acc[item.service_id] || []), item.item];
+          return acc;
+        }, {});
+
+        const interiorByService = ((interiorResult.data || []) as VehicleServiceItemRow[]).reduce<Record<number, string[]>>((acc, item) => {
+          acc[item.service_id] = [...(acc[item.service_id] || []), item.item];
+          return acc;
+        }, {});
+
+        const fallbackServiceByName = new Map(services.map((service) => [service.name, service]));
+        const nextServices = ((servicesResult.data || []) as VehicleServiceRow[]).map((service) => {
+          const fallback = fallbackServiceByName.get(service.name);
+          return {
+            id: service.id,
+            name: service.name,
+            price: `$${Number(service.price || 0).toFixed(0)}`,
+            rating: Number(service.rating || fallback?.rating || 0),
+            reviews: service.reviews ?? fallback?.reviews ?? 0,
+            popular: Boolean(service.popular),
+            description: service.description || fallback?.description || '',
+            vehicleType: service.vehicle_type || fallback?.vehicleType || 'all',
+            estimatedTime: service.estimated_time || fallback?.estimatedTime || '',
+            exterior: exteriorByService[service.id] || fallback?.exterior || [],
+            interior: interiorByService[service.id] || fallback?.interior || [],
+          } satisfies Service;
+        });
+
+        if (nextServices.length > 0) {
+          setLoadedServices(nextServices);
+        }
+
+        const nextAddOns = ((addOnsResult.data || []) as VehicleAddOnRow[]).map((addOn) => ({
+          id: addOn.id,
+          name: addOn.name,
+          price: Number(addOn.price || 0),
+          description: addOn.description || '',
+          details: addOn.details || '',
+          perSeat: Boolean(addOn.per_seat),
+        }));
+        if (nextAddOns.length > 0) {
+          setLoadedAddOns(nextAddOns);
+        }
+
+        const nextCategories = ((categoriesResult.data || []) as Array<{ id: string; label: string; icon_name?: string | null }>).map((category) => ({
+          id: category.id,
+          label: category.label,
+          icon_name: category.icon_name || 'Car',
+          icon: vehicleIconMap[category.icon_name || 'Car'] || Car,
+        }));
+        if (nextCategories.length > 0) {
+          setLoadedCategories(nextCategories);
+        }
+
+        const nextMakes = (makesResult.data || []) as VehicleMake[];
+        if (nextMakes.length > 0) {
+          setLoadedMakes(nextMakes);
+        }
+
+        const nextModels = (modelsResult.data || []) as VehicleModel[];
+        if (nextModels.length > 0) {
+          setLoadedModels(nextModels);
+        }
+
+        const nextBodyTypes = (bodyTypesResult.data || []) as VehicleBodyType[];
+        if (nextBodyTypes.length > 0) {
+          setLoadedBodyTypes(nextBodyTypes);
+        }
+
+        const nextConditions = ((conditionsResult.data || []) as VehicleConditionRow[]).map((condition) => condition.name);
+        if (nextConditions.length > 0) {
+          setLoadedConditions(nextConditions);
+        }
+
+        const nextWindows = ((windowsResult.data || []) as VehicleArrivalWindowRow[]).map((window) => window.window_time);
+        if (nextWindows.length > 0) {
+          setLoadedArrivalWindows(nextWindows);
+        }
+      } catch (error) {
+        console.error('Error loading mobile detailing data:', error);
+        setVehicleDataError('Live booking options could not be refreshed. Showing saved defaults.');
+      } finally {
+        setIsVehicleDataLoading(false);
+      }
+    };
+
+    loadVehicleData();
   }, []);
 
   // Save to local storage whenever data changes
@@ -618,6 +861,65 @@ export default function MobileDetailing() {
     coveredArea, extraInfo, marketingOptIn
   ]);
 
+  const servicesForBooking = loadedServices;
+  const addOnOptionsForBooking = loadedAddOns;
+  const vehicleCategoriesForBooking = loadedCategories;
+  const vehicleConditionsForBooking = loadedConditions;
+  const arrivalWindowsForBooking = loadedArrivalWindows;
+  const hasCategoryScopedMakes = loadedMakes.some((make) => Boolean(make.category_id));
+  const availableMakeRows = loadedMakes.filter((make) => (
+    !selectedCategory || !hasCategoryScopedMakes || make.category_id === selectedCategory
+  ));
+  const makesForBooking = availableMakeRows.map((make) => make.name);
+  const selectedMakeRow = loadedMakes.find((make) => make.name === selectedMake);
+  const selectedModelRow = selectedMakeRow
+    ? loadedModels.find((model) => model.make_id === selectedMakeRow.id && model.name === selectedModel)
+    : null;
+  const modelsByMakeForBooking = loadedMakes.reduce<Record<string, string[]>>((acc, make) => {
+    acc[make.name] = loadedModels
+      .filter((model) => model.make_id === make.id)
+      .map((model) => model.name);
+    return acc;
+  }, {});
+  const hasModelScopedBodyTypes = loadedBodyTypes.some((bodyType) => Boolean(bodyType.model_id));
+  const bodyTypesByMakeForBooking = loadedMakes.reduce<Record<string, string[]>>((acc, make) => {
+    const names = loadedBodyTypes
+      .filter((bodyType) => {
+        if (bodyType.make_id !== make.id) return false;
+        if (!hasModelScopedBodyTypes || !selectedModelRow) return true;
+        return !bodyType.model_id || bodyType.model_id === selectedModelRow.id;
+      })
+      .map((bodyType) => bodyType.name);
+    acc[make.name] = [...new Set(names)];
+    return acc;
+  }, {});
+
+  useEffect(() => {
+    if (selectedMake && !makesForBooking.includes(selectedMake)) {
+      setSelectedMake('');
+      setSelectedModel('');
+      setSelectedBody('');
+      setIsDropdownOpen(null);
+    }
+  }, [makesForBooking, selectedMake]);
+
+  useEffect(() => {
+    const availableModels = selectedMake ? modelsByMakeForBooking[selectedMake] || [] : [];
+    if (selectedModel && !availableModels.includes(selectedModel)) {
+      setSelectedModel('');
+      setSelectedBody('');
+      setIsDropdownOpen(null);
+    }
+  }, [modelsByMakeForBooking, selectedMake, selectedModel]);
+
+  useEffect(() => {
+    const availableBodyTypes = selectedMake && selectedModel ? bodyTypesByMakeForBooking[selectedMake] || [] : [];
+    if (selectedBody && !availableBodyTypes.includes(selectedBody)) {
+      setSelectedBody('');
+      setIsDropdownOpen(null);
+    }
+  }, [bodyTypesByMakeForBooking, selectedBody, selectedMake, selectedModel]);
+
   const isStep1Complete = isZipValid && selectedCategory && selectedPackage && selectedYear && selectedMake && selectedModel && selectedBody;
   const isStep2Complete = selectedDate && selectedArrivalWindows.length > 0;
   const isInfoComplete = firstName && lastName && email && phone && address && city && state && infoZipCode;
@@ -644,6 +946,10 @@ export default function MobileDetailing() {
     if (isUnlocked) {
       setSelectedCategory(categoryId);
       setSelectedVehicleType(categoryId);
+      setSelectedMake('');
+      setSelectedModel('');
+      setSelectedBody('');
+      setIsDropdownOpen(null);
     }
   };
 
@@ -696,7 +1002,7 @@ export default function MobileDetailing() {
   const getAddOnTotal = (): number => {
     let total = 0;
     Object.entries(selectedAddOns).forEach(([id, count]) => {
-      const addOn = addOnOptions.find(a => a.id === id);
+      const addOn = addOnOptionsForBooking.find(a => a.id === id);
       if (addOn) {
         total += addOn.price * count;
       }
@@ -787,7 +1093,7 @@ export default function MobileDetailing() {
           description: selectedPackage?.description,
         },
         selectedAddOns: Object.entries(selectedAddOns).map(([id, count]) => {
-          const addOn = addOnOptions.find(a => a.id === id);
+          const addOn = addOnOptionsForBooking.find(a => a.id === id);
           return addOn ? { name: addOn.name, price: addOn.price, count } : null;
         }).filter(Boolean),
         selectedConditions,
@@ -945,7 +1251,7 @@ export default function MobileDetailing() {
   const glassCardClass = 'rounded-xl border border-white/10 bg-white/[0.06] shadow-lg shadow-black/10 backdrop-blur-sm';
 
   // Filter services based on selected category
-  const filteredServices = Array.isArray(services) ? services.filter(service => 
+  const filteredServices = Array.isArray(servicesForBooking) ? servicesForBooking.filter(service => 
     selectedCategory === 'all' || service.vehicleType === selectedCategory || service.vehicleType === 'all'
   ) : [];
 
@@ -1172,6 +1478,9 @@ export default function MobileDetailing() {
                         {isStep1Complete && (
                           <span className="rounded-full bg-green-500/15 px-2 py-1 text-xs text-green-300 font-medium">Complete</span>
                         )}
+                        {isVehicleDataLoading && (
+                          <span className="rounded-full bg-white/10 px-2 py-1 text-xs text-white/60">Refreshing options...</span>
+                        )}
                       </div>
                       {isStep1Complete && (
                         <button 
@@ -1188,6 +1497,13 @@ export default function MobileDetailing() {
                         </button>
                       )}
                     </div>
+
+                    {vehicleDataError && (
+                      <div className="mb-5 flex items-start gap-2 rounded-xl border border-yellow-400/25 bg-yellow-500/10 p-3 text-sm text-yellow-100">
+                        <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                        <span>{vehicleDataError}</span>
+                      </div>
+                    )}
 
                     {/* ZIP Code Input */}
                     <div className="mb-6">
@@ -1241,7 +1557,7 @@ export default function MobileDetailing() {
                     <div className={`mb-6 transition-opacity duration-300 ${!isUnlocked ? 'opacity-50 pointer-events-none' : ''}`}>
                       <p className="text-sm font-medium text-white mb-3">Select your vehicle type</p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {vehicleCategories.map((category) => {
+                        {vehicleCategoriesForBooking.map((category) => {
                           const Icon = category.icon;
                           const isSelected = selectedCategory === category.id;
                           return (
@@ -1320,7 +1636,7 @@ export default function MobileDetailing() {
                           </button>
                           {isDropdownOpen === 'make' && (
                             <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
-                              {makes.map((make) => (
+                              {makesForBooking.map((make) => (
                                 <button
                                   key={make}
                                   onClick={() => { setSelectedMake(make); setSelectedModel(''); setSelectedBody(''); setIsDropdownOpen(null); }}
@@ -1348,7 +1664,7 @@ export default function MobileDetailing() {
                           </button>
                           {isDropdownOpen === 'model' && selectedMake && (
                             <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
-                              {modelsByMake[selectedMake]?.map((model) => (
+                              {(modelsByMakeForBooking[selectedMake] || []).map((model) => (
                                 <button
                                   key={model}
                                   onClick={() => { setSelectedModel(model); setSelectedBody(''); setIsDropdownOpen(null); }}
@@ -1374,9 +1690,9 @@ export default function MobileDetailing() {
                             </span>
                             <ChevronDown className={`w-4 h-4 text-white/55 transition-transform ${isDropdownOpen === 'body' ? 'rotate-180' : ''}`} />
                           </button>
-                          {isDropdownOpen === 'body' && selectedMake && (
+                          {isDropdownOpen === 'body' && selectedMake && selectedModel && (
                             <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white/[0.06] border border-white/10 rounded-xl shadow-lg z-20">
-                              {bodyTypesByMake[selectedMake]?.map((body) => (
+                              {(bodyTypesByMakeForBooking[selectedMake] || []).map((body) => (
                                 <button
                                   key={body}
                                   onClick={() => { setSelectedBody(body); setIsDropdownOpen(null); }}
@@ -1557,7 +1873,7 @@ export default function MobileDetailing() {
                                   <p className="text-xs text-white/55 mb-3">Select any that apply:</p>
                                   
                                   <div className="space-y-2 flex-grow">
-                                    {vehicleConditions.map((condition) => (
+                                    {vehicleConditionsForBooking.map((condition) => (
                                       <button
                                         key={condition}
                                         onClick={() => toggleCondition(condition)}
@@ -1690,7 +2006,7 @@ export default function MobileDetailing() {
 
                   {/* Add-ons Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {addOnOptions.map((addOn) => {
+                    {addOnOptionsForBooking.map((addOn) => {
                       const count = getAddOnCount(addOn.id);
                       return (
                         <div
@@ -1905,7 +2221,7 @@ export default function MobileDetailing() {
                       </span>
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {arrivalWindows.map((window) => {
+                      {arrivalWindowsForBooking.map((window) => {
                         const isSelected = selectedArrivalWindows.includes(window);
                         return (
                           <button
@@ -2374,7 +2690,7 @@ export default function MobileDetailing() {
 
                         {/* Add-ons */}
                         {Object.entries(selectedAddOns).map(([id, count]) => {
-                          const addOn = addOnOptions.find(a => a.id === id);
+                          const addOn = addOnOptionsForBooking.find(a => a.id === id);
                           if (addOn && count > 0) {
                             return (
                               <div key={id} className="flex justify-between text-sm mb-1">
