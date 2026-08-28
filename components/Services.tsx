@@ -172,7 +172,7 @@ export default function Services() {
     <section
       id="services"
       ref={sectionRef}
-      className="w-full py-5 px-4 sm:px-6 lg:px-8 font-sans overflow-hidden"
+      className="w-full py-20 px-4 sm:px-6 lg:px-8 font-sans overflow-hidden"
       style={{ backgroundColor: '#ffffff' }}
     >
       <div className="max-w-6xl mx-auto space-y-12">

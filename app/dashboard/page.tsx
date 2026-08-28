@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { CSSProperties, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from './components/Sidebar';
@@ -13,11 +13,13 @@ import TestimonialsContent from './components/pages/TestimonialsContent';
 import ServiceAreasContent from './components/pages/ServiceAreasContent';
 import BookingSection from './components/pages/BookingSection';
 import MobileDetailing from './components/pages/MobileDetailing';
+import { DashboardMode, DashboardThemeProvider, dashboardPalettes } from './context/DashboardThemeContext';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState('');
   const [activeTab, setActiveTab] = useState('Overview');
+  const [isNightMode, setIsNightMode] = useState(true);
 
   useEffect(() => {
     const supabase = createClient();
@@ -55,6 +57,29 @@ export default function DashboardPage() {
     verifySession();
   }, [router]);
 
+  useEffect(() => {
+    const savedMode = localStorage.getItem('dashboardThemeMode');
+    if (savedMode === 'day') {
+      setIsNightMode(false);
+    }
+  }, []);
+
+  const handleThemeToggle = () => {
+    setIsNightMode((currentMode) => {
+      const nextMode = !currentMode;
+      localStorage.setItem('dashboardThemeMode', nextMode ? 'night' : 'day');
+      return nextMode;
+    });
+  };
+
+  const mode: DashboardMode = isNightMode ? 'night' : 'day';
+  const dashboardTheme = {
+    mode,
+    isNightMode,
+    ...dashboardPalettes[mode],
+    toggleMode: handleThemeToggle,
+  };
+
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -90,15 +115,29 @@ export default function DashboardPage() {
   };
 
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        background: 'radial-gradient(circle at top, rgba(96, 165, 250, 0.16), transparent 30%), linear-gradient(135deg, #020817 0%, #0f172a 28%, #111827 100%)',
-        color: '#e2e8f0',
-        fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
-        overflowX: 'hidden',
-      }}
-    >
+    <DashboardThemeProvider value={dashboardTheme}>
+      <main
+        data-dashboard-theme={mode}
+        style={{
+          '--dashboard-bg': dashboardTheme.background,
+          '--dashboard-panel': dashboardTheme.panel,
+          '--dashboard-card': dashboardTheme.card,
+          '--dashboard-border': dashboardTheme.border,
+          '--dashboard-text': dashboardTheme.text,
+          '--dashboard-muted': dashboardTheme.muted,
+          '--dashboard-icon': dashboardTheme.icon,
+          '--dashboard-icon-bg': dashboardTheme.iconBackground,
+          '--dashboard-hover': dashboardTheme.hover,
+          '--dashboard-accent-bg': dashboardTheme.accentBackground,
+          '--dashboard-accent-text': dashboardTheme.accentText,
+          '--dashboard-input-text': dashboardTheme.inputText,
+          minHeight: '100vh',
+          background: dashboardTheme.background,
+          color: dashboardTheme.text,
+          fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, sans-serif',
+          overflowX: 'hidden',
+        } as CSSProperties}
+      >
       <div className="dashboard-frame" style={{ maxWidth: '1460px', margin: '0 auto', padding: '28px 20px 40px' }}>
         <div
           className="dashboard-layout"
@@ -112,7 +151,11 @@ export default function DashboardPage() {
           <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
           
           <section className="dashboard-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
-            <Navbar onLogout={handleLogout} userEmail={userEmail || 'admin@example.com'} activeTab={activeTab} />
+            <Navbar
+              onLogout={handleLogout}
+              userEmail={userEmail || 'admin@example.com'}
+              activeTab={activeTab}
+            />
             {renderContent()}
           </section>
         </div>
@@ -126,6 +169,47 @@ export default function DashboardPage() {
 
         .dashboard-content {
           max-width: 100%;
+        }
+
+        .dashboard-content .bg-theme-bg {
+          background: var(--dashboard-bg) !important;
+        }
+
+        .dashboard-content .bg-theme-panel {
+          background: var(--dashboard-panel) !important;
+        }
+
+        .dashboard-content .bg-theme-card {
+          background: var(--dashboard-card) !important;
+        }
+
+        .dashboard-content .text-theme-text {
+          color: var(--dashboard-text) !important;
+        }
+
+        .dashboard-content .text-theme-muted {
+          color: var(--dashboard-muted) !important;
+        }
+
+        .dashboard-content .border-theme-border {
+          border-color: var(--dashboard-border) !important;
+        }
+
+        .dashboard-content .border-theme-secondary {
+          border-color: var(--dashboard-icon) !important;
+        }
+
+        .dashboard-content .focus\\:border-theme-secondary:focus {
+          border-color: var(--dashboard-icon) !important;
+        }
+
+        .dashboard-content .hover\\:bg-theme-card:hover,
+        .dashboard-content .hover\\:bg-theme-panel\\/50:hover {
+          background: var(--dashboard-hover) !important;
+        }
+
+        .dashboard-content .hover\\:text-theme-text:hover {
+          color: var(--dashboard-text) !important;
         }
 
         .dashboard-content input,
@@ -335,6 +419,7 @@ export default function DashboardPage() {
           }
         }
       `}</style>
-    </main>
+      </main>
+    </DashboardThemeProvider>
   );
 }

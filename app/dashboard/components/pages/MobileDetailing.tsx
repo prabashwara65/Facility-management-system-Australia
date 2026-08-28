@@ -33,8 +33,8 @@ import {
   FolderTree,
   List as ListIcon,
 } from 'lucide-react';
-import { useTheme } from '@/app/context/ThemeProvider';
 import { createClient } from '@/lib/supabase/client';
+import { useDashboardTheme } from '../../context/DashboardThemeContext';
 
 // ============================================
 // TYPES
@@ -213,7 +213,7 @@ const tabs: { id: AdminTab; label: string; icon: ComponentType<{ className?: str
 // ============================================
 
 export default function AdminDashboard() {
-  const { currentTheme } = useTheme();
+  const dashboardTheme = useDashboardTheme();
   const supabase = createClient();
 
   // ============================================
@@ -246,8 +246,8 @@ export default function AdminDashboard() {
   const [windows, setWindows] = useState<VehicleArrivalWindow[]>([]);
   const [bookings, setBookings] = useState<VehicleBooking[]>([]);
 
-  const primaryColor = currentTheme?.colors?.[1] || '#3b82f6';
-  const secondaryColor = currentTheme?.colors?.[2] || '#8b5cf6';
+  const primaryColor = dashboardTheme.icon;
+  const secondaryColor = dashboardTheme.text;
   // ============================================
   // HELPER FUNCTIONS
   // ============================================

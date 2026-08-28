@@ -20,6 +20,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useDashboardTheme } from '../../context/DashboardThemeContext';
 
 interface Testimonial {
   id: number;
@@ -41,6 +42,7 @@ interface ToastMessage {
 const statusOptions = ['Active', 'Inactive', 'Draft'];
 
 export default function TestimonialsContent() {
+  const theme = useDashboardTheme();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -209,10 +211,10 @@ export default function TestimonialsContent() {
 
   // Stats
   const stats = [
-    { label: 'Total Testimonials', value: testimonials.length, icon: Package, color: '#3b82f6' },
-    { label: 'Active', value: testimonials.filter(t => t.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
-    { label: '5-Star Reviews', value: testimonials.filter(t => t.rating === 5).length, icon: Star, color: '#f59e0b' },
-    { label: 'Verified', value: testimonials.filter(t => t.verified).length, icon: Check, color: '#8b5cf6' },
+    { label: 'Total Testimonials', value: testimonials.length, icon: Package },
+    { label: 'Active', value: testimonials.filter(t => t.status === 'Active').length, icon: CheckCircle },
+    { label: '5-Star Reviews', value: testimonials.filter(t => t.rating === 5).length, icon: Star },
+    { label: 'Verified', value: testimonials.filter(t => t.verified).length, icon: Check },
   ];
 
   const getStatusColor = (status: string) => {
@@ -220,7 +222,7 @@ export default function TestimonialsContent() {
       case 'Active': return '#10b981';
       case 'Inactive': return '#ef4444';
       case 'Draft': return '#f59e0b';
-      default: return '#94a3b8';
+      default: return theme.muted;
     }
   };
 
@@ -235,9 +237,9 @@ export default function TestimonialsContent() {
 
   const renderStars = (rating: number) => {
     return (
-      <div style={{ display: 'flex', gap: '2px', color: '#f59e0b' }}>
+      <div style={{ display: 'flex', gap: '2px', color: theme.icon }}>
         {[...Array(5)].map((_, i) => (
-          <Star key={i} size={14} fill={i < rating ? '#f59e0b' : 'none'} stroke={i < rating ? '#f59e0b' : '#64748b'} />
+          <Star key={i} size={14} fill={i < rating ? theme.icon : 'none'} stroke={i < rating ? theme.icon : theme.muted} />
         ))}
       </div>
     );
@@ -250,7 +252,7 @@ export default function TestimonialsContent() {
         justifyContent: 'center', 
         alignItems: 'center', 
         minHeight: '400px',
-        color: '#94a3b8'
+        color: theme.muted
       }}>
         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
         <span style={{ marginLeft: '12px' }}>Loading testimonials...</span>
@@ -270,7 +272,7 @@ export default function TestimonialsContent() {
             zIndex: 9999,
             padding: '16px 24px',
             borderRadius: '16px',
-            background: toast.type === 'success' ? '#10b981' : toast.type === 'error' ? '#ef4444' : '#3b82f6',
+            background: toast.type === 'success' ? '#10b981' : toast.type === 'error' ? '#ef4444' : theme.text,
             color: 'white',
             boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
             display: 'flex',
@@ -299,8 +301,8 @@ export default function TestimonialsContent() {
       {/* Header */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '30px',
           padding: '24px',
           boxShadow: '0 20px 50px rgba(2, 6, 23, 0.28)',
@@ -308,13 +310,13 @@ export default function TestimonialsContent() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            <div style={{ color: theme.muted, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
               Testimonials Management
             </div>
-            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: '#f8fafc' }}>
+            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: theme.text }}>
               Customer Testimonials
             </h2>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '4px' }}>
+            <p style={{ color: theme.muted, fontSize: '0.85rem', marginTop: '4px' }}>
               {testimonials.length} testimonials • Manage customer reviews
             </p>
           </div>
@@ -324,9 +326,9 @@ export default function TestimonialsContent() {
               style={{
                 padding: '8px 14px',
                 borderRadius: '10px',
-                border: '1px solid rgba(148,163,184,0.12)',
+                border: `1px solid ${theme.border}`,
                 background: 'transparent',
-                color: '#94a3b8',
+                color: theme.muted,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -346,14 +348,14 @@ export default function TestimonialsContent() {
                 border: 'none',
                 borderRadius: '14px',
                 padding: '12px 20px',
-                background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-                color: '#ffffff',
+                background: theme.isNightMode ? '#f8fafc' : '#111827',
+                color: theme.isNightMode ? '#111827' : '#ffffff',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                boxShadow: theme.shadow,
               }}
             >
               <Plus size={18} />
@@ -371,8 +373,8 @@ export default function TestimonialsContent() {
             <div
               key={stat.label}
               style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
+                background: theme.panel,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '16px',
                 padding: '16px',
                 display: 'flex',
@@ -385,8 +387,8 @@ export default function TestimonialsContent() {
                   width: '44px',
                   height: '44px',
                   borderRadius: '12px',
-                  background: `${stat.color}22`,
-                  color: stat.color,
+                  background: theme.iconBackground,
+                  color: theme.icon,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -395,8 +397,8 @@ export default function TestimonialsContent() {
                 <Icon size={20} />
               </div>
               <div>
-                <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{stat.label}</div>
-                <div style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
+                <div style={{ color: theme.muted, fontSize: '0.8rem' }}>{stat.label}</div>
+                <div style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
               </div>
             </div>
           );
@@ -406,8 +408,8 @@ export default function TestimonialsContent() {
       {/* Search & View Controls */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '20px',
           padding: '16px 20px',
           display: 'flex',
@@ -419,7 +421,7 @@ export default function TestimonialsContent() {
       >
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1 }}>
           <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-            <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: theme.muted }} />
             <input
               type="text"
               placeholder="Search testimonials..."
@@ -429,9 +431,9 @@ export default function TestimonialsContent() {
                 width: '100%',
                 height: '38px',
                 borderRadius: '10px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#cbd5e1',
+                border: `1px solid ${theme.border}`,
+                background: theme.card,
+                color: theme.inputText,
                 padding: '0 16px 0 36px',
                 fontSize: '0.9rem',
                 outline: 'none',
@@ -446,9 +448,9 @@ export default function TestimonialsContent() {
             style={{
               padding: '6px 12px',
               borderRadius: '8px',
-              border: '1px solid rgba(148,163,184,0.12)',
-              background: viewMode === 'grid' ? 'rgba(59,130,246,0.2)' : 'transparent',
-              color: viewMode === 'grid' ? '#3b82f6' : '#94a3b8',
+              border: `1px solid ${theme.border}`,
+              background: viewMode === 'grid' ? theme.accentBackground : 'transparent',
+              color: viewMode === 'grid' ? theme.accentText : theme.muted,
               cursor: 'pointer',
               fontSize: '0.8rem',
             }}
@@ -460,9 +462,9 @@ export default function TestimonialsContent() {
             style={{
               padding: '6px 12px',
               borderRadius: '8px',
-              border: '1px solid rgba(148,163,184,0.12)',
-              background: viewMode === 'list' ? 'rgba(59,130,246,0.2)' : 'transparent',
-              color: viewMode === 'list' ? '#3b82f6' : '#94a3b8',
+              border: `1px solid ${theme.border}`,
+              background: viewMode === 'list' ? theme.accentBackground : 'transparent',
+              color: viewMode === 'list' ? theme.accentText : theme.muted,
               cursor: 'pointer',
               fontSize: '0.8rem',
             }}
@@ -479,15 +481,15 @@ export default function TestimonialsContent() {
             <div
               key={testimonial.id}
               style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
+                background: theme.panel,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '24px',
                 padding: '20px',
                 transition: 'all 0.2s ease',
                 position: 'relative',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
             >
               {/* Rating Stars */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
@@ -507,14 +509,14 @@ export default function TestimonialsContent() {
 
               {/* Quote */}
               <div style={{ position: 'relative', marginBottom: '16px' }}>
-                <Quote size={20} style={{ color: 'rgba(59,130,246,0.2)', position: 'absolute', top: '-4px', left: '-4px' }} />
-                <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: '1.6', paddingLeft: '20px' }}>
+                <Quote size={20} style={{ color: theme.icon, opacity: 0.24, position: 'absolute', top: '-4px', left: '-4px' }} />
+                <p style={{ color: theme.muted, fontSize: '0.9rem', lineHeight: '1.6', paddingLeft: '20px' }}>
                   {testimonial.quote}
                 </p>
               </div>
 
               {/* Author */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: `1px solid ${theme.border}` }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div
@@ -522,8 +524,8 @@ export default function TestimonialsContent() {
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        background: 'rgba(59,130,246,0.12)',
-                        color: '#3b82f6',
+                        background: theme.iconBackground,
+                        color: theme.icon,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -532,10 +534,10 @@ export default function TestimonialsContent() {
                       <User size={16} />
                     </div>
                     <div>
-                      <div style={{ color: '#f8fafc', fontWeight: 600, fontSize: '0.9rem' }}>
+                      <div style={{ color: theme.text, fontWeight: 600, fontSize: '0.9rem' }}>
                         {testimonial.name}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748b', fontSize: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: theme.muted, fontSize: '0.75rem' }}>
                         <MapPin size={12} />
                         {testimonial.location}
                       </div>
@@ -548,14 +550,14 @@ export default function TestimonialsContent() {
                     style={{
                       padding: '6px 10px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(148,163,184,0.12)',
+                      border: `1px solid ${theme.border}`,
                       background: 'transparent',
-                      color: '#94a3b8',
+                      color: theme.muted,
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
                   >
                     <Edit size={16} />
                   </button>
@@ -564,9 +566,9 @@ export default function TestimonialsContent() {
                     style={{
                       padding: '6px 10px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(148,163,184,0.12)',
+                      border: `1px solid ${theme.border}`,
                       background: 'transparent',
-                      color: '#94a3b8',
+                      color: theme.muted,
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
                     }}
@@ -575,8 +577,8 @@ export default function TestimonialsContent() {
                       e.currentTarget.style.color = '#ef4444';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)';
-                      e.currentTarget.style.color = '#94a3b8';
+                      e.currentTarget.style.borderColor = theme.border;
+                      e.currentTarget.style.color = theme.muted;
                     }}
                   >
                     <Trash2 size={16} />
@@ -589,8 +591,8 @@ export default function TestimonialsContent() {
       ) : (
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.82)',
-            border: '1px solid rgba(148,163,184,0.12)',
+            background: theme.panel,
+            border: `1px solid ${theme.border}`,
             borderRadius: '30px',
             padding: '24px',
           }}
@@ -606,21 +608,21 @@ export default function TestimonialsContent() {
                   gap: '14px',
                   padding: '14px 18px',
                   borderRadius: '14px',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  border: '1px solid rgba(148,163,184,0.08)',
+                  background: theme.card,
+                  border: `1px solid ${theme.border}`,
                   transition: 'all 0.2s ease',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)')}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)')}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
               >
-                <div style={{ color: '#f59e0b', display: 'flex', gap: '2px' }}>
+                <div style={{ color: theme.icon, display: 'flex', gap: '2px' }}>
                   {renderStars(testimonial.rating)}
                 </div>
 
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#f8fafc', fontWeight: 500 }}>{testimonial.name}</span>
-                    <span style={{ color: '#64748b', fontSize: '0.8rem' }}>• {testimonial.location}</span>
+                    <span style={{ color: theme.text, fontWeight: 500 }}>{testimonial.name}</span>
+                    <span style={{ color: theme.muted, fontSize: '0.8rem' }}>• {testimonial.location}</span>
                     {testimonial.verified && (
                       <span style={{ fontSize: '0.6rem', padding: '1px 8px', borderRadius: '8px', background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>
                         ✓
@@ -631,25 +633,25 @@ export default function TestimonialsContent() {
                       {testimonial.status}
                     </span>
                   </div>
-                  <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '2px', maxWidth: '500px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ color: theme.muted, fontSize: '0.8rem', marginTop: '2px', maxWidth: '500px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {testimonial.quote}
                   </p>
                 </div>
 
-                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.7rem', color: theme.muted }}>
                   #{testimonial.id}
                 </div>
 
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button
                     onClick={() => { setEditingItem(testimonial); setShowModal(true); }}
-                    style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: theme.muted, cursor: 'pointer' }}
                   >
                     <Edit size={14} />
                   </button>
                   <button
                     onClick={() => handleDelete(testimonial.id)}
-                    style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: theme.muted, cursor: 'pointer' }}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -663,14 +665,14 @@ export default function TestimonialsContent() {
       {filteredTestimonials.length === 0 && (
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.82)',
-            border: '1px solid rgba(148,163,184,0.12)',
+            background: theme.panel,
+            border: `1px solid ${theme.border}`,
             borderRadius: '30px',
             padding: '40px',
             textAlign: 'center',
           }}
         >
-          <p style={{ color: '#64748b' }}>No testimonials found. Click "Add Testimonial" to create one.</p>
+          <p style={{ color: theme.muted }}>No testimonials found. Click "Add Testimonial" to create one.</p>
         </div>
       )}
 
@@ -699,6 +701,7 @@ export default function TestimonialsContent() {
 
 // Modal Component
 function TestimonialModal({ data, onClose, onSave, saving }: any) {
+  const theme = useDashboardTheme();
   const [formData, setFormData] = useState(
     data || {
       name: '',
@@ -735,8 +738,8 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
     >
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.98)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '32px',
           padding: '32px',
           maxWidth: '600px',
@@ -749,10 +752,10 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
-            <h3 style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>
+            <h3 style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>
               {data ? 'Edit Testimonial' : 'Add New Testimonial'}
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '4px' }}>
+            <p style={{ color: theme.muted, fontSize: '0.9rem', marginTop: '4px' }}>
               {data ? 'Update the testimonial details below' : 'Fill in the details to create a new testimonial'}
             </p>
           </div>
@@ -761,7 +764,7 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
             style={{
               border: 'none',
               background: 'transparent',
-              color: '#94a3b8',
+              color: theme.muted,
               cursor: 'pointer',
               padding: '4px',
             }}
@@ -773,7 +776,7 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
                 Customer Name *
               </label>
               <input
@@ -785,9 +788,9 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
+                  border: `1px solid ${theme.border}`,
+                  background: theme.card,
+                  color: theme.inputText,
                   fontSize: '0.95rem',
                   outline: 'none',
                 }}
@@ -795,7 +798,7 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
               />
             </div>
             <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
                 Location *
               </label>
               <input
@@ -807,9 +810,9 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
+                  border: `1px solid ${theme.border}`,
+                  background: theme.card,
+                  color: theme.inputText,
                   fontSize: '0.95rem',
                   outline: 'none',
                 }}
@@ -819,7 +822,7 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Testimonial Quote *
             </label>
             <textarea
@@ -831,9 +834,9 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: `1px solid ${theme.border}`,
+                background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
                 resize: 'vertical',
@@ -845,7 +848,7 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
                 Rating
               </label>
               <select
@@ -855,9 +858,9 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
+                  border: `1px solid ${theme.border}`,
+                  background: theme.card,
+                  color: theme.inputText,
                   fontSize: '0.95rem',
                   outline: 'none',
                 }}
@@ -870,7 +873,7 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
               </select>
             </div>
             <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
                 Status
               </label>
               <select
@@ -880,9 +883,9 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
+                  border: `1px solid ${theme.border}`,
+                  background: theme.card,
+                  color: theme.inputText,
                   fontSize: '0.95rem',
                   outline: 'none',
                 }}
@@ -895,7 +898,7 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={formData.verified || false}
@@ -903,7 +906,7 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
                 style={{
                   width: '18px',
                   height: '18px',
-                  accentColor: '#3b82f6',
+                  accentColor: theme.icon,
                   cursor: 'pointer',
                 }}
               />
@@ -919,9 +922,9 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
                 flex: 1,
                 padding: '12px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
+                border: `1px solid ${theme.border}`,
                 background: 'transparent',
-                color: '#94a3b8',
+                color: theme.muted,
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
@@ -936,15 +939,15 @@ function TestimonialModal({ data, onClose, onSave, saving }: any) {
                 padding: '12px',
                 borderRadius: '12px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-                color: '#ffffff',
+                background: theme.isNightMode ? '#f8fafc' : '#111827',
+                color: theme.isNightMode ? '#111827' : '#ffffff',
                 cursor: saving ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                boxShadow: theme.shadow,
                 opacity: saving ? 0.7 : 1,
               }}
             >

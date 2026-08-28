@@ -281,6 +281,16 @@ export default function BookingSection() {
     setFormData({ ...formData, [name]: nextValue });
   };
 
+  const handleChoosePackage = () => {
+    const pricingSection = document.querySelector('#pricing');
+    if (pricingSection) {
+      pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    router.push('/#pricing');
+  };
+
   const calculatePrice = (serviceType: string, bedrooms: number, bathrooms: number) => {
     const basePrices: Record<string, number> = {
       'End of Lease / Bond Clean': 319,
@@ -297,6 +307,15 @@ export default function BookingSection() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!bookingData?.selectedTier) {
+      setToast({
+        message: 'Please choose a residential package before completing your booking.',
+        type: 'info',
+      });
+      handleChoosePackage();
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -515,13 +534,13 @@ export default function BookingSection() {
             className="text-3xl sm:text-4xl font-serif font-bold tracking-tight"
             style={{ color: 'white' }}
           >
-            {bookingData ? 'Complete Your Booking' : 'Book your clean today.'}
+            {bookingData ? 'Complete Your Booking' : 'Choose a package first.'}
           </h2>
-          {bookingData && (
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
-              You've selected a package. Fill in your details below to finalize your booking.
-            </p>
-          )}
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            {bookingData
+              ? "You've selected a package. Fill in your details below to finalize your booking."
+              : 'Select a residential cleaning package from pricing before entering your booking details.'}
+          </p>
         </div>
 
         <motion.div
@@ -636,10 +655,10 @@ export default function BookingSection() {
             <h3 
               className="text-xl font-serif font-bold mb-6 text-white"
             >
-              {bookingData ? 'Your Details' : 'Request a Booking'}
+              {bookingData ? 'Your Details' : 'Package Required'}
             </h3>
 
-            {bookingData && (
+            {bookingData ? (
               <div className="mb-4 p-4 rounded-xl space-y-2" style={{ backgroundColor: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)' }}>
                 <div className="flex items-start gap-3">
                   <Package className="w-4 h-4 mt-0.5" style={{ color: 'var(--theme-secondary)' }} />
@@ -658,9 +677,46 @@ export default function BookingSection() {
                   </div>
                 )}
               </div>
+            ) : (
+              <div
+                className="rounded-2xl p-6 sm:p-8 text-center space-y-5"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                }}
+              >
+                <div
+                  className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.12)', color: 'var(--theme-secondary)' }}
+                >
+                  <Package className="h-7 w-7" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-lg font-serif font-bold text-white">Select your residential package</p>
+                  <p className="mx-auto max-w-md text-sm leading-relaxed text-white/70">
+                    To keep your booking accurate, please choose a residential package and any add-ons from the pricing section first.
+                  </p>
+                </div>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleChoosePackage}
+                  className="mx-auto inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-md transition-colors duration-200"
+                  style={{ backgroundColor: 'var(--theme-secondary)' }}
+                >
+                  Choose Package
+                  <ArrowRight className="h-4 w-4" />
+                </motion.button>
+              </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form
+              onSubmit={handleSubmit}
+              className={`space-y-4 transition-opacity ${bookingData ? '' : 'opacity-45'}`}
+              aria-disabled={!bookingData}
+            >
+              <fieldset disabled={!bookingData || submitting} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label 
@@ -949,10 +1005,11 @@ export default function BookingSection() {
                   className="w-full font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-md transition-colors duration-200 disabled:opacity-50"
                   style={{ backgroundColor: 'var(--theme-secondary)', color: 'white' }}
                 >
-                  <span>{submitting ? 'Submitting...' : bookingData ? 'Confirm Booking' : 'Request My Booking'}</span>
+                  <span>{submitting ? 'Submitting...' : 'Confirm Booking'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </motion.button>
               </div>
+              </fieldset>
             </form>
           </motion.div>
         </motion.div>

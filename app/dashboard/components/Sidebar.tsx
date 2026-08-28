@@ -2,19 +2,15 @@
 
 import {
   LayoutGrid,
-  Cloud,
-  FolderOpen,
   Users,
-  Settings,
   ShieldCheck,
   Sparkles,
   DollarSign,
-  Home,
   MapPin,
   Calendar,
 } from 'lucide-react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { useDashboardTheme } from '../context/DashboardThemeContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -32,20 +28,30 @@ const navItems: NavItem[] = [
   { icon: DollarSign, label: 'Pricing' },
   { icon: ShieldCheck, label: 'Promise' },
   { icon: Users, label: 'Testimonials' },
-  { icon: MapPin, label: 'ServiceAreas' },
+  { icon: MapPin, label: 'Service Areas' },
   { icon: Calendar, label: 'Bookings' },
-  { icon: Calendar, label: 'MobileDetailing' },
+  { icon: Calendar, label: 'Mobile Detailing' },
 ];
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+  const theme = useDashboardTheme();
+  const sidebarBackground = theme.isNightMode ? 'rgba(15, 23, 42, 0.86)' : theme.panel;
+  const borderColor = theme.border;
+  const shadow = theme.isNightMode ? '0 30px 70px rgba(15, 23, 42, 0.45)' : '0 30px 70px rgba(15, 23, 42, 0.12)';
+  const activeBackground = theme.accentBackground;
+  const hoverBackground = theme.hover;
+  const activeColor = theme.text;
+  const mutedColor = theme.muted;
+  const hoverColor = theme.text;
+
   return (
     <aside
       className="dashboard-sidebar"
       style={{
         borderRadius: '32px',
-        background: 'rgba(15, 23, 42, 0.86)',
-        border: '1px solid rgba(148, 163, 184, 0.18)',
-        boxShadow: '0 30px 70px rgba(15, 23, 42, 0.45)',
+        background: sidebarBackground,
+        border: `1px solid ${borderColor}`,
+        boxShadow: shadow,
         padding: '24px 18px',
         display: 'flex',
         flexDirection: 'column',
@@ -53,19 +59,20 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       }}
     >
       <div>
-        {/* Logo - SparkWell with Star Icon */}
+        {/* Logo */}
         <Link href="/dashboard" className="dashboard-sidebar-logo flex items-center gap-2.5 mb-6 px-2">
-          <motion.div 
+          <div
             className="flex h-10 w-10 items-center justify-center rounded-full"
-            style={{ backgroundColor: 'var(--theme-primary, #3b82f6)' }}
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.6 }}
+            style={{
+              backgroundColor: theme.iconBackground,
+              border: `1px solid ${borderColor}`,
+            }}
           >
-            <span className="text-lg text-white">✦</span>
-          </motion.div>
-          <div className="font-serif text-[21px] font-bold">
-            <span style={{ color: 'var(--theme-primary, #3b82f6)' }}>Spark</span>
-            <span style={{ color: 'var(--theme-secondary, #8b5cf6)' }}>Well</span>
+            <span className="text-lg" style={{ color: activeColor }}>✦</span>
+          </div>
+          <div className="font-serif text-[18px] font-bold leading-tight">
+            <span style={{ color: activeColor }}>Shining</span>
+            <span style={{ color: mutedColor }}> Property Service</span>
           </div>
         </Link>
 
@@ -74,7 +81,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           <div
             className="dashboard-sidebar-label"
             style={{
-              color: '#94a3b8',
+              color: mutedColor,
               fontSize: '0.72rem',
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
@@ -101,10 +108,8 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                   borderRadius: '14px',
                   padding: '12px 12px',
                   marginBottom: '8px',
-                  background: isActive
-                    ? 'rgba(246, 216, 93, 0.15)'
-                    : 'transparent',
-                  color: isActive ? '#f8fafc' : '#94a3b8',
+                  background: isActive ? activeBackground : 'transparent',
+                  color: isActive ? activeColor : mutedColor,
                   fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -112,13 +117,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.color = '#e2e8f0';
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                    e.currentTarget.style.color = hoverColor;
+                    e.currentTarget.style.background = hoverBackground;
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.color = '#94a3b8';
+                    e.currentTarget.style.color = mutedColor;
                     e.currentTarget.style.background = 'transparent';
                   }
                 }}
@@ -134,7 +139,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                       width: '4px',
                       height: '24px',
                       borderRadius: '4px',
-                      background: '#F6D85D',
+                      background: activeColor,
                     }}
                   />
                 )}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ReactNode, MouseEvent, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronDown, Sparkles, DollarSign, Users, MapPin, Calendar, Phone, Palette } from "lucide-react";
+import { Check, ChevronDown, Sparkles, DollarSign, Users, MapPin, Calendar, Phone, Palette, LogIn } from "lucide-react";
 import { useTheme, THEMES } from "@/app/context/ThemeProvider";
 import Image from "next/image";
 
@@ -85,11 +85,7 @@ export default function Navbar({
       <div className="mx-auto flex h-[64px] md:h-[72px] max-w-[1400px] items-center justify-between gap-2 px-4 sm:px-6 lg:px-8 xl:px-10">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 md:gap-2.5 flex-shrink-0 min-w-0" aria-label={logoText}>
-          <motion.div 
-            className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-full overflow-hidden flex-shrink-0"
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.6 }}
-          >
+          <div className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-full overflow-hidden flex-shrink-0">
             <Image
               src="/img/02.png"
               alt={logoText}
@@ -98,10 +94,10 @@ export default function Navbar({
               className="object-cover w-full h-full"
               priority
             />
-          </motion.div>
+          </div>
           <div className="font-serif text-[16px] sm:text-[18px] md:text-[21px] font-bold whitespace-nowrap overflow-hidden">
-            <span style={{ color: 'var(--theme-primary)' }}>Shining</span>
-            <span style={{ color: 'var(--theme-secondary)' }} className="hidden sm:inline"> Property Service</span>
+            <span style={{ color: 'var(--theme-primary)' }}>SHINING</span>
+            <span style={{ color: 'var(--theme-secondary)' }} className="hidden sm:inline"> PROPERTY SERVICE</span>
             <span style={{ color: 'var(--theme-secondary)' }} className="sm:hidden"> PS</span>
           </div>
         </Link>
@@ -125,6 +121,19 @@ export default function Navbar({
             <Phone className="w-4 h-4" />
             {phoneNumber}
           </a>
+
+          <Link
+            href="/login"
+            className="hidden lg:flex items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-bold transition-colors whitespace-nowrap"
+            style={{
+              borderColor: 'var(--theme-border)',
+              color: 'var(--theme-primary)',
+              backgroundColor: 'color-mix(in srgb, var(--theme-surface) 78%, transparent)',
+            }}
+          >
+            <LogIn className="w-4 h-4" />
+            
+          </Link>
 
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -299,7 +308,7 @@ export default function Navbar({
         }}
         aria-label="Primary navigation"
       >
-        <div className="grid min-w-0 grid-cols-6 gap-0.5 sm:gap-1">
+        <div className="grid min-w-0 grid-cols-7 gap-0.5 sm:gap-1">
           {navLinks.map(({ href, shortLabel, icon }) => (
             <a
               key={href}
@@ -333,6 +342,19 @@ export default function Navbar({
             <Palette className="h-4 w-4 flex-shrink-0 opacity-70" />
             <span className="block max-w-full truncate leading-none">Theme</span>
           </button>
+
+          <Link
+            href="/login"
+            className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 text-[9px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 min-[380px]:text-[10px] sm:px-1 sm:text-xs"
+            style={{
+              color: 'var(--theme-text)',
+              outlineColor: 'var(--theme-secondary)',
+            }}
+            aria-label="Login"
+          >
+            <LogIn className="h-4 w-4 flex-shrink-0 opacity-70" />
+            <span className="block max-w-full truncate leading-none">Login</span>
+          </Link>
         </div>
       </motion.nav>
     </div>

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useDashboardTheme } from '../../context/DashboardThemeContext';
 
 const iconMap: Record<string, LucideIcon> = {
   Home: Home,
@@ -46,6 +47,7 @@ interface ToastMessage {
 }
 
 export default function ServicesContent() {
+  const theme = useDashboardTheme();
   const [services, setServices] = useState<Service[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -194,9 +196,9 @@ export default function ServicesContent() {
 
   // Stats
   const stats = [
-    { label: 'Total Services', value: services.length, icon: Package, color: '#3b82f6' },
-    { label: 'Active', value: services.filter(s => s.status === 'Active').length, icon: Sparkles, color: '#10b981' },
-    { label: 'Bookings', value: services.reduce((sum, s) => sum + (s.bookings || 0), 0), icon: Users, color: '#8b5cf6' },
+    { label: 'Total Services', value: services.length, icon: Package },
+    { label: 'Active', value: services.filter(s => s.status === 'Active').length, icon: Sparkles },
+    { label: 'Bookings', value: services.reduce((sum, s) => sum + (s.bookings || 0), 0), icon: Users },
   ];
 
   if (isLoading) {
@@ -229,17 +231,17 @@ export default function ServicesContent() {
 
       {/* Header */}
       <div style={{
-        background: 'rgba(15, 23, 42, 0.82)',
-        border: '1px solid rgba(148,163,184,0.12)',
+        background: theme.panel,
+        border: `1px solid ${theme.border}`,
         borderRadius: '30px',
         padding: '24px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            <div style={{ color: theme.muted, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
               Services
             </div>
-            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: '#f8fafc' }}>
+            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: theme.text }}>
               Our Services ({services.length})
             </h2>
           </div>
@@ -249,9 +251,9 @@ export default function ServicesContent() {
               style={{
                 padding: '8px 14px',
                 borderRadius: '10px',
-                border: '1px solid rgba(148,163,184,0.12)',
+                border: `1px solid ${theme.border}`,
                 background: 'transparent',
-                color: '#94a3b8',
+                color: theme.muted,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -289,8 +291,8 @@ export default function ServicesContent() {
           const Icon = stat.icon;
           return (
             <div key={stat.label} style={{
-              background: 'rgba(15, 23, 42, 0.82)',
-              border: '1px solid rgba(148,163,184,0.12)',
+              background: theme.panel,
+              border: `1px solid ${theme.border}`,
               borderRadius: '16px',
               padding: '16px',
               display: 'flex',
@@ -299,14 +301,15 @@ export default function ServicesContent() {
             }}>
               <div style={{
                 width: '44px', height: '44px', borderRadius: '12px',
-                background: `${stat.color}22`, color: stat.color,
+                background: theme.iconBackground,
+                color: theme.icon,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <Icon size={20} />
               </div>
               <div>
-                <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{stat.label}</div>
-                <div style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
+                <div style={{ color: theme.muted, fontSize: '0.8rem' }}>{stat.label}</div>
+                <div style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
               </div>
             </div>
           );
@@ -315,8 +318,8 @@ export default function ServicesContent() {
 
       {/* Search & Filter */}
       <div style={{
-        background: 'rgba(15, 23, 42, 0.82)',
-        border: '1px solid rgba(148,163,184,0.12)',
+        background: theme.panel,
+        border: `1px solid ${theme.border}`,
         borderRadius: '20px',
         padding: '16px 20px',
         display: 'flex',
@@ -333,9 +336,9 @@ export default function ServicesContent() {
               style={{
                 padding: '6px 14px',
                 borderRadius: '10px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: selectedCategory === cat ? 'rgba(59,130,246,0.2)' : 'transparent',
-                color: selectedCategory === cat ? '#3b82f6' : '#94a3b8',
+                border: `1px solid ${theme.border}`,
+                background: selectedCategory === cat ? theme.accentBackground : 'transparent',
+                color: selectedCategory === cat ? theme.accentText : theme.muted,
                 cursor: 'pointer',
                 fontSize: '0.85rem',
                 fontWeight: selectedCategory === cat ? 600 : 400,
@@ -347,7 +350,7 @@ export default function ServicesContent() {
         </div>
 
         <div style={{ position: 'relative' }}>
-          <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+          <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: theme.muted }} />
           <input
             type="text"
             placeholder="Search services..."
@@ -356,9 +359,9 @@ export default function ServicesContent() {
             style={{
               height: '38px',
               borderRadius: '10px',
-              border: '1px solid rgba(148,163,184,0.12)',
-              background: 'rgba(15, 23, 42, 0.72)',
-              color: '#cbd5e1',
+              border: `1px solid ${theme.border}`,
+              background: theme.card,
+              color: theme.inputText,
               padding: '0 16px 0 36px',
               fontSize: '0.9rem',
               outline: 'none',
@@ -376,35 +379,36 @@ export default function ServicesContent() {
             <div
               key={service.id}
               style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
+                background: theme.panel,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '24px',
                 padding: '20px',
                 transition: 'all 0.2s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
             >
               <div style={{ display: 'flex', alignItems: 'start', gap: '14px', marginBottom: '12px' }}>
                 <div style={{
                   width: '48px', height: '48px', borderRadius: '14px',
-                  background: 'rgba(59,130,246,0.12)', color: '#3b82f6',
+                  background: theme.iconBackground,
+                  color: theme.icon,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <Icon size={24} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ color: '#f8fafc', fontWeight: 700, fontSize: '1.1rem' }}>
+                  <h3 style={{ color: theme.text, fontWeight: 700, fontSize: '1.1rem' }}>
                     {service.title}
                   </h3>
                   <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{service.category}</span>
-                    <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>• {service.duration}</span>
+                    <span style={{ color: theme.muted, fontSize: '0.8rem' }}>{service.category}</span>
+                    <span style={{ color: theme.muted, fontSize: '0.8rem' }}>• {service.duration}</span>
                   </div>
                 </div>
               </div>
 
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '12px' }}>
+              <p style={{ color: theme.muted, fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '12px' }}>
                 {service.description}
               </p>
 
@@ -413,13 +417,13 @@ export default function ServicesContent() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 paddingTop: '12px',
-                borderTop: '1px solid rgba(148,163,184,0.08)',
+                borderTop: `1px solid ${theme.border}`,
               }}>
                 <div>
-                  <span style={{ color: '#3b82f6', fontSize: '1.3rem', fontWeight: 700 }}>
+                  <span style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>
                     {service.price}
                   </span>
-                  <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '2px' }}>
+                  <div style={{ color: theme.muted, fontSize: '0.8rem', marginTop: '2px' }}>
                     {service.bookings} bookings
                   </div>
                 </div>
@@ -430,13 +434,13 @@ export default function ServicesContent() {
                     style={{
                       padding: '6px 10px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(148,163,184,0.12)',
+                      border: `1px solid ${theme.border}`,
                       background: 'transparent',
-                      color: '#94a3b8',
+                      color: theme.muted,
                       cursor: 'pointer',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
                   >
                     <Edit size={16} />
                   </button>
@@ -445,9 +449,9 @@ export default function ServicesContent() {
                     style={{
                       padding: '6px 10px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(148,163,184,0.12)',
+                      border: `1px solid ${theme.border}`,
                       background: 'transparent',
-                      color: '#94a3b8',
+                      color: theme.muted,
                       cursor: 'pointer',
                     }}
                     onMouseEnter={(e) => {
@@ -455,8 +459,8 @@ export default function ServicesContent() {
                       e.currentTarget.style.color = '#ef4444';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)';
-                      e.currentTarget.style.color = '#94a3b8';
+                      e.currentTarget.style.borderColor = theme.border;
+                      e.currentTarget.style.color = theme.muted;
                     }}
                   >
                     <Trash2 size={16} />
@@ -470,17 +474,17 @@ export default function ServicesContent() {
 
       {filteredServices.length === 0 && (
         <div style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '30px',
           padding: '60px',
           textAlign: 'center',
         }}>
-          <Package size={48} style={{ color: '#64748b', marginBottom: '16px' }} />
-          <h3 style={{ color: '#f8fafc', fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px' }}>
+          <Package size={48} style={{ color: theme.icon, marginBottom: '16px' }} />
+          <h3 style={{ color: theme.text, fontSize: '1.2rem', fontWeight: 600, marginBottom: '8px' }}>
             No services found
           </h3>
-          <p style={{ color: '#64748b' }}>
+          <p style={{ color: theme.muted }}>
             {searchQuery || selectedCategory !== 'All' 
               ? 'Try adjusting your filters.' 
               : 'Click "Add Service" to create one.'}
@@ -507,6 +511,7 @@ export default function ServicesContent() {
 
 // Modal Component
 function ServiceModal({ service, onClose, onSave, saving }: any) {
+  const theme = useDashboardTheme();
   const [formData, setFormData] = useState(
     service || {
       title: '',
@@ -540,8 +545,8 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
     >
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.98)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '32px',
           padding: '32px',
           maxWidth: '500px',
@@ -550,16 +555,16 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700, marginBottom: '8px' }}>
+        <h3 style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700, marginBottom: '8px' }}>
           {service ? 'Edit Service' : 'Add Service'}
         </h3>
-        <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '24px' }}>
+        <p style={{ color: theme.muted, fontSize: '0.9rem', marginBottom: '24px' }}>
           {service ? 'Update the service details' : 'Create a new service'}
         </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Title *
             </label>
             <input
@@ -571,9 +576,9 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: `1px solid ${theme.border}`,
+                background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -581,7 +586,7 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Price *
             </label>
             <input
@@ -593,9 +598,9 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: `1px solid ${theme.border}`,
+                background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -603,7 +608,7 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Description *
             </label>
             <textarea
@@ -615,9 +620,9 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: `1px solid ${theme.border}`,
+                background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
                 resize: 'vertical',
@@ -628,7 +633,7 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
                 Category
               </label>
               <select
@@ -638,9 +643,9 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
+                  border: `1px solid ${theme.border}`,
+                  background: theme.card,
+                  color: theme.inputText,
                   fontSize: '0.95rem',
                   outline: 'none',
                 }}
@@ -651,7 +656,7 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
               </select>
             </div>
             <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
                 Duration
               </label>
               <input
@@ -662,9 +667,9 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
+                  border: `1px solid ${theme.border}`,
+                  background: theme.card,
+                  color: theme.inputText,
                   fontSize: '0.95rem',
                   outline: 'none',
                 }}
@@ -673,7 +678,7 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Icon
             </label>
             <select
@@ -683,9 +688,9 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: `1px solid ${theme.border}`,
+                background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -704,9 +709,9 @@ function ServiceModal({ service, onClose, onSave, saving }: any) {
                 flex: 1,
                 padding: '12px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
+                border: `1px solid ${theme.border}`,
                 background: 'transparent',
-                color: '#94a3b8',
+                color: theme.muted,
                 cursor: 'pointer',
                 fontWeight: 600,
               }}

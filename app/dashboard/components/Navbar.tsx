@@ -1,7 +1,8 @@
 'use client';
 
-import { Search, Bell, MoonStar, User, LogOut } from 'lucide-react';
+import { Search, Bell, MoonStar, Sun, User, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { useDashboardTheme } from '../context/DashboardThemeContext';
 
 interface NavbarProps {
   onLogout: () => void;
@@ -9,34 +10,48 @@ interface NavbarProps {
   activeTab?: string;
 }
 
-export default function Navbar({ onLogout, userEmail = 'admin@example.com', activeTab = 'Overview' }: NavbarProps) {
+export default function Navbar({
+  onLogout,
+  userEmail = 'admin@example.com',
+  activeTab = 'Overview',
+}: NavbarProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const theme = useDashboardTheme();
+  const panelBackground = theme.isNightMode ? 'rgba(15, 23, 42, 0.78)' : theme.panel;
+  const controlBackground = theme.card;
+  const hoverBackground = theme.hover;
+  const borderColor = theme.border;
+  const titleColor = theme.text;
+  const textColor = theme.text;
+  const mutedColor = theme.muted;
+  const inputTextColor = theme.inputText;
+  const shadow = theme.shadow;
 
   return (
     <header
       className="dashboard-topbar"
       style={{
-        background: 'rgba(15, 23, 42, 0.78)',
-        border: '1px solid rgba(148, 163, 184, 0.12)',
+        background: panelBackground,
+        border: `1px solid ${borderColor}`,
         borderRadius: '26px',
         padding: '18px 22px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '16px',
-        boxShadow: '0 18px 40px rgba(15, 23, 42, 0.2)',
+        boxShadow: shadow,
       }}
     >
       {/* Page Title */}
       <div className="dashboard-topbar-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.05em' }}>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: titleColor, letterSpacing: '-0.05em' }}>
           {activeTab}
         </h2>
         <span
           style={{
             fontSize: '0.7rem',
-            color: '#94a3b8',
-            background: 'rgba(148,163,184,0.12)',
+            color: mutedColor,
+            background: theme.isNightMode ? 'rgba(148,163,184,0.12)' : 'rgba(15,23,42,0.06)',
             padding: '2px 10px',
             borderRadius: '20px',
           }}
@@ -55,7 +70,7 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
               top: '50%',
               left: '14px',
               transform: 'translateY(-50%)',
-              color: '#94a3b8',
+              color: mutedColor,
             }}
           />
           <input
@@ -67,16 +82,16 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
               width: '100%',
               height: '48px',
               borderRadius: '14px',
-              border: '1px solid rgba(148, 163, 184, 0.12)',
-              background: 'rgba(15, 23, 42, 0.72)',
-              color: '#cbd5e1',
+              border: `1px solid ${borderColor}`,
+              background: controlBackground,
+              color: inputTextColor,
               padding: '0 16px 0 42px',
               fontSize: '0.95rem',
               outline: 'none',
               transition: 'border-color 0.2s ease',
             }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(96, 165, 250, 0.5)')}
-            onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(148, 163, 184, 0.12)')}
+            onFocus={(e) => (e.currentTarget.style.borderColor = theme.isNightMode ? 'rgba(226, 232, 240, 0.36)' : 'rgba(15, 23, 42, 0.28)')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = borderColor)}
           />
         </div>
       </div>
@@ -91,8 +106,8 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
             gap: '8px',
             padding: '6px 12px 6px 6px',
             borderRadius: '12px',
-            background: 'rgba(15, 23, 42, 0.7)',
-            border: '1px solid rgba(148, 163, 184, 0.12)',
+            background: controlBackground,
+            border: `1px solid ${borderColor}`,
           }}
         >
           <div
@@ -100,16 +115,15 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
               width: '32px',
               height: '32px',
               borderRadius: '10px',
-              background: '#F6D961',
+              background: theme.iconBackground,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 10px rgba(246, 217, 97, 0.3)',
             }}
           >
-            <User size={16} color="#1a1a1a" />
+            <User size={16} color={mutedColor} />
           </div>
-          <span className="dashboard-user-name" style={{ fontSize: '0.85rem', color: '#e2e8f0', fontWeight: 500 }}>
+          <span className="dashboard-user-name" style={{ fontSize: '0.85rem', color: textColor, fontWeight: 500 }}>
             {userEmail.split('@')[0]}
           </span>
         </div>
@@ -120,9 +134,9 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
             width: '42px',
             height: '42px',
             borderRadius: '12px',
-            border: '1px solid rgba(148, 163, 184, 0.12)',
-            background: 'rgba(15, 23, 42, 0.7)',
-            color: '#e2e8f0',
+            border: `1px solid ${borderColor}`,
+            background: controlBackground,
+            color: mutedColor,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -130,8 +144,8 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
             position: 'relative',
             transition: 'all 0.2s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(246, 217, 97, 0.15)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(15, 23, 42, 0.7)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = hoverBackground)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = controlBackground)}
         >
           <Bell size={18} />
           <span
@@ -139,34 +153,36 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
               position: 'absolute',
               top: '6px',
               right: '6px',
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: '#ef4444',
-              border: '2px solid #0f172a',
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+              background: mutedColor,
+              border: `2px solid ${theme.isNightMode ? '#0f172a' : '#ffffff'}`,
             }}
           />
         </button>
 
         {/* Theme Toggle */}
         <button
+          onClick={theme.toggleMode}
           style={{
             width: '42px',
             height: '42px',
             borderRadius: '12px',
-            border: '1px solid rgba(148, 163, 184, 0.12)',
-            background: 'rgba(15, 23, 42, 0.7)',
-            color: '#e2e8f0',
+            border: `1px solid ${borderColor}`,
+            background: controlBackground,
+            color: mutedColor,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(246, 217, 97, 0.15)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(15, 23, 42, 0.7)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = hoverBackground)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = controlBackground)}
+          aria-label={theme.isNightMode ? 'Switch to day mode' : 'Switch to night mode'}
         >
-          <MoonStar size={18} />
+          {theme.isNightMode ? <Sun size={18} /> : <MoonStar size={18} />}
         </button>
 
         {/* Logout Button - Yellow */}

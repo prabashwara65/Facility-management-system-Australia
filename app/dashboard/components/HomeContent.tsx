@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useDashboardTheme } from '../context/DashboardThemeContext';
 
 // ============================================
 // TYPES
@@ -136,6 +137,7 @@ interface AreaStats {
 // ============================================
 
 export default function HomeContent() {
+  const theme = useDashboardTheme();
   const [loading, setLoading] = useState(true);
   
   // Stats
@@ -362,7 +364,7 @@ export default function HomeContent() {
         justifyContent: 'center', 
         alignItems: 'center', 
         minHeight: '400px', 
-        color: '#94a3b8' 
+        color: theme.muted 
       }}>
         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
         <span style={{ marginLeft: '12px' }}>Loading dashboard...</span>
@@ -377,20 +379,20 @@ export default function HomeContent() {
 
   // Main stat cards
   const mainStats = [
-    { label: 'Total Bookings', value: bookingStats.total, icon: FileText, color: '#8b5cf6' },
-    { label: 'Pending', value: bookingStats.pending, icon: Clock, color: '#f59e0b' },
-    { label: 'Completed', value: bookingStats.completed, icon: CheckCircle, color: '#10b981' },
-    { label: 'Revenue', value: `$${bookingStats.revenue.toLocaleString()}`, icon: DollarSign, color: '#3b82f6' },
+    { label: 'Total Bookings', value: bookingStats.total, icon: FileText },
+    { label: 'Pending', value: bookingStats.pending, icon: Clock },
+    { label: 'Completed', value: bookingStats.completed, icon: CheckCircle },
+    { label: 'Revenue', value: `$${bookingStats.revenue.toLocaleString()}`, icon: DollarSign },
   ];
 
   // Category stats
   const categoryStats = [
-    { label: 'Services', value: serviceStats.total, icon: Package, color: '#3b82f6' },
-    { label: 'Pricing Tiers', value: pricingStats.totalTiers, icon: DollarSign, color: '#8b5cf6' },
-    { label: 'Promise Features', value: promiseStats.total, icon: ShieldCheck, color: '#10b981' },
-    { label: 'Testimonials', value: testimonialStats.total, icon: Star, color: '#f59e0b' },
-    { label: 'Service Areas', value: areaStats.total, icon: MapPin, color: '#ef4444' },
-    { label: 'FAQs', value: pricingStats.totalFAQs, icon: HelpCircle, color: '#06b6d4' },
+    { label: 'Services', value: serviceStats.total, icon: Package },
+    { label: 'Pricing Tiers', value: pricingStats.totalTiers, icon: DollarSign },
+    { label: 'Promise Features', value: promiseStats.total, icon: ShieldCheck },
+    { label: 'Testimonials', value: testimonialStats.total, icon: Star },
+    { label: 'Service Areas', value: areaStats.total, icon: MapPin },
+    { label: 'FAQs', value: pricingStats.totalFAQs, icon: HelpCircle },
   ];
 
   return (
@@ -398,8 +400,8 @@ export default function HomeContent() {
       {/* Overview Section */}
       <div
         style={{
-          background: 'linear-gradient(135deg, rgba(30,41,59,0.92), rgba(17,24,39,0.95))',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '30px',
           padding: '24px',
           boxShadow: '0 20px 55px rgba(2, 6, 23, 0.35)',
@@ -416,19 +418,19 @@ export default function HomeContent() {
           }}
         >
           <div>
-            <div style={{ color: '#94a3b8', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            <div style={{ color: theme.muted, fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
               Dashboard Overview
             </div>
-            <h1 style={{ margin: '8px 0 0', fontSize: 'clamp(1.5rem, 3vw, 3rem)', lineHeight: 1.05, letterSpacing: '-0.07em', color: '#f8fafc' }}>
+            <h1 style={{ margin: '8px 0 0', fontSize: 'clamp(1.5rem, 3vw, 3rem)', lineHeight: 1.05, letterSpacing: '-0.07em', color: theme.text }}>
               Welcome Back
             </h1>
           </div>
           <button
             onClick={handleRefresh}
             style={{
-              border: '1px solid rgba(148,163,184,0.18)',
-              background: 'rgba(59,130,246,0.12)',
-              color: '#dbeafe',
+              border: `1px solid ${theme.border}`,
+              background: theme.card,
+              color: theme.text,
               borderRadius: '12px',
               padding: '10px 18px',
               display: 'flex',
@@ -437,8 +439,8 @@ export default function HomeContent() {
               cursor: 'pointer',
               transition: 'all 0.2s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.25)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(59,130,246,0.12)')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = theme.hover)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = theme.card)}
           >
             <RefreshCw size={16} />
             Refresh
@@ -453,14 +455,14 @@ export default function HomeContent() {
               <div
                 key={stat.label}
                 style={{
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  border: '1px solid rgba(148,163,184,0.12)',
+                  background: theme.card,
+                  border: `1px solid ${theme.border}`,
                   borderRadius: '20px',
                   padding: '18px 20px',
                   transition: 'all 0.2s ease',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div
@@ -468,8 +470,8 @@ export default function HomeContent() {
                       width: '40px',
                       height: '40px',
                       borderRadius: '12px',
-                      background: `${stat.color}22`,
-                      color: stat.color,
+                      background: theme.iconBackground,
+                      color: theme.icon,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -478,10 +480,10 @@ export default function HomeContent() {
                     <Icon size={20} />
                   </div>
                   <div>
-                    <div style={{ color: '#94a3b8', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    <div style={{ color: theme.muted, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                       {stat.label}
                     </div>
-                    <div style={{ color: '#f8fafc', fontSize: 'clamp(1.2rem, 1.8vw, 1.8rem)', fontWeight: 700 }}>
+                    <div style={{ color: theme.text, fontSize: 'clamp(1.2rem, 1.8vw, 1.8rem)', fontWeight: 700 }}>
                       {stat.value}
                     </div>
                   </div>
@@ -495,17 +497,17 @@ export default function HomeContent() {
       {/* Category Stats */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '30px',
           padding: '24px',
         }}
       >
         <div style={{ marginBottom: '16px' }}>
-          <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          <div style={{ color: theme.muted, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
             Content Overview
           </div>
-          <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: '#f8fafc' }}>
+          <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: theme.text }}>
             All Categories
           </h2>
         </div>
@@ -517,8 +519,8 @@ export default function HomeContent() {
               <div
                 key={stat.label}
                 style={{
-                  background: 'rgba(15, 23, 42, 0.5)',
-                  border: '1px solid rgba(148,163,184,0.08)',
+                  background: theme.card,
+                  border: `1px solid ${theme.border}`,
                   borderRadius: '14px',
                   padding: '14px 16px',
                   display: 'flex',
@@ -526,16 +528,16 @@ export default function HomeContent() {
                   gap: '10px',
                   transition: 'all 0.2s ease',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)')}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)')}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
               >
                 <div
                   style={{
                     width: '32px',
                     height: '32px',
                     borderRadius: '8px',
-                    background: `${stat.color}22`,
-                    color: stat.color,
+                    background: theme.iconBackground,
+                    color: theme.icon,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -545,8 +547,8 @@ export default function HomeContent() {
                   <Icon size={16} />
                 </div>
                 <div>
-                  <div style={{ color: '#94a3b8', fontSize: '0.6rem', textTransform: 'uppercase' }}>{stat.label}</div>
-                  <div style={{ color: '#f8fafc', fontSize: '1rem', fontWeight: 700 }}>{stat.value}</div>
+                  <div style={{ color: theme.muted, fontSize: '0.6rem', textTransform: 'uppercase' }}>{stat.label}</div>
+                  <div style={{ color: theme.text, fontSize: '1rem', fontWeight: 700 }}>{stat.value}</div>
                 </div>
               </div>
             );
@@ -559,22 +561,22 @@ export default function HomeContent() {
         {/* Recent Bookings */}
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.82)',
-            border: '1px solid rgba(148,163,184,0.12)',
+            background: theme.panel,
+            border: `1px solid ${theme.border}`,
             borderRadius: '30px',
             padding: '24px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
-              <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+              <div style={{ color: theme.muted, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                 Recent Activity
               </div>
-              <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: '#f8fafc' }}>
+              <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: theme.text }}>
                 Recent Bookings
               </h2>
             </div>
-            <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{bookingStats.total} total</span>
+            <span style={{ color: theme.muted, fontSize: '0.8rem' }}>{bookingStats.total} total</span>
           </div>
 
           <div style={{ display: 'grid', gap: '12px' }}>
@@ -585,12 +587,12 @@ export default function HomeContent() {
                   style={{
                     padding: '14px 16px',
                     borderRadius: '16px',
-                    background: 'rgba(15, 23, 42, 0.72)',
-                    border: '1px solid rgba(148,163,184,0.08)',
+                    background: theme.card,
+                    border: `1px solid ${theme.border}`,
                     transition: 'all 0.2s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.08)')}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div
@@ -601,8 +603,8 @@ export default function HomeContent() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: 'rgba(96,165,250,0.14)',
-                        color: '#93c5fd',
+                        background: theme.iconBackground,
+                        color: theme.icon,
                         flexShrink: 0,
                         fontSize: '0.75rem',
                         fontWeight: 700,
@@ -611,11 +613,11 @@ export default function HomeContent() {
                       {booking.first_name?.[0]}{booking.last_name?.[0]}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f8fafc' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: theme.text }}>
                         {booking.first_name} {booking.last_name}
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>
+                        <span style={{ color: theme.muted, fontSize: '0.75rem' }}>
                           {booking.service_type || 'N/A'}
                         </span>
                         <span
@@ -631,17 +633,17 @@ export default function HomeContent() {
                         </span>
                       </div>
                     </div>
-                    <div style={{ color: '#3b82f6', fontWeight: 600, fontSize: '0.9rem' }}>
+                    <div style={{ color: theme.text, fontWeight: 600, fontSize: '0.9rem' }}>
                       ${booking.total_price || 0}
                     </div>
                   </div>
-                  <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '4px', paddingLeft: '44px' }}>
+                  <div style={{ color: theme.muted, fontSize: '0.7rem', marginTop: '4px', paddingLeft: '44px' }}>
                     {formatDate(booking.preferred_date || booking.created_at)}
                   </div>
                 </div>
               ))
             ) : (
-              <div style={{ textAlign: 'center', color: '#64748b', padding: '30px 0' }}>
+              <div style={{ textAlign: 'center', color: theme.muted, padding: '30px 0' }}>
                 No bookings yet
               </div>
             )}
@@ -653,36 +655,36 @@ export default function HomeContent() {
           {/* Service Areas Quick View */}
           <div
             style={{
-              background: 'rgba(15, 23, 42, 0.82)',
-              border: '1px solid rgba(148,163,184,0.12)',
+              background: theme.panel,
+              border: `1px solid ${theme.border}`,
               borderRadius: '30px',
               padding: '24px',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
-                <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                <div style={{ color: theme.muted, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                   Service Areas
                 </div>
-                <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: '#f8fafc' }}>
+                <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: theme.text }}>
                   Coverage
                 </h2>
               </div>
-              <MapPin size={20} color="#3b82f6" />
+              <MapPin size={20} color={theme.icon} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(15,23,42,0.5)', borderRadius: '12px' }}>
-                <div style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: 700 }}>{areaStats.total}</div>
-                <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Suburbs</div>
+              <div style={{ textAlign: 'center', padding: '12px', background: theme.card, borderRadius: '12px' }}>
+                <div style={{ color: theme.text, fontSize: '1.5rem', fontWeight: 700 }}>{areaStats.total}</div>
+                <div style={{ color: theme.muted, fontSize: '0.7rem' }}>Suburbs</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(15,23,42,0.5)', borderRadius: '12px' }}>
-                <div style={{ color: '#10b981', fontSize: '1.5rem', fontWeight: 700 }}>{areaStats.active}</div>
-                <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Active</div>
+              <div style={{ textAlign: 'center', padding: '12px', background: theme.card, borderRadius: '12px' }}>
+                <div style={{ color: theme.text, fontSize: '1.5rem', fontWeight: 700 }}>{areaStats.active}</div>
+                <div style={{ color: theme.muted, fontSize: '0.7rem' }}>Active</div>
               </div>
-              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(15,23,42,0.5)', borderRadius: '12px' }}>
-                <div style={{ color: '#8b5cf6', fontSize: '1.5rem', fontWeight: 700 }}>{areaStats.regions}</div>
-                <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Regions</div>
+              <div style={{ textAlign: 'center', padding: '12px', background: theme.card, borderRadius: '12px' }}>
+                <div style={{ color: theme.text, fontSize: '1.5rem', fontWeight: 700 }}>{areaStats.regions}</div>
+                <div style={{ color: theme.muted, fontSize: '0.7rem' }}>Regions</div>
               </div>
             </div>
           </div>
@@ -690,8 +692,8 @@ export default function HomeContent() {
           {/* Testimonials & Promise Quick View */}
           <div
             style={{
-              background: 'rgba(15, 23, 42, 0.82)',
-              border: '1px solid rgba(148,163,184,0.12)',
+              background: theme.panel,
+              border: `1px solid ${theme.border}`,
               borderRadius: '30px',
               padding: '24px',
             }}
@@ -700,10 +702,10 @@ export default function HomeContent() {
               {/* Testimonials */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <Star size={16} color="#f59e0b" />
-                  <span style={{ color: '#94a3b8', fontSize: '0.7rem', textTransform: 'uppercase' }}>Testimonials</span>
+                  <Star size={16} color={theme.icon} />
+                  <span style={{ color: theme.muted, fontSize: '0.7rem', textTransform: 'uppercase' }}>Testimonials</span>
                 </div>
-                <div style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: 700 }}>{testimonialStats.total}</div>
+                <div style={{ color: theme.text, fontSize: '1.5rem', fontWeight: 700 }}>{testimonialStats.total}</div>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
                   <span style={{ color: '#10b981', fontSize: '0.75rem' }}>✓ {testimonialStats.active} active</span>
                   <span style={{ color: '#f59e0b', fontSize: '0.75rem' }}>★ {testimonialStats.fiveStar} 5-star</span>
@@ -713,29 +715,29 @@ export default function HomeContent() {
               {/* Promise Features */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <ShieldCheck size={16} color="#10b981" />
-                  <span style={{ color: '#94a3b8', fontSize: '0.7rem', textTransform: 'uppercase' }}>Promises</span>
+                  <ShieldCheck size={16} color={theme.icon} />
+                  <span style={{ color: theme.muted, fontSize: '0.7rem', textTransform: 'uppercase' }}>Promises</span>
                 </div>
-                <div style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: 700 }}>{promiseStats.total}</div>
+                <div style={{ color: theme.text, fontSize: '1.5rem', fontWeight: 700 }}>{promiseStats.total}</div>
                 <div style={{ color: '#10b981', fontSize: '0.75rem', marginTop: '4px' }}>
                   ✓ {promiseStats.active} active
                 </div>
               </div>
             </div>
 
-            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
+            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${theme.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Popular Tier</div>
-                  <div style={{ color: '#f8fafc', fontWeight: 600 }}>{pricingStats.popularTier || 'None'}</div>
+                  <div style={{ color: theme.muted, fontSize: '0.7rem' }}>Popular Tier</div>
+                  <div style={{ color: theme.text, fontWeight: 600 }}>{pricingStats.popularTier || 'None'}</div>
                 </div>
                 <div>
-                  <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Pricing Tiers</div>
-                  <div style={{ color: '#f8fafc', fontWeight: 600 }}>{pricingStats.totalTiers}</div>
+                  <div style={{ color: theme.muted, fontSize: '0.7rem' }}>Pricing Tiers</div>
+                  <div style={{ color: theme.text, fontWeight: 600 }}>{pricingStats.totalTiers}</div>
                 </div>
                 <div>
-                  <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>FAQs</div>
-                  <div style={{ color: '#f8fafc', fontWeight: 600 }}>{pricingStats.totalFAQs}</div>
+                  <div style={{ color: theme.muted, fontSize: '0.7rem' }}>FAQs</div>
+                  <div style={{ color: theme.text, fontWeight: 600 }}>{pricingStats.totalFAQs}</div>
                 </div>
               </div>
             </div>
@@ -746,37 +748,37 @@ export default function HomeContent() {
       {/* Service Stats */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '30px',
           padding: '24px',
         }}
       >
         <div style={{ marginBottom: '16px' }}>
-          <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          <div style={{ color: theme.muted, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
             Service Details
           </div>
-          <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: '#f8fafc' }}>
+          <h2 style={{ margin: '8px 0 0', fontSize: '1.2rem', color: theme.text }}>
             Service Breakdown
           </h2>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
-          <div style={{ padding: '14px', background: 'rgba(15,23,42,0.5)', borderRadius: '14px', textAlign: 'center' }}>
-            <div style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.total}</div>
-            <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Total Services</div>
+          <div style={{ padding: '14px', background: theme.card, borderRadius: '14px', textAlign: 'center' }}>
+            <div style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.total}</div>
+            <div style={{ color: theme.muted, fontSize: '0.7rem' }}>Total Services</div>
           </div>
-          <div style={{ padding: '14px', background: 'rgba(15,23,42,0.5)', borderRadius: '14px', textAlign: 'center' }}>
-            <div style={{ color: '#3b82f6', fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.residential}</div>
-            <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Residential</div>
+          <div style={{ padding: '14px', background: theme.card, borderRadius: '14px', textAlign: 'center' }}>
+            <div style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.residential}</div>
+            <div style={{ color: theme.muted, fontSize: '0.7rem' }}>Residential</div>
           </div>
-          <div style={{ padding: '14px', background: 'rgba(15,23,42,0.5)', borderRadius: '14px', textAlign: 'center' }}>
-            <div style={{ color: '#8b5cf6', fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.commercial}</div>
-            <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Commercial</div>
+          <div style={{ padding: '14px', background: theme.card, borderRadius: '14px', textAlign: 'center' }}>
+            <div style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.commercial}</div>
+            <div style={{ color: theme.muted, fontSize: '0.7rem' }}>Commercial</div>
           </div>
-          <div style={{ padding: '14px', background: 'rgba(15,23,42,0.5)', borderRadius: '14px', textAlign: 'center' }}>
-            <div style={{ color: '#10b981', fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.active}</div>
-            <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>Active</div>
+          <div style={{ padding: '14px', background: theme.card, borderRadius: '14px', textAlign: 'center' }}>
+            <div style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>{serviceStats.active}</div>
+            <div style={{ color: theme.muted, fontSize: '0.7rem' }}>Active</div>
           </div>
         </div>
       </div>

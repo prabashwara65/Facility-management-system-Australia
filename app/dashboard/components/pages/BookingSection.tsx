@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useDashboardTheme } from '../../context/DashboardThemeContext';
 
 interface ContactInfo {
   id: number;
@@ -36,6 +37,7 @@ const defaultContactInfo = {
 };
 
 export default function ContactContent() {
+  const theme = useDashboardTheme();
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -221,7 +223,7 @@ export default function ContactContent() {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '400px',
-        color: '#94a3b8'
+        color: theme.muted
       }}>
         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
         <span style={{ marginLeft: '12px' }}>Loading...</span>
@@ -269,18 +271,18 @@ export default function ContactContent() {
       {/* Header */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '20px',
           padding: '24px',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            <div style={{ color: theme.muted, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
               Contact Management
             </div>
-            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: '#f8fafc' }}>
+            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', color: theme.text }}>
               Contact Information
             </h2>
           </div>
@@ -289,9 +291,9 @@ export default function ContactContent() {
             style={{
               padding: '10px 18px',
               borderRadius: '12px',
-              border: '1px solid rgba(148,163,184,0.12)',
+              border: `1px solid ${theme.border}`,
               background: 'transparent',
-              color: '#94a3b8',
+              color: theme.muted,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -314,8 +316,8 @@ export default function ContactContent() {
             <div
               key={field.key}
               style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: `1px solid ${value ? 'rgba(148,163,184,0.12)' : 'rgba(239,68,68,0.15)'}`,
+                background: theme.panel,
+                border: `1px solid ${value ? theme.border : 'rgba(239,68,68,0.15)'}`,
                 borderRadius: '20px',
                 padding: '24px',
                 transition: 'all 0.2s ease',
@@ -327,8 +329,8 @@ export default function ContactContent() {
                     width: '48px',
                     height: '48px',
                     borderRadius: '14px',
-                    background: value ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.08)',
-                    color: value ? '#3b82f6' : '#ef4444',
+                    background: value ? theme.iconBackground : 'rgba(239,68,68,0.08)',
+                    color: value ? theme.icon : '#ef4444',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -341,9 +343,9 @@ export default function ContactContent() {
                   style={{
                     padding: '8px 16px',
                     borderRadius: '10px',
-                    border: '1px solid rgba(148,163,184,0.12)',
+                    border: `1px solid ${theme.border}`,
                     background: 'transparent',
-                    color: '#94a3b8',
+                    color: theme.muted,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -351,12 +353,12 @@ export default function ContactContent() {
                     fontSize: '0.85rem',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                    e.currentTarget.style.color = '#3b82f6';
+                    e.currentTarget.style.borderColor = theme.muted;
+                    e.currentTarget.style.color = theme.text;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)';
-                    e.currentTarget.style.color = '#94a3b8';
+                    e.currentTarget.style.borderColor = theme.border;
+                    e.currentTarget.style.color = theme.muted;
                   }}
                 >
                   <Edit size={16} />
@@ -365,11 +367,11 @@ export default function ContactContent() {
               </div>
 
               <div>
-                <div style={{ color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                <div style={{ color: theme.muted, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
                   {field.label}
                 </div>
                 <div style={{
-                  color: value ? '#f8fafc' : '#ef4444',
+                  color: value ? theme.text : '#ef4444',
                   fontSize: '1.1rem',
                   fontWeight: 600,
                   opacity: value ? 1 : 0.7,

@@ -21,6 +21,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useDashboardTheme } from '../../context/DashboardThemeContext';
 
 interface PromiseFeature {
   id: number;
@@ -58,6 +59,7 @@ const iconMap: Record<string, any> = {
 const statusOptions = ['Active', 'Inactive', 'Draft'];
 
 export default function PromiseContent() {
+  const theme = useDashboardTheme();
   const [features, setFeatures] = useState<PromiseFeature[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -220,7 +222,7 @@ export default function PromiseContent() {
 
   // Stats
   const stats = [
-    { label: 'Total Features', value: features.length, icon: Package, color: '#3b82f6' },
+    { label: 'Total Features', value: features.length, icon: Package },
     { label: 'Active', value: features.filter(f => f.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
     { label: 'Inactive', value: features.filter(f => f.status === 'Inactive').length, icon: XCircle, color: '#ef4444' },
     { label: 'Draft', value: features.filter(f => f.status === 'Draft').length, icon: Clock, color: '#f59e0b' },
@@ -372,8 +374,8 @@ export default function PromiseContent() {
             <div
               key={stat.label}
               style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
+                background: theme.panel,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '16px',
                 padding: '16px',
                 display: 'flex',
@@ -386,8 +388,8 @@ export default function PromiseContent() {
                   width: '44px',
                   height: '44px',
                   borderRadius: '12px',
-                  background: `${stat.color}22`,
-                  color: stat.color,
+                  background: theme.iconBackground,
+                  color: theme.icon,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -396,8 +398,8 @@ export default function PromiseContent() {
                 <Icon size={20} />
               </div>
               <div>
-                <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{stat.label}</div>
-                <div style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
+                <div style={{ color: theme.muted, fontSize: '0.8rem' }}>{stat.label}</div>
+                <div style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
               </div>
             </div>
           );
@@ -453,15 +455,15 @@ export default function PromiseContent() {
             <div
               key={feature.id}
               style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
+                background: theme.panel,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '24px',
                 padding: '20px',
                 transition: 'all 0.2s ease',
                 position: 'relative',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
             >
               <div style={{ display: 'flex', alignItems: 'start', gap: '14px', marginBottom: '12px' }}>
                 <div
@@ -469,8 +471,8 @@ export default function PromiseContent() {
                     width: '48px',
                     height: '48px',
                     borderRadius: '14px',
-                    background: 'rgba(59,130,246,0.12)',
-                    color: '#3b82f6',
+                    background: theme.iconBackground,
+                    color: theme.icon,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -480,7 +482,7 @@ export default function PromiseContent() {
                   <Icon size={24} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>
+                  <h3 style={{ color: theme.text, fontWeight: 600, fontSize: '1rem' }}>
                     {feature.title}
                   </h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
@@ -488,17 +490,17 @@ export default function PromiseContent() {
                       {getStatusIcon(feature.status)}
                       {feature.status}
                     </span>
-                    <span style={{ color: '#64748b', fontSize: '0.7rem' }}>#{feature.id}</span>
+                    <span style={{ color: theme.muted, fontSize: '0.7rem' }}>#{feature.id}</span>
                   </div>
                 </div>
               </div>
 
-              <p style={{ color: '#94a3b8', fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '12px' }}>
+              <p style={{ color: theme.muted, fontSize: '0.9rem', lineHeight: '1.5', marginBottom: '12px' }}>
                 {feature.description}
               </p>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: `1px solid ${theme.border}` }}>
+                <div style={{ fontSize: '0.75rem', color: theme.muted }}>
                   ID: #{feature.id}
                 </div>
                 <div style={{ display: 'flex', gap: '6px' }}>
@@ -507,14 +509,14 @@ export default function PromiseContent() {
                     style={{
                       padding: '6px 10px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(148,163,184,0.12)',
+                      border: `1px solid ${theme.border}`,
                       background: 'transparent',
-                      color: '#94a3b8',
+                      color: theme.muted,
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3b82f6')}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)')}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = theme.muted)}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = theme.border)}
                   >
                     <Edit size={16} />
                   </button>
@@ -523,9 +525,9 @@ export default function PromiseContent() {
                     style={{
                       padding: '6px 10px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(148,163,184,0.12)',
+                      border: `1px solid ${theme.border}`,
                       background: 'transparent',
-                      color: '#94a3b8',
+                      color: theme.muted,
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
                     }}
@@ -534,8 +536,8 @@ export default function PromiseContent() {
                       e.currentTarget.style.color = '#ef4444';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(148,163,184,0.12)';
-                      e.currentTarget.style.color = '#94a3b8';
+                      e.currentTarget.style.borderColor = theme.border;
+                      e.currentTarget.style.color = theme.muted;
                     }}
                   >
                     <Trash2 size={16} />

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
+import {
   Home, 
   Building2,
   Plus, 
@@ -25,6 +25,7 @@ import {
   Bath,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useDashboardTheme } from '../../context/DashboardThemeContext';
 
 type ServiceCategory = 'Residential' | 'Commercial';
 
@@ -74,6 +75,7 @@ const categoryIconMap: Record<string, React.ReactNode> = {
 };
 
 export default function PricingContent() {
+  const theme = useDashboardTheme();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [addOns, setAddOns] = useState<AddOn[]>([]);
@@ -164,10 +166,10 @@ export default function PricingContent() {
 
   // Stats
   const stats = [
-    { label: 'Total Tiers', value: tiers.length, icon: Package, color: '#3b82f6' },
-    { label: 'Active Tiers', value: tiers.filter((t: Tier) => t.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
-    { label: 'Total Add-ons', value: addOns.length, icon: ShoppingBag, color: '#8b5cf6' },
-    { label: 'Total FAQs', value: faqs.length, icon: HelpCircle, color: '#f59e0b' },
+    { label: 'Total Tiers', value: tiers.length, icon: Package },
+    { label: 'Active Tiers', value: tiers.filter((t: Tier) => t.status === 'Active').length, icon: CheckCircle },
+    { label: 'Total Add-ons', value: addOns.length, icon: ShoppingBag },
+    { label: 'Total FAQs', value: faqs.length, icon: HelpCircle },
   ];
 
   // CRUD: Delete Tier
@@ -460,7 +462,7 @@ export default function PricingContent() {
       case 'Active': return '#10b981';
       case 'Inactive': return '#ef4444';
       case 'Draft': return '#f59e0b';
-      default: return '#94a3b8';
+      default: return theme.muted;
     }
   };
 
@@ -484,7 +486,7 @@ export default function PricingContent() {
         justifyContent: 'center', 
         alignItems: 'center', 
         minHeight: '400px',
-        color: '#94a3b8'
+        color: theme.muted
       }}>
         <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite' }} />
         <span style={{ marginLeft: '12px' }}>Loading...</span>
@@ -497,8 +499,8 @@ export default function PricingContent() {
       {/* Header */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '30px',
           padding: '24px',
           boxShadow: '0 20px 50px rgba(2, 6, 23, 0.28)',
@@ -506,10 +508,10 @@ export default function PricingContent() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ color: '#94a3b8', fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            <div style={{ color: theme.muted, fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
               Pricing & Add-ons Management
             </div>
-            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: '#f8fafc' }}>
+            <h2 style={{ margin: '8px 0 0', fontSize: '1.5rem', letterSpacing: '-0.05em', color: theme.text }}>
               Dashboard ({tiers.length} Tiers, {addOns.length} Add-ons)
             </h2>
           </div>
@@ -519,9 +521,9 @@ export default function PricingContent() {
               style={{
                 padding: '8px 14px',
                 borderRadius: '10px',
-                border: '1px solid rgba(148,163,184,0.12)',
+                border: `1px solid ${theme.border}`,
                 background: 'transparent',
-                color: '#94a3b8',
+                color: theme.muted,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -544,8 +546,8 @@ export default function PricingContent() {
             <div
               key={stat.label}
               style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
+                background: theme.panel,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '16px',
                 padding: '16px',
                 display: 'flex',
@@ -558,8 +560,8 @@ export default function PricingContent() {
                   width: '44px',
                   height: '44px',
                   borderRadius: '12px',
-                  background: `${stat.color}22`,
-                  color: stat.color,
+                  background: theme.iconBackground,
+                  color: theme.icon,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -568,8 +570,8 @@ export default function PricingContent() {
                 <Icon size={20} />
               </div>
               <div>
-                <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{stat.label}</div>
-                <div style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
+                <div style={{ color: theme.muted, fontSize: '0.8rem' }}>{stat.label}</div>
+                <div style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
               </div>
             </div>
           );
@@ -579,8 +581,8 @@ export default function PricingContent() {
       {/* Filters & Tabs */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.82)',
-          border: '1px solid rgba(148,163,184,0.12)',
+          background: theme.panel,
+          border: `1px solid ${theme.border}`,
           borderRadius: '20px',
           padding: '16px 20px',
         }}
@@ -594,9 +596,9 @@ export default function PricingContent() {
                 style={{
                   padding: '6px 16px',
                   borderRadius: '10px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: selectedCategory === cat ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
-                  color: selectedCategory === cat ? '#F6D961' : '#94a3b8',
+                  border: `1px solid ${theme.border}`,
+                  background: selectedCategory === cat ? theme.accentBackground : 'transparent',
+                  color: selectedCategory === cat ? theme.accentText : theme.muted,
                   cursor: 'pointer',
                   fontSize: '0.85rem',
                   fontWeight: selectedCategory === cat ? 600 : 400,
@@ -608,7 +610,7 @@ export default function PricingContent() {
           </div>
 
           <div style={{ position: 'relative' }}>
-            <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <Search size={16} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: theme.muted }} />
             <input
               type="text"
               placeholder="Search..."
@@ -617,9 +619,9 @@ export default function PricingContent() {
               style={{
                 height: '38px',
                 borderRadius: '10px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#cbd5e1',
+                border: `1px solid ${theme.border}`,
+                background: theme.card,
+                color: theme.inputText,
                 padding: '0 16px 0 36px',
                 fontSize: '0.9rem',
                 outline: 'none',
@@ -630,15 +632,15 @@ export default function PricingContent() {
         </div>
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: '4px', marginTop: '16px', borderTop: '1px solid rgba(148,163,184,0.08)', paddingTop: '14px' }}>
+        <div style={{ display: 'flex', gap: '4px', marginTop: '16px', borderTop: `1px solid ${theme.border}`, paddingTop: '14px' }}>
           <button
             onClick={() => setActiveTab('tiers')}
             style={{
               padding: '8px 18px',
               borderRadius: '10px',
               border: 'none',
-              background: activeTab === 'tiers' ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
-              color: activeTab === 'tiers' ? '#F6D961' : '#94a3b8',
+              background: activeTab === 'tiers' ? theme.accentBackground : 'transparent',
+              color: activeTab === 'tiers' ? theme.accentText : theme.muted,
               cursor: 'pointer',
               fontSize: '0.85rem',
               fontWeight: activeTab === 'tiers' ? 600 : 400,
@@ -649,7 +651,7 @@ export default function PricingContent() {
           >
             <Package size={16} />
             Tiers
-            <span style={{ fontSize: '0.7rem', padding: '1px 8px', borderRadius: '10px', background: 'rgba(148,163,184,0.12)', color: '#94a3b8' }}>
+            <span style={{ fontSize: '0.7rem', padding: '1px 8px', borderRadius: '10px', background: theme.iconBackground, color: theme.muted }}>
               {filteredTiers.length}
             </span>
           </button>
@@ -659,8 +661,8 @@ export default function PricingContent() {
               padding: '8px 18px',
               borderRadius: '10px',
               border: 'none',
-              background: activeTab === 'addons' ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
-              color: activeTab === 'addons' ? '#F6D961' : '#94a3b8',
+              background: activeTab === 'addons' ? theme.accentBackground : 'transparent',
+              color: activeTab === 'addons' ? theme.accentText : theme.muted,
               cursor: 'pointer',
               fontSize: '0.85rem',
               fontWeight: activeTab === 'addons' ? 600 : 400,
@@ -671,7 +673,7 @@ export default function PricingContent() {
           >
             <ShoppingBag size={16} />
             Add-ons
-            <span style={{ fontSize: '0.7rem', padding: '1px 8px', borderRadius: '10px', background: 'rgba(148,163,184,0.12)', color: '#94a3b8' }}>
+            <span style={{ fontSize: '0.7rem', padding: '1px 8px', borderRadius: '10px', background: theme.iconBackground, color: theme.muted }}>
               {filteredAddOns.length}
             </span>
           </button>
@@ -681,8 +683,8 @@ export default function PricingContent() {
               padding: '8px 18px',
               borderRadius: '10px',
               border: 'none',
-              background: activeTab === 'faqs' ? 'rgba(246, 217, 97, 0.15)' : 'transparent',
-              color: activeTab === 'faqs' ? '#F6D961' : '#94a3b8',
+              background: activeTab === 'faqs' ? theme.accentBackground : 'transparent',
+              color: activeTab === 'faqs' ? theme.accentText : theme.muted,
               cursor: 'pointer',
               fontSize: '0.85rem',
               fontWeight: activeTab === 'faqs' ? 600 : 400,
@@ -693,7 +695,7 @@ export default function PricingContent() {
           >
             <HelpCircle size={16} />
             FAQs
-            <span style={{ fontSize: '0.7rem', padding: '1px 8px', borderRadius: '10px', background: 'rgba(148,163,184,0.12)', color: '#94a3b8' }}>
+            <span style={{ fontSize: '0.7rem', padding: '1px 8px', borderRadius: '10px', background: theme.iconBackground, color: theme.muted }}>
               {filteredFAQs.length}
             </span>
           </button>
@@ -704,29 +706,29 @@ export default function PricingContent() {
       {activeTab === 'addons' && (
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.82)',
-            border: '1px solid rgba(148,163,184,0.12)',
+            background: theme.panel,
+            border: `1px solid ${theme.border}`,
             borderRadius: '30px',
             padding: '24px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>Add-on Services</h3>
+            <h3 style={{ color: theme.text, fontWeight: 600, fontSize: '1rem' }}>Add-on Services</h3>
             <button
               onClick={() => { setEditingItem(null); setModalType('addon'); setShowModal(true); }}
               style={{
                 padding: '8px 16px',
                 borderRadius: '12px',
                 border: 'none',
-                background: '#F6D961',
-                color: '#1a1a1a',
+                background: theme.isNightMode ? '#f8fafc' : '#111827',
+                color: theme.isNightMode ? '#111827' : '#ffffff',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                boxShadow: '0 2px 10px rgba(246, 217, 97, 0.3)',
+                boxShadow: theme.shadow,
               }}
             >
               <Plus size={16} /> Add Add-on
@@ -743,8 +745,8 @@ export default function PricingContent() {
                   key={addOn.id}
                   style={{
                     borderRadius: '16px',
-                    border: addOn.is_active ? '1px solid rgba(148,163,184,0.08)' : '1px solid rgba(239,68,68,0.15)',
-                    background: 'rgba(15, 23, 42, 0.72)',
+                    border: addOn.is_active ? `1px solid ${theme.border}` : '1px solid rgba(239,68,68,0.15)',
+                    background: theme.card,
                     overflow: 'hidden',
                     opacity: addOn.is_active ? 1 : 0.6,
                   }}
@@ -765,8 +767,8 @@ export default function PricingContent() {
                         width: '40px',
                         height: '40px',
                         borderRadius: '10px',
-                        background: addOn.is_active ? 'rgba(59,130,246,0.12)' : 'rgba(239,68,68,0.12)',
-                        color: addOn.is_active ? '#3b82f6' : '#ef4444',
+                        background: addOn.is_active ? theme.iconBackground : 'rgba(239,68,68,0.12)',
+                        color: addOn.is_active ? theme.icon : '#ef4444',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -777,7 +779,7 @@ export default function PricingContent() {
 
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: '#f8fafc', fontWeight: 600 }}>{addOn.name}</span>
+                        <span style={{ color: theme.text, fontWeight: 600 }}>{addOn.name}</span>
                         <span style={{ 
                           fontSize: '0.6rem', 
                           padding: '2px 10px', 
@@ -790,38 +792,38 @@ export default function PricingContent() {
                         </span>
                       </div>
                       <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
-                        <span style={{ color: '#3b82f6', fontWeight: 700, fontSize: '0.95rem' }}>{addOn.price}</span>
-                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{addOn.category}</span>
+                        <span style={{ color: theme.text, fontWeight: 700, fontSize: '0.95rem' }}>{addOn.price}</span>
+                        <span style={{ color: theme.muted, fontSize: '0.8rem' }}>{addOn.category}</span>
                       </div>
                     </div>
 
-                    <div style={{ color: '#64748b', fontSize: '0.8rem' }}>
+                    <div style={{ color: theme.muted, fontSize: '0.8rem' }}>
                       {addOn.category}
                     </div>
 
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingItem(addOn); setModalType('addon'); setShowModal(true); }}
-                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: theme.muted, cursor: 'pointer' }}
                       >
                         <Edit size={14} />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteAddOn(addOn.id); }}
-                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: theme.muted, cursor: 'pointer' }}
                       >
                         <Trash2 size={14} />
                       </button>
                     </div>
 
-                    <div style={{ color: '#64748b' }}>
+                    <div style={{ color: theme.muted }}>
                       {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                   </div>
 
                   {isExpanded && (
-                    <div style={{ padding: '0 18px 18px 72px', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
-                      <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '12px' }}>
+                    <div style={{ padding: '0 18px 18px 72px', borderTop: `1px solid ${theme.border}` }}>
+                      <p style={{ color: theme.muted, fontSize: '0.9rem', marginTop: '12px' }}>
                         {addOn.description}
                       </p>
                       <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
@@ -840,7 +842,7 @@ export default function PricingContent() {
                         >
                           {addOn.is_active ? 'Deactivate' : 'Activate'}
                         </button>
-                        <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                        <span style={{ color: theme.muted, fontSize: '0.75rem' }}>
                           Created: {new Date(addOn.created_at).toLocaleDateString()}
                         </span>
                       </div>
@@ -850,7 +852,7 @@ export default function PricingContent() {
               );
             })}
             {filteredAddOns.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+              <div style={{ textAlign: 'center', padding: '40px', color: theme.muted }}>
                 <ShoppingBag size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
                 <p>No add-ons found. Click "Add Add-on" to create one.</p>
               </div>
@@ -863,29 +865,29 @@ export default function PricingContent() {
       {activeTab === 'tiers' && (
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.82)',
-            border: '1px solid rgba(148,163,184,0.12)',
+            background: theme.panel,
+            border: `1px solid ${theme.border}`,
             borderRadius: '30px',
             padding: '24px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>Tiers</h3>
+            <h3 style={{ color: theme.text, fontWeight: 600, fontSize: '1rem' }}>Tiers</h3>
             <button
               onClick={() => { setEditingItem(null); setModalType('tier'); setShowModal(true); }}
               style={{
                 padding: '8px 16px',
                 borderRadius: '12px',
                 border: 'none',
-                background: '#F6D961',
-                color: '#1a1a1a',
+                background: theme.isNightMode ? '#f8fafc' : '#111827',
+                color: theme.isNightMode ? '#111827' : '#ffffff',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                boxShadow: '0 2px 10px rgba(246, 217, 97, 0.3)',
+                boxShadow: theme.shadow,
               }}
             >
               <Plus size={16} /> Add Tier
@@ -901,8 +903,8 @@ export default function PricingContent() {
                   key={tier.id}
                   style={{
                     borderRadius: '16px',
-                    border: tier.isPopular ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(148,163,184,0.08)',
-                    background: 'rgba(15, 23, 42, 0.72)',
+                    border: tier.isPopular ? `1px solid ${theme.muted}` : `1px solid ${theme.border}`,
+                    background: theme.card,
                     overflow: 'hidden',
                   }}
                 >
@@ -922,8 +924,8 @@ export default function PricingContent() {
                         width: '40px',
                         height: '40px',
                         borderRadius: '10px',
-                        background: 'rgba(59,130,246,0.12)',
-                        color: '#3b82f6',
+                        background: theme.iconBackground,
+                        color: theme.icon,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -934,7 +936,7 @@ export default function PricingContent() {
 
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: '#f8fafc', fontWeight: 600 }}>{tier.label}</span>
+                        <span style={{ color: theme.text, fontWeight: 600 }}>{tier.label}</span>
                         {tier.isPopular && (
                           <span style={{ fontSize: '0.6rem', padding: '2px 10px', borderRadius: '10px', background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontWeight: 700 }}>
                             Popular
@@ -946,37 +948,37 @@ export default function PricingContent() {
                         </span>
                       </div>
                       <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
-                        <span style={{ color: '#3b82f6', fontWeight: 700, fontSize: '0.95rem' }}>{tier.price}</span>
-                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>★ {tier.rating}</span>
-                        <span style={{ color: '#64748b', fontSize: '0.8rem' }}>{tier.bookings} bookings</span>
+                        <span style={{ color: theme.text, fontWeight: 700, fontSize: '0.95rem' }}>{tier.price}</span>
+                        <span style={{ color: theme.muted, fontSize: '0.8rem' }}>★ {tier.rating}</span>
+                        <span style={{ color: theme.muted, fontSize: '0.8rem' }}>{tier.bookings} bookings</span>
                       </div>
                     </div>
 
-                    <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{tier.category}</div>
+                    <div style={{ color: theme.muted, fontSize: '0.8rem' }}>{tier.category}</div>
 
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); setEditingItem(tier); setModalType('tier'); setShowModal(true); }}
-                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: theme.muted, cursor: 'pointer' }}
                       >
                         <Edit size={14} />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteTier(tier.id); }}
-                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: theme.muted, cursor: 'pointer' }}
                       >
                         <Trash2 size={14} />
                       </button>
                     </div>
 
-                    <div style={{ color: '#64748b' }}>
+                    <div style={{ color: theme.muted }}>
                       {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
                   </div>
 
                   {isExpanded && (
-                    <div style={{ padding: '0 18px 18px 72px', borderTop: '1px solid rgba(148,163,184,0.08)' }}>
-                      <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '12px' }}>
+                    <div style={{ padding: '0 18px 18px 72px', borderTop: `1px solid ${theme.border}` }}>
+                      <p style={{ color: theme.muted, fontSize: '0.9rem', marginTop: '12px' }}>
                         {tier.description}
                       </p>
                     </div>
@@ -985,7 +987,7 @@ export default function PricingContent() {
               );
             })}
             {filteredTiers.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+              <div style={{ textAlign: 'center', padding: '40px', color: theme.muted }}>
                 <Package size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
                 <p>No tiers found. Click "Add Tier" to create one.</p>
               </div>
@@ -998,29 +1000,29 @@ export default function PricingContent() {
       {activeTab === 'faqs' && (
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.82)',
-            border: '1px solid rgba(148,163,184,0.12)',
+            background: theme.panel,
+            border: `1px solid ${theme.border}`,
             borderRadius: '30px',
             padding: '24px',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ color: '#f8fafc', fontWeight: 600, fontSize: '1rem' }}>FAQs</h3>
+            <h3 style={{ color: theme.text, fontWeight: 600, fontSize: '1rem' }}>FAQs</h3>
             <button
               onClick={() => { setEditingItem(null); setModalType('faq'); setShowModal(true); }}
               style={{
                 padding: '8px 16px',
                 borderRadius: '12px',
                 border: 'none',
-                background: '#F6D961',
-                color: '#1a1a1a',
+                background: theme.isNightMode ? '#f8fafc' : '#111827',
+                color: theme.isNightMode ? '#111827' : '#ffffff',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '0.85rem',
                 fontWeight: 600,
-                boxShadow: '0 2px 10px rgba(246, 217, 97, 0.3)',
+                boxShadow: theme.shadow,
               }}
             >
               <Plus size={16} /> Add FAQ
@@ -1034,30 +1036,30 @@ export default function PricingContent() {
                 style={{
                   padding: '14px 16px',
                   borderRadius: '12px',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  border: '1px solid rgba(148,163,184,0.08)',
+                  background: theme.card,
+                  border: `1px solid ${theme.border}`,
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ color: '#f8fafc', fontWeight: 500 }}>{faq.question}</span>
-                      <span style={{ fontSize: '0.65rem', padding: '1px 8px', borderRadius: '8px', background: 'rgba(148,163,184,0.12)', color: '#94a3b8' }}>
+                      <span style={{ color: theme.text, fontWeight: 500 }}>{faq.question}</span>
+                      <span style={{ fontSize: '0.65rem', padding: '1px 8px', borderRadius: '8px', background: theme.iconBackground, color: theme.muted }}>
                         {faq.category}
                       </span>
                     </div>
-                    <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '4px' }}>{faq.answer}</p>
+                    <p style={{ color: theme.muted, fontSize: '0.85rem', marginTop: '4px' }}>{faq.answer}</p>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
                     <button
                       onClick={() => { setEditingItem(faq); setModalType('faq'); setShowModal(true); }}
-                      style={{ border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                      style={{ border: 'none', background: 'transparent', color: theme.muted, cursor: 'pointer' }}
                     >
                       <Edit size={14} />
                     </button>
                     <button
                       onClick={() => handleDeleteFAQ(faq.id)}
-                      style={{ border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer' }}
+                      style={{ border: 'none', background: 'transparent', color: theme.muted, cursor: 'pointer' }}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -1066,7 +1068,7 @@ export default function PricingContent() {
               </div>
             ))}
             {filteredFAQs.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>
+              <div style={{ textAlign: 'center', padding: '30px', color: theme.muted }}>
                 <HelpCircle size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
                 <p>No FAQs found. Click "Add FAQ" to create one.</p>
               </div>
@@ -1095,6 +1097,7 @@ export default function PricingContent() {
 
 // Modal Component
 function PricingModal({ type, data, onClose, onSave, saving }: any) {
+  const theme = useDashboardTheme();
   // Initialize form data based on type
   const getInitialData = () => {
     if (data) return data;
@@ -1149,7 +1152,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
       return (
         <>
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Tier Name *
             </label>
             <input
@@ -1161,9 +1164,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -1172,7 +1175,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Price *
             </label>
             <input
@@ -1184,9 +1187,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -1195,7 +1198,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Description *
             </label>
             <textarea
@@ -1207,9 +1210,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
                 resize: 'vertical',
@@ -1221,7 +1224,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
                 Category *
               </label>
               <select
@@ -1232,9 +1235,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
+                  border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                  color: theme.inputText,
                   fontSize: '0.95rem',
                   outline: 'none',
                 }}
@@ -1244,7 +1247,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
               </select>
             </div>
             <div>
-              <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+              <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
                 Status
               </label>
               <select
@@ -1254,9 +1257,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '12px',
-                  border: '1px solid rgba(148,163,184,0.12)',
-                  background: 'rgba(15, 23, 42, 0.72)',
-                  color: '#e2e8f0',
+                  border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                  color: theme.inputText,
                   fontSize: '0.95rem',
                   outline: 'none',
                 }}
@@ -1269,7 +1272,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={formData.isPopular || false}
@@ -1277,7 +1280,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 style={{
                   width: '18px',
                   height: '18px',
-                  accentColor: '#3b82f6',
+                  accentColor: theme.icon,
                   cursor: 'pointer',
                 }}
               />
@@ -1292,7 +1295,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
       return (
         <>
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Add-on Name *
             </label>
             <input
@@ -1304,9 +1307,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -1315,7 +1318,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Price *
             </label>
             <input
@@ -1327,9 +1330,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -1338,7 +1341,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Description
             </label>
             <textarea
@@ -1349,9 +1352,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
                 resize: 'vertical',
@@ -1362,7 +1365,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Category *
             </label>
             <select
@@ -1373,9 +1376,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -1388,7 +1391,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={formData.is_active !== undefined ? formData.is_active : true}
@@ -1396,7 +1399,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 style={{
                   width: '18px',
                   height: '18px',
-                  accentColor: '#3b82f6',
+                  accentColor: theme.icon,
                   cursor: 'pointer',
                 }}
               />
@@ -1411,7 +1414,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
       return (
         <>
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Question *
             </label>
             <input
@@ -1423,9 +1426,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -1434,7 +1437,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Answer *
             </label>
             <textarea
@@ -1446,9 +1449,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
                 resize: 'vertical',
@@ -1459,7 +1462,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
           </div>
 
           <div>
-            <label style={{ color: '#94a3b8', fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
+            <label style={{ color: theme.muted, fontSize: '0.85rem', display: 'block', marginBottom: '6px' }}>
               Category *
             </label>
             <select
@@ -1470,9 +1473,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 width: '100%',
                 padding: '12px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'rgba(15, 23, 42, 0.72)',
-                color: '#e2e8f0',
+                border: '1px solid var(--dashboard-border)',
+background: theme.card,
+                color: theme.inputText,
                 fontSize: '0.95rem',
                 outline: 'none',
               }}
@@ -1508,9 +1511,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
     >
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.98)',
-          border: '1px solid rgba(148,163,184,0.12)',
-          borderRadius: '32px',
+          background: theme.panel,
+          border: '1px solid var(--dashboard-border)',
+borderRadius: '32px',
           padding: '32px',
           maxWidth: '600px',
           width: '100%',
@@ -1522,10 +1525,10 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
-            <h3 style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>
+            <h3 style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>
               {getTitle()}
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '4px' }}>
+            <p style={{ color: theme.muted, fontSize: '0.9rem', marginTop: '4px' }}>
               {data ? 'Update the details below' : 'Fill in the details to create a new entry'}
             </p>
           </div>
@@ -1534,7 +1537,7 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
             style={{
               border: 'none',
               background: 'transparent',
-              color: '#94a3b8',
+              color: theme.muted,
               cursor: 'pointer',
               padding: '4px',
             }}
@@ -1554,9 +1557,9 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 flex: 1,
                 padding: '12px',
                 borderRadius: '12px',
-                border: '1px solid rgba(148,163,184,0.12)',
-                background: 'transparent',
-                color: '#94a3b8',
+                border: '1px solid var(--dashboard-border)',
+background: 'transparent',
+                color: theme.muted,
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
@@ -1571,11 +1574,11 @@ function PricingModal({ type, data, onClose, onSave, saving }: any) {
                 padding: '12px',
                 borderRadius: '12px',
                 border: 'none',
-                background: '#F6D961',
-                color: '#1a1a1a',
+                background: theme.isNightMode ? '#f8fafc' : '#111827',
+                color: theme.isNightMode ? '#111827' : '#ffffff',
                 cursor: saving ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
-                boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
+                boxShadow: theme.shadow,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

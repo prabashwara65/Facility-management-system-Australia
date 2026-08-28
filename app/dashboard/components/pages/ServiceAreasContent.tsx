@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useDashboardTheme } from '../../context/DashboardThemeContext';
 
 interface Suburb {
   id: number;
@@ -37,6 +38,7 @@ const regionOptions = ['CBD', 'North', 'East', 'South', 'West'];
 const statusOptions = ['Active', 'Inactive', 'Draft'];
 
 export default function ServiceAreasContent() {
+  const theme = useDashboardTheme();
   const [suburbs, setSuburbs] = useState<Suburb[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('All');
@@ -198,7 +200,7 @@ export default function ServiceAreasContent() {
 
   // Stats
   const stats = [
-    { label: 'Total Suburbs', value: suburbs.length, icon: MapPin, color: '#3b82f6' },
+    { label: 'Total Suburbs', value: suburbs.length, icon: MapPin },
     { label: 'Active', value: suburbs.filter(s => s.status === 'Active').length, icon: CheckCircle, color: '#10b981' },
     { label: 'Regions', value: regionOptions.length, icon: Globe, color: '#8b5cf6' },
     { label: 'Inactive', value: suburbs.filter(s => s.status === 'Inactive').length, icon: XCircle, color: '#ef4444' },
@@ -361,8 +363,8 @@ export default function ServiceAreasContent() {
             <div
               key={stat.label}
               style={{
-                background: 'rgba(15, 23, 42, 0.82)',
-                border: '1px solid rgba(148,163,184,0.12)',
+                background: theme.panel,
+                border: `1px solid ${theme.border}`,
                 borderRadius: '16px',
                 padding: '16px',
                 display: 'flex',
@@ -375,8 +377,8 @@ export default function ServiceAreasContent() {
                   width: '44px',
                   height: '44px',
                   borderRadius: '12px',
-                  background: `${stat.color}22`,
-                  color: stat.color,
+                  background: theme.iconBackground,
+                  color: theme.icon,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -385,8 +387,8 @@ export default function ServiceAreasContent() {
                 <Icon size={20} />
               </div>
               <div>
-                <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{stat.label}</div>
-                <div style={{ color: '#f8fafc', fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
+                <div style={{ color: theme.muted, fontSize: '0.8rem' }}>{stat.label}</div>
+                <div style={{ color: theme.text, fontSize: '1.3rem', fontWeight: 700 }}>{stat.value}</div>
               </div>
             </div>
           );
