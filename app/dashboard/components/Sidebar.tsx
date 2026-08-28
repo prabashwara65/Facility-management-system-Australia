@@ -40,6 +40,7 @@ const navItems: NavItem[] = [
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   return (
     <aside
+      className="dashboard-sidebar"
       style={{
         borderRadius: '32px',
         background: 'rgba(15, 23, 42, 0.86)',
@@ -53,7 +54,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     >
       <div>
         {/* Logo - SparkWell with Star Icon */}
-        <Link href="/dashboard" className="flex items-center gap-2.5 mb-6 px-2">
+        <Link href="/dashboard" className="dashboard-sidebar-logo flex items-center gap-2.5 mb-6 px-2">
           <motion.div 
             className="flex h-10 w-10 items-center justify-center rounded-full"
             style={{ backgroundColor: 'var(--theme-primary, #3b82f6)' }}
@@ -69,8 +70,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         </Link>
 
         {/* Navigation */}
-        <div style={{ marginTop: '8px' }}>
+        <div className="dashboard-sidebar-nav" style={{ marginTop: '8px' }}>
           <div
+            className="dashboard-sidebar-label"
             style={{
               color: '#94a3b8',
               fontSize: '0.72rem',
@@ -88,6 +90,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             return (
               <button
                 key={item.label}
+                className="dashboard-sidebar-item"
                 onClick={() => setActiveTab(item.label)}
                 style={{
                   width: '100%',
@@ -121,9 +124,10 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                 }}
               >
                 <Icon size={18} />
-                <span>{item.label}</span>
+                <span className="dashboard-sidebar-item-label">{item.label}</span>
                 {isActive && (
                   <div
+                    className="dashboard-sidebar-active-marker"
                     style={{
                       position: 'absolute',
                       right: '12px',

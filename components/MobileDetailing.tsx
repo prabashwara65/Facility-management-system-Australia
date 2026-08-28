@@ -36,6 +36,15 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useTheme } from '@/app/context/ThemeProvider';
 import { createClient } from '@/lib/supabase/client';
+import {
+  isValidEmail,
+  sanitizeEmail,
+  sanitizeMultilineText,
+  sanitizePhone,
+  sanitizePostcode,
+  sanitizeText,
+  validateSafeFields,
+} from '@/lib/security/input';
 
 interface Service {
   id: number;
@@ -1204,19 +1213,60 @@ useEffect(() => {
       const addonsTotal = getAddOnTotal();
       const totalPrice = packagePrice + addonsTotal;
       
+      const safeCustomerData = {
+        firstName: sanitizeText(firstName, 80),
+        lastName: sanitizeText(lastName, 80),
+        email: sanitizeEmail(email),
+        phone: sanitizePhone(phone),
+        address: sanitizeText(address, 180),
+        addressUnit: sanitizeText(addressUnit, 80),
+        city: sanitizeText(city, 80),
+        state: sanitizeText(state, 40),
+        infoZipCode: sanitizePostcode(infoZipCode),
+        zipCode: sanitizePostcode(zipCode),
+        otherCondition: sanitizeText(otherCondition, 180),
+        extraInfo: sanitizeMultilineText(extraInfo, 1000),
+      };
+      const unsafeMessage = validateSafeFields({
+        'First name': safeCustomerData.firstName,
+        'Last name': safeCustomerData.lastName,
+        Email: safeCustomerData.email,
+        Phone: safeCustomerData.phone,
+        Address: safeCustomerData.address,
+        'Address unit': safeCustomerData.addressUnit,
+        City: safeCustomerData.city,
+        State: safeCustomerData.state,
+        Postcode: safeCustomerData.infoZipCode,
+        'Service postcode': safeCustomerData.zipCode,
+        'Other condition': safeCustomerData.otherCondition,
+        'Extra information': safeCustomerData.extraInfo,
+      });
+
+      if (unsafeMessage) {
+        setToast({ message: unsafeMessage, type: 'error' });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!isValidEmail(safeCustomerData.email)) {
+        setToast({ message: 'Please enter a valid email address.', type: 'error' });
+        setIsSubmitting(false);
+        return;
+      }
+
       // Prepare email data with ALL fields including zip codes
       const emailData = {
         // Customer Info
-        firstName,
-        lastName,
-        email,
-        phone,
-        address,
-        addressUnit,
-        city,
-        state,
-        infoZipCode, // This is the zip code from the info step
-        zipCode, // This is the zip code from the initial step (service area)
+        firstName: safeCustomerData.firstName,
+        lastName: safeCustomerData.lastName,
+        email: safeCustomerData.email,
+        phone: safeCustomerData.phone,
+        address: safeCustomerData.address,
+        addressUnit: safeCustomerData.addressUnit,
+        city: safeCustomerData.city,
+        state: safeCustomerData.state,
+        infoZipCode: safeCustomerData.infoZipCode, // This is the zip code from the info step
+        zipCode: safeCustomerData.zipCode, // This is the zip code from the initial step (service area)
         
         // Vehicle Info
         selectedYear,
@@ -1237,7 +1287,7 @@ useEffect(() => {
           return addOn ? { name: addOn.name, price: addOn.price, count } : null;
         }).filter(Boolean),
         selectedConditions,
-        otherCondition,
+        otherCondition: safeCustomerData.otherCondition,
         addOnsTotal: `$${addonsTotal}`,
         
         // Date & Time
@@ -1251,7 +1301,7 @@ useEffect(() => {
         coveredArea,
         
         // Other
-        extraInfo,
+        extraInfo: safeCustomerData.extraInfo,
         vehicleCount,
         marketingOptIn,
         
@@ -1667,7 +1717,7 @@ useEffect(() => {
                             placeholder="Postcode"
                             value={zipCode}
                             onChange={(e) => {
-                              const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                              const value = sanitizePostcode(e.target.value);
                               setZipCode(value);
                               setZipError('');
                               if (value.length === 4 && isValidAustralianPostcode(value)) {
@@ -2064,7 +2114,7 @@ useEffect(() => {
                                       type="text"
                                       placeholder="Other (describe below)"
                                       value={otherCondition}
-                                      onChange={(e) => setOtherCondition(e.target.value)}
+                                      onChange={(e) => setOtherCondition(sanitizeText(e.target.value, 180))}
                                       className="w-full p-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white focus:outline-none focus:border-[var(--theme-secondary)] transition-colors text-sm"
                                       style={{ borderColor: otherCondition ? secondaryColor : 'var(--theme-border)' }}
                                     />
@@ -2555,7 +2605,8 @@ useEffect(() => {
                             <input
                               type="text"
                               value={firstName}
-                              onChange={(e) => setFirstName(e.target.value)}
+                              onChange={(e) => setFirstName(sanitizeText(e.target.value, 80))}
+                              maxLength={80}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="First Name"
                             />
@@ -2569,7 +2620,8 @@ useEffect(() => {
                             <input
                               type="text"
                               value={lastName}
-                              onChange={(e) => setLastName(e.target.value)}
+                              onChange={(e) => setLastName(sanitizeText(e.target.value, 80))}
+                              maxLength={80}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="Last Name"
                             />
@@ -2583,7 +2635,8 @@ useEffect(() => {
                             <input
                               type="email"
                               value={email}
-                              onChange={(e) => setEmail(e.target.value)}
+                              onChange={(e) => setEmail(sanitizeEmail(e.target.value))}
+                              maxLength={254}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="john@example.com"
                             />
@@ -2597,7 +2650,8 @@ useEffect(() => {
                             <input
                               type="tel"
                               value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
+                              onChange={(e) => setPhone(sanitizePhone(e.target.value))}
+                              maxLength={32}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="555-123-4567"
                             />
@@ -2611,7 +2665,8 @@ useEffect(() => {
                             <input
                               type="text"
                               value={address}
-                              onChange={(e) => setAddress(e.target.value)}
+                              onChange={(e) => setAddress(sanitizeText(e.target.value, 180))}
+                              maxLength={180}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="Start typing your address..."
                             />
@@ -2625,7 +2680,8 @@ useEffect(() => {
                             <input
                               type="text"
                               value={addressUnit}
-                              onChange={(e) => setAddressUnit(e.target.value)}
+                              onChange={(e) => setAddressUnit(sanitizeText(e.target.value, 80))}
+                              maxLength={80}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="Apt / Suite"
                             />
@@ -2639,7 +2695,8 @@ useEffect(() => {
                             <input
                               type="text"
                               value={city}
-                              onChange={(e) => setCity(e.target.value)}
+                              onChange={(e) => setCity(sanitizeText(e.target.value, 80))}
+                              maxLength={80}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="City"
                             />
@@ -2676,7 +2733,8 @@ useEffect(() => {
                             <input
                               type="text"
                               value={infoZipCode}
-                              onChange={(e) => setInfoZipCode(e.target.value)}
+                              onChange={(e) => setInfoZipCode(sanitizePostcode(e.target.value))}
+                              maxLength={4}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="10001"
                             />
@@ -2804,7 +2862,8 @@ useEffect(() => {
                           <p className="text-xs text-white/55 mb-3">Any extra information you would like to share with us?</p>
                           <textarea
                             value={extraInfo}
-                            onChange={(e) => setExtraInfo(e.target.value)}
+                            onChange={(e) => setExtraInfo(sanitizeMultilineText(e.target.value, 1000))}
+                            maxLength={1000}
                             rows={3}
                             className="w-full px-4 py-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white focus:outline-none focus:border-[var(--theme-secondary)] transition-colors resize-none"
                             placeholder="Any additional details..."

@@ -149,7 +149,36 @@ const defaultFAQs: FAQ[] = [
     answer: 'Our residential cleaning services include dusting, vacuuming, mopping, surface wiping, disinfecting high-touch areas, and detailed cleaning of kitchens and bathrooms. You can also request extras like inside window cleaning or oven cleaning, depending on your home\'s needs.',
     category: 'Residential',
   },
-  // ... (keep all your FAQs)
+  {
+    id: 2,
+    question: 'Do you bring your own cleaning supplies?',
+    answer: 'Yes, we bring all necessary cleaning supplies and equipment. We also offer eco-friendly green supplies upon request.',
+    category: 'Residential',
+  },
+  {
+    id: 3,
+    question: 'How much do you charge for residential cleaning?',
+    answer: 'Our residential cleaning services start from $179 for a General Clean, with prices varying based on the size of your home and the scope of work. We offer transparent, upfront pricing with no hidden costs.',
+    category: 'Residential',
+  },
+  {
+    id: 4,
+    question: 'Do you offer commercial cleaning services?',
+    answer: 'Yes, we offer comprehensive commercial cleaning services for offices, retail spaces, warehouses, gyms, and medical centres. Our commercial packages start from $199 and are fully customizable.',
+    category: 'Commercial',
+  },
+  {
+    id: 5,
+    question: 'What areas do you service?',
+    answer: 'We service across Melbourne and surrounding suburbs. We offer both residential and commercial cleaning services throughout the metropolitan area.',
+    category: 'Residential',
+  },
+  {
+    id: 6,
+    question: 'How do I book a cleaning service?',
+    answer: 'You can book our services online through our booking system. Select your preferred package, add any extras, choose your date, and fill in your details. It takes less than 30 seconds.',
+    category: 'Residential',
+  },
 ];
 
 // Category icons
@@ -527,6 +556,10 @@ export default function PricingSection() {
   );
 }
 
+// ============================================
+// RESIDENTIAL CONTENT WITH MOBILE CAROUSEL
+// ============================================
+
 function ResidentialContent({ 
   data, 
   selectedTier, 
@@ -546,25 +579,53 @@ function ResidentialContent({
   setActiveSlideIndex,
 }: any) {
   const [swiperRef, setSwiperRef] = useState<any>(null);
+  const [isBeginning, setIsBeginning] = useState(true);
+  const [isEnd, setIsEnd] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Breakpoints for responsive cards
+  // Check if mobile on mount and window resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Breakpoints for responsive cards - only on mobile
   const breakpoints = {
     0: {
       slidesPerView: 1,
+      spaceBetween: 16,
+    },
+    480: {
+      slidesPerView: 1.2,
       spaceBetween: 16,
     },
     640: {
       slidesPerView: 1.5,
       spaceBetween: 16,
     },
-    768: {
-      slidesPerView: 2,
-      spaceBetween: 20,
-    },
-    1024: {
-      slidesPerView: 3,
-      spaceBetween: 24,
-    },
+  };
+
+  // Update navigation state
+  const handleSlideChange = (swiper: any) => {
+    setIsBeginning(swiper.isBeginning);
+    setIsEnd(swiper.isEnd);
+    setActiveSlideIndex(swiper.activeIndex);
+  };
+
+  // Navigate to specific package
+  const selectPackage = (tierLabel: string) => {
+    setSelectedTier(tierLabel);
+    // Find the index of the selected tier in the data
+    const index = data.tiers.findIndex((t: any) => t.label === tierLabel);
+    if (index !== -1 && swiperRef) {
+      swiperRef.slideTo(index);
+    }
   };
 
   return (
@@ -585,117 +646,313 @@ function ResidentialContent({
         </p>
       </div>
 
-      {/* Swiper Carousel for Tiers */}
-      <div className="relative">
-        <Swiper
-          onSwiper={setSwiperRef}
-          modules={[Navigation, Pagination]}
-          breakpoints={breakpoints}
-          spaceBetween={20}
-          slidesPerView={1}
-          pagination={{
-            clickable: true,
-            dynamicBullets: true,
-          }}
-          onSlideChange={(swiper) => setActiveSlideIndex(swiper.activeIndex)}
-          className="pb-12"
-          style={{
-            paddingBottom: '50px',
-          }}
-        >
+      {/* Mobile: Carousel | Desktop: Grid */}
+      {isMobile ? (
+        // Mobile Carousel View
+        <div className="relative px-8 sm:px-10">
+          {/* Custom Navigation Buttons */}
+          <button
+            onClick={() => swiperRef?.slidePrev()}
+            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+              isBeginning 
+                ? 'opacity-30 cursor-not-allowed' 
+                : 'opacity-80 hover:opacity-100 hover:scale-110'
+            }`}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: 'white',
+            }}
+            disabled={isBeginning}
+            aria-label="Previous package"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <button
+            onClick={() => swiperRef?.slideNext()}
+            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+              isEnd 
+                ? 'opacity-30 cursor-not-allowed' 
+                : 'opacity-80 hover:opacity-100 hover:scale-110'
+            }`}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: 'white',
+            }}
+            disabled={isEnd}
+            aria-label="Next package"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+
+          {/* Swiper Carousel */}
+          <Swiper
+            onSwiper={(swiper) => {
+              setSwiperRef(swiper);
+              setIsBeginning(swiper.isBeginning);
+              setIsEnd(swiper.isEnd);
+            }}
+            modules={[Navigation, Pagination]}
+            breakpoints={breakpoints}
+            spaceBetween={16}
+            slidesPerView={1}
+            pagination={{
+              clickable: true,
+              dynamicBullets: true,
+            }}
+            onSlideChange={handleSlideChange}
+            className="pb-12"
+            style={{
+              paddingBottom: '50px',
+            }}
+          >
+            {data.tiers.map((tier: any) => {
+              const isSelected = selectedTier === tier.label;
+              const isHovered = hoveredTier === tier.label;
+
+              return (
+                <SwiperSlide key={tier.id}>
+                  <motion.div
+                    whileHover={{ 
+                      scale: 1.03, 
+                      y: -4,
+                      transition: { duration: 0.2 }
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => selectPackage(tier.label)}
+                    onMouseEnter={() => setHoveredTier(tier.label)}
+                    onMouseLeave={() => setHoveredTier(null)}
+                    className="relative cursor-pointer rounded-xl p-5 flex flex-col transition-all duration-300 border backdrop-blur-sm h-full min-h-[300px]"
+                    style={{
+                      backgroundColor: isSelected ? 'var(--theme-secondary)' : 'rgba(255,255,255,0.08)',
+                      borderColor: isSelected ? 'var(--theme-secondary)' : isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                      boxShadow: isSelected 
+                        ? '0 8px 32px rgba(59,130,246,0.4)' 
+                        : isHovered 
+                          ? '0 8px 32px rgba(0,0,0,0.3)' 
+                          : '0 4px 16px rgba(0,0,0,0.1)',
+                      transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                    }}
+                  >
+                    {tier.isPopular && (
+                      <motion.span
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-[10px] font-bold tracking-wider uppercase px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap"
+                        style={{
+                          backgroundColor: 'var(--theme-secondary)',
+                          color: 'white',
+                        }}
+                      >
+                        Most Popular
+                      </motion.span>
+                    )}
+
+                    {/* Rating Badge */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1 text-xs">
+                      <span style={{ color: '#fbbf24' }}>★</span>
+                      <span style={{ color: 'rgba(255,255,255,0.7)' }}>
+                        {tier.rating || 4.8}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 text-center pt-2">
+                      <h3 className="text-base font-semibold mb-2" style={{ color: 'white' }}>
+                        {tier.label}
+                      </h3>
+                      <motion.span 
+                        className="text-3xl font-serif font-bold tracking-tight block mb-3"
+                        style={{ color: 'white' }}
+                        animate={{ scale: isSelected ? 1.05 : 1 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                      >
+                        {tier.price}
+                      </motion.span>
+                      {tier.description && (
+                        <p className="text-sm leading-relaxed" style={{ color: isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)' }}>
+                          {tier.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <motion.button
+                      className="mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-300"
+                      style={{
+                        backgroundColor: isSelected ? 'white' : 'var(--theme-secondary)',
+                        color: isSelected ? 'var(--theme-primary)' : 'white',
+                        opacity: isSelected ? 1 : 0.9,
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {isSelected ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Check className="w-4 h-4" />
+                          Selected
+                        </span>
+                      ) : (
+                        'Choose Package'
+                      )}
+                    </motion.button>
+
+                    {/* Booking count */}
+                    <div className="mt-2 text-center">
+                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                        {tier.bookings || 0}+ bookings
+                      </span>
+                    </div>
+                  </motion.div>
+                </SwiperSlide>
+              );
+            })}
+          </Swiper>
+
+          {/* Custom Pagination Dots */}
+          <style jsx>{`
+            :global(.swiper-pagination-bullet) {
+              background: rgba(255,255,255,0.3) !important;
+              opacity: 1 !important;
+              width: 8px !important;
+              height: 8px !important;
+            }
+            :global(.swiper-pagination-bullet-active) {
+              background: var(--theme-secondary) !important;
+              width: 20px !important;
+              border-radius: 5px !important;
+            }
+            :global(.swiper-pagination) {
+              bottom: 0 !important;
+            }
+          `}</style>
+        </div>
+      ) : (
+        // Desktop Grid View
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {data.tiers.map((tier: any) => {
             const isSelected = selectedTier === tier.label;
             const isHovered = hoveredTier === tier.label;
 
             return (
-              <SwiperSlide key={tier.id}>
-                <motion.div
-                  whileHover={{ scale: 1.03, y: -4 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedTier(tier.label)}
-                  onMouseEnter={() => setHoveredTier(tier.label)}
-                  onMouseLeave={() => setHoveredTier(null)}
-                  className="relative cursor-pointer rounded-xl p-6 flex flex-col transition-all duration-300 border backdrop-blur-sm h-full min-h-[320px]"
-                  style={{
-                    backgroundColor: isSelected ? 'var(--theme-secondary)' : 'rgba(255,255,255,0.08)',
-                    borderColor: isSelected ? 'var(--theme-secondary)' : isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
-                    boxShadow: isSelected ? '0 8px 32px rgba(59,130,246,0.4)' : isHovered ? '0 8px 32px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.1)',
-                    transform: isSelected ? 'scale(1.02)' : 'scale(1)',
-                  }}
-                >
-                  {tier.isPopular && (
-                    <motion.span
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-[10px] font-bold tracking-wider uppercase px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap"
-                      style={{
-                        backgroundColor: 'var(--theme-secondary)',
-                        color: 'white',
-                      }}
-                    >
-                      Most Popular
-                    </motion.span>
-                  )}
-
-                  <div className="flex-1 text-center">
-                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'white' }}>
-                      {tier.label}
-                    </h3>
-                    <motion.span 
-                      className="text-4xl font-serif font-bold tracking-tight block mb-3"
-                      style={{ color: 'white' }}
-                      animate={{ scale: isSelected ? 1.05 : 1 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      {tier.price}
-                    </motion.span>
-                    {tier.description && (
-                      <p className="text-sm leading-relaxed" style={{ color: isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)' }}>
-                        {tier.description}
-                      </p>
-                    )}
-                  </div>
-
-                  <motion.button
-                    className="mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-300"
+              <motion.div
+                key={tier.id}
+                whileHover={{ 
+                  scale: 1.03, 
+                  y: -4,
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedTier(tier.label)}
+                onMouseEnter={() => setHoveredTier(tier.label)}
+                onMouseLeave={() => setHoveredTier(null)}
+                className="relative cursor-pointer rounded-xl p-6 flex flex-col transition-all duration-300 border backdrop-blur-sm h-full min-h-[320px]"
+                style={{
+                  backgroundColor: isSelected ? 'var(--theme-secondary)' : 'rgba(255,255,255,0.08)',
+                  borderColor: isSelected ? 'var(--theme-secondary)' : isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                  boxShadow: isSelected 
+                    ? '0 8px 32px rgba(59,130,246,0.4)' 
+                    : isHovered 
+                      ? '0 8px 32px rgba(0,0,0,0.3)' 
+                      : '0 4px 16px rgba(0,0,0,0.1)',
+                  transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                }}
+              >
+                {tier.isPopular && (
+                  <motion.span
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-[10px] font-bold tracking-wider uppercase px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap"
                     style={{
-                      backgroundColor: isSelected ? 'white' : 'var(--theme-secondary)',
-                      color: isSelected ? 'var(--theme-primary)' : 'white',
-                      opacity: isSelected ? 1 : 0.9,
+                      backgroundColor: 'var(--theme-secondary)',
+                      color: 'white',
                     }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                   >
-                    {isSelected ? '✓ Selected' : 'Choose'}
-                  </motion.button>
-                </motion.div>
-              </SwiperSlide>
+                    Most Popular
+                  </motion.span>
+                )}
+
+                {/* Rating Badge */}
+                <div className="absolute top-3 right-3 flex items-center gap-1 text-xs">
+                  <span style={{ color: '#fbbf24' }}>★</span>
+                  <span style={{ color: 'rgba(255,255,255,0.7)' }}>
+                    {tier.rating || 4.8}
+                  </span>
+                </div>
+
+                <div className="flex-1 text-center pt-2">
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: 'white' }}>
+                    {tier.label}
+                  </h3>
+                  <motion.span 
+                    className="text-4xl font-serif font-bold tracking-tight block mb-3"
+                    style={{ color: 'white' }}
+                    animate={{ scale: isSelected ? 1.05 : 1 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    {tier.price}
+                  </motion.span>
+                  {tier.description && (
+                    <p className="text-sm leading-relaxed" style={{ color: isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.7)' }}>
+                      {tier.description}
+                    </p>
+                  )}
+                </div>
+
+                <motion.button
+                  className="mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all duration-300"
+                  style={{
+                    backgroundColor: isSelected ? 'white' : 'var(--theme-secondary)',
+                    color: isSelected ? 'var(--theme-primary)' : 'white',
+                    opacity: isSelected ? 1 : 0.9,
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {isSelected ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Check className="w-4 h-4" />
+                      Selected
+                    </span>
+                  ) : (
+                    'Choose Package'
+                  )}
+                </motion.button>
+
+                {/* Booking count */}
+                <div className="mt-3 text-center">
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {tier.bookings || 0}+ bookings
+                  </span>
+                </div>
+              </motion.div>
             );
           })}
-        </Swiper>
+        </div>
+      )}
 
-        {/* Custom Pagination Dots */}
-        <style jsx>{`
-          :global(.swiper-pagination-bullet) {
-            background: rgba(255,255,255,0.3) !important;
-            opacity: 1 !important;
-            width: 10px !important;
-            height: 10px !important;
-          }
-          :global(.swiper-pagination-bullet-active) {
-            background: var(--theme-secondary) !important;
-            width: 24px !important;
-            border-radius: 5px !important;
-          }
-          :global(.swiper-pagination) {
-            bottom: 0 !important;
-          }
-        `}</style>
-      </div>
+      {/* Selected Package Indicator */}
+      {selectedTier && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            Selected: <span style={{ color: 'var(--theme-secondary)', fontWeight: 600 }}>{selectedTier}</span>
+          </p>
+        </motion.div>
+      )}
 
       {/* Add-ons Section - Only shown when a tier is selected */}
       {selectedTier && Object.keys(groupedAddOns).length > 0 && (
-        <div className="rounded-2xl p-6 sm:p-8 space-y-6 backdrop-blur-sm"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-2xl p-6 sm:p-8 space-y-6 backdrop-blur-sm"
           style={{
             backgroundColor: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.08)',
@@ -810,7 +1067,7 @@ function ResidentialContent({
           </div>
 
           {/* Book Now Button */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-center pt-2">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -825,8 +1082,14 @@ function ResidentialContent({
               Book Now
               <ArrowRight className="w-4 h-4" />
             </motion.button>
+            
+            {selectedTierData && (
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                No payment required to book
+              </span>
+            )}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* FAQ Section */}
@@ -900,6 +1163,10 @@ function ResidentialContent({
     </div>
   );
 }
+
+// ============================================
+// COMMERCIAL CONTENT
+// ============================================
 
 function CommercialContent({ data }: any) {
   return (

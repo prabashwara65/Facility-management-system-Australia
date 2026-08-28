@@ -1,245 +1,249 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-const ADMIN_EMAIL = 'admin@example.com';
-const ADMIN_PASSWORD = 'admin123';
+import { createClient } from '@/lib/supabase/client';
+import { isSafePasswordInput, isValidEmail, sanitizeEmail, validateSafeFields } from '@/lib/security/input';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Check if already logged in
   useEffect(() => {
-    const alreadyLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    if (alreadyLoggedIn) {
-      router.replace('/dashboard');
-    }
-  }, [router]);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Check if user is admin
+        const { data: adminData } = await supabase
+          .from('admin_users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (adminData) {
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userEmail', session.user.email || '');
+          router.replace('/dashboard');
+        } else {
+          await supabase.auth.signOut();
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem('userEmail');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userName');
+        }
+      }
+    };
+    checkSession();
+  }, [router, supabase]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userEmail', email);
-      router.replace('/dashboard');
-      return;
-    }
+    try {
+      const safeEmail = sanitizeEmail(email);
+      const unsafeMessage = validateSafeFields({ Email: safeEmail });
 
-    setError('Invalid email or password. Please use the admin credentials provided below.');
-    setLoading(false);
+      if (!isValidEmail(safeEmail) || unsafeMessage) {
+        setError(unsafeMessage || 'Please enter a valid email address.');
+        setLoading(false);
+        return;
+      }
+
+      if (!isSafePasswordInput(password)) {
+        setError('Please enter a valid password.');
+        setLoading(false);
+        return;
+      }
+
+      // Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: safeEmail,
+        password,
+      });
+
+      if (authError) {
+        setError('Invalid email or password');
+        setLoading(false);
+        return;
+      }
+
+      if (authData.user) {
+        // Check if user is in admin_users table
+        const { data: adminData, error: adminError } = await supabase
+          .from('admin_users')
+          .select('role, full_name')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (adminError || !adminData) {
+          // User exists but is not an admin - sign them out
+          await supabase.auth.signOut();
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem('userEmail');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userName');
+          setError('Access denied. Admin privileges required.');
+          setLoading(false);
+          return;
+        }
+
+        // Store session info
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userEmail', authData.user.email || safeEmail);
+        localStorage.setItem('userRole', adminData.role);
+        localStorage.setItem('userName', adminData.full_name || 'Admin');
+
+        // Update last login
+        await supabase
+          .from('admin_users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', authData.user.id);
+
+        // Redirect to dashboard
+        router.replace('/dashboard');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <main
-      className="min-h-screen"
+    <div
       style={{
-        background: 'linear-gradient(135deg, color-mix(in srgb, var(--theme-primary) 15%, white) 0%, #ffffff 55%, color-mix(in srgb, var(--theme-secondary) 18%, white) 100%)',
+        minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '32px 20px',
+        background: '#f5f7fa',
+        padding: '20px',
       }}
     >
       <div
         style={{
           width: '100%',
-          maxWidth: '980px',
-          display: 'grid',
-          gridTemplateColumns: '1.1fr 0.9fr',
-          borderRadius: '28px',
-          overflow: 'hidden',
-          boxShadow: '0 24px 60px rgba(15, 39, 74, 0.14)',
-          border: '1px solid color-mix(in srgb, var(--theme-primary) 12%, white)',
-          background: '#ffffff',
+          maxWidth: '420px',
+          background: 'white',
+          borderRadius: '16px',
+          padding: '40px 32px',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
         }}
       >
-        <section
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1a1a2e', marginBottom: '8px' }}>
+            Admin Login
+          </h1>
+          <p style={{ color: '#666', fontSize: '14px' }}>Sign in to manage your dashboard</p>
+        </div>
+
+        {error && (
+          <div
+            style={{
+              background: '#fee2e2',
+              color: '#dc2626',
+              padding: '12px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              marginBottom: '16px',
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '6px', fontSize: '14px' }}>
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(sanitizeEmail(e.target.value))}
+              required
+              maxLength={254}
+              placeholder="admin@example.com"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '6px', fontSize: '14px' }}>
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value.slice(0, 128))}
+              required
+              maxLength={128}
+              placeholder="Enter your password"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '1px solid #d1d5db',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '12px',
+              borderRadius: '8px',
+              border: 'none',
+              background: '#2563eb',
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: 600,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+
+        <div
           style={{
-            background: 'linear-gradient(160deg, var(--theme-primary) 0%, var(--theme-secondary) 100%)',
-            padding: '48px 40px',
-            color: '#ffffff',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
+            marginTop: '24px',
+            padding: '12px',
+            background: '#f0f9ff',
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#1e40af',
           }}
         >
-          <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(255,255,255,0.18)',
-                border: '1px solid rgba(255,255,255,0.22)',
-                fontSize: '20px',
-              }}
-            >
-              ✦
-            </div>
-            <div style={{ fontSize: '1.65rem', fontWeight: 700, letterSpacing: '-0.04em' }}>
-              <span>Spark</span>
-              <span style={{ color: '#dfeafb' }}>Well</span>
-            </div>
-          </div>
-
-          <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', opacity: 0.85 }}>
-            Admin access
-          </div>
-
-          <h1 style={{ margin: '18px 0 12px', fontSize: 'clamp(2.2rem, 4vw, 3.2rem)', lineHeight: 1.05, letterSpacing: '-0.05em' }}>
-            Welcome back
-          </h1>
-
-          <p style={{ margin: 0, maxWidth: '420px', fontSize: '1rem', lineHeight: 1.7, opacity: 0.9 }}>
-            Manage bookings, customer updates, service quality, and daily operations from your SparkWell dashboard.
-          </p>
-
-          <div style={{ marginTop: '28px', display: 'grid', gap: '14px' }}>
-            {['Booking overview', 'Customer communication', 'Service quality tracking'].map((item) => (
-              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '10px', opacity: 0.95 }}>
-                <span
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    display: 'inline-block',
-                    background: '#d4ebff',
-                    boxShadow: '0 0 0 4px rgba(255, 255, 255, 0.12)',
-                  }}
-                />
-                <span style={{ fontWeight: 500 }}>{item}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section style={{ background: '#ffffff', padding: '42px 32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: '380px' }}>
-            <div style={{ marginBottom: '20px' }}>
-              <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--theme-primary)' }}>
-                Sign in
-              </p>
-              <h2 style={{ margin: '10px 0 0', fontSize: '2rem', letterSpacing: '-0.04em', color: 'var(--theme-text)' }}>
-                Admin dashboard
-              </h2>
-            </div>
-
-            {error && (
-              <div
-                style={{
-                  background: '#fff1f2',
-                  color: '#b42318',
-                  border: '1px solid #fecdd3',
-                  borderRadius: '12px',
-                  padding: '12px 14px',
-                  marginBottom: '18px',
-                  fontSize: '0.92rem',
-                }}
-              >
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: 'var(--theme-text)' }}>
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="admin@example.com"
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid color-mix(in srgb, var(--theme-primary) 18%, white)',
-                    background: '#f8fafc',
-                    color: 'var(--theme-text)',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: 'var(--theme-text)' }}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="admin123"
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    border: '1px solid color-mix(in srgb, var(--theme-primary) 18%, white)',
-                    background: '#f8fafc',
-                    color: 'var(--theme-text)',
-                    fontSize: '1rem',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  marginTop: '8px',
-                  width: '100%',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '14px 18px',
-                  background: 'linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%)',
-                  color: '#ffffff',
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.75 : 1,
-                  boxShadow: '0 12px 24px rgba(26, 58, 107, 0.22)',
-                }}
-              >
-                {loading ? 'Signing in...' : 'Sign in'}
-              </button>
-            </form>
-
-            <div
-              style={{
-                marginTop: '22px',
-                background: '#f0f9ff',
-                border: '1px solid #dbeafe',
-                borderRadius: '12px',
-                padding: '14px 16px',
-                fontSize: '0.92rem',
-                lineHeight: 1.6,
-                color: '#174176',
-              }}
-            >
-              <strong>Demo admin login:</strong>
-              <div>Email: admin@example.com</div>
-              <div>Password: admin123</div>
-            </div>
-          </div>
-        </section>
+          <strong>Demo Credentials:</strong>
+          <div>Email: admin@example.com</div>
+          <div>Password: admin123</div>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

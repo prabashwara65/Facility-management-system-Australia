@@ -22,6 +22,14 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import {
+  isValidEmail,
+  sanitizeEmail,
+  sanitizeMultilineText,
+  sanitizePhone,
+  sanitizeText,
+  validateSafeFields,
+} from '@/lib/security/input';
 
 interface ContactInfo {
   id: number;
@@ -261,7 +269,16 @@ export default function BookingSection() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const nextValue = name === 'email'
+      ? sanitizeEmail(value)
+      : name === 'phone'
+        ? sanitizePhone(value)
+        : name === 'specialInstructions'
+          ? sanitizeMultilineText(value, 1000)
+          : sanitizeText(value, 160);
+
+    setFormData({ ...formData, [name]: nextValue });
   };
 
   const calculatePrice = (serviceType: string, bedrooms: number, bathrooms: number) => {
@@ -283,6 +300,37 @@ export default function BookingSection() {
     setSubmitting(true);
 
     try {
+      const safeFormData = {
+        firstName: sanitizeText(formData.firstName, 80),
+        lastName: sanitizeText(formData.lastName, 80),
+        phone: sanitizePhone(formData.phone),
+        email: sanitizeEmail(formData.email),
+        address: sanitizeText(formData.address, 180),
+        suburb: sanitizeText(formData.suburb, 80),
+        preferredDate: sanitizeText(formData.preferredDate, 40),
+        specialInstructions: sanitizeMultilineText(formData.specialInstructions, 1000),
+      };
+      const unsafeMessage = validateSafeFields({
+        'First name': safeFormData.firstName,
+        'Last name': safeFormData.lastName,
+        Phone: safeFormData.phone,
+        Email: safeFormData.email,
+        Address: safeFormData.address,
+        Suburb: safeFormData.suburb,
+        'Preferred date': safeFormData.preferredDate,
+        'Special instructions': safeFormData.specialInstructions,
+      });
+
+      if (unsafeMessage) {
+        setToast({ message: unsafeMessage, type: 'error' });
+        return;
+      }
+
+      if (!isValidEmail(safeFormData.email)) {
+        setToast({ message: 'Please enter a valid email address.', type: 'error' });
+        return;
+      }
+
       // Get all booking data from local storage
       const savedData = loadFromLocalStorage();
       
@@ -310,14 +358,14 @@ export default function BookingSection() {
       // Prepare all data for email
       const emailData = {
         // Customer Info
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address || '',
-        suburb: formData.suburb || '',
-        preferredDate: formData.preferredDate || '',
-        specialInstructions: formData.specialInstructions || '',
+        firstName: safeFormData.firstName,
+        lastName: safeFormData.lastName,
+        email: safeFormData.email,
+        phone: safeFormData.phone,
+        address: safeFormData.address || '',
+        suburb: safeFormData.suburb || '',
+        preferredDate: safeFormData.preferredDate || '',
+        specialInstructions: safeFormData.specialInstructions || '',
         
         // Booking Details
         serviceType: bookingData?.selectedTier || 'End of Lease / Bond Clean',
@@ -360,17 +408,17 @@ export default function BookingSection() {
 
       // Also save to Supabase
       const newBooking = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        phone: formData.phone,
-        email: formData.email,
+        first_name: safeFormData.firstName,
+        last_name: safeFormData.lastName,
+        phone: safeFormData.phone,
+        email: safeFormData.email,
         service_type: bookingData?.selectedTier || 'End of Lease / Bond Clean',
         bedrooms: bedrooms,
         bathrooms: bathrooms,
-        address: formData.address || '',
-        suburb: formData.suburb,
-        preferred_date: formData.preferredDate || '',
-        special_instructions: formData.specialInstructions || '',
+        address: safeFormData.address || '',
+        suburb: safeFormData.suburb,
+        preferred_date: safeFormData.preferredDate || '',
+        special_instructions: safeFormData.specialInstructions || '',
         status: 'Pending',
         total_price: totalPrice,
         selected_package: bookingData?.selectedTier || null,
@@ -627,6 +675,7 @@ export default function BookingSection() {
                     placeholder="Sarah"
                     value={formData.firstName}
                     onChange={handleChange}
+                    maxLength={80}
                     className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.08)',
@@ -649,6 +698,7 @@ export default function BookingSection() {
                     placeholder="Mitchell"
                     value={formData.lastName}
                     onChange={handleChange}
+                    maxLength={80}
                     className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.08)',
@@ -674,6 +724,7 @@ export default function BookingSection() {
                     placeholder="0412 345 678"
                     value={formData.phone}
                     onChange={handleChange}
+                    maxLength={32}
                     className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.08)',
@@ -696,6 +747,7 @@ export default function BookingSection() {
                     placeholder="sarah@email.com"
                     value={formData.email}
                     onChange={handleChange}
+                    maxLength={254}
                     className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.08)',
@@ -799,6 +851,7 @@ export default function BookingSection() {
                     placeholder="45 Collins Street"
                     value={formData.address}
                     onChange={handleChange}
+                    maxLength={180}
                     className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.08)',
@@ -820,6 +873,7 @@ export default function BookingSection() {
                     placeholder="South Yarra"
                     value={formData.suburb}
                     onChange={handleChange}
+                    maxLength={80}
                     className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.08)',
@@ -848,6 +902,7 @@ export default function BookingSection() {
                     }}
                     value={formData.preferredDate}
                     onChange={handleChange}
+                    maxLength={40}
                     className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.08)',
@@ -875,6 +930,7 @@ export default function BookingSection() {
                   placeholder="e.g. Please focus extra time on oven and bathrooms..."
                   value={formData.specialInstructions}
                   onChange={handleChange}
+                  maxLength={1000}
                   className="w-full rounded-xl p-4 text-sm transition-colors resize-none focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
                   style={{
                     backgroundColor: 'rgba(255,255,255,0.08)',

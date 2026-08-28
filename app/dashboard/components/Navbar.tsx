@@ -14,6 +14,7 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
 
   return (
     <header
+      className="dashboard-topbar"
       style={{
         background: 'rgba(15, 23, 42, 0.78)',
         border: '1px solid rgba(148, 163, 184, 0.12)',
@@ -27,7 +28,7 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
       }}
     >
       {/* Page Title */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div className="dashboard-topbar-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.05em' }}>
           {activeTab}
         </h2>
@@ -45,7 +46,7 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
       </div>
 
       {/* Search Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, maxWidth: '420px' }}>
+      <div className="dashboard-topbar-search" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, maxWidth: '420px' }}>
         <div style={{ position: 'relative', width: '100%' }}>
           <Search
             size={16}
@@ -81,7 +82,7 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
       </div>
 
       {/* Right Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div className="dashboard-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         {/* User Info - Admin Icon with Yellow */}
         <div
           style={{
@@ -108,7 +109,7 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
           >
             <User size={16} color="#1a1a1a" />
           </div>
-          <span style={{ fontSize: '0.85rem', color: '#e2e8f0', fontWeight: 500 }}>
+          <span className="dashboard-user-name" style={{ fontSize: '0.85rem', color: '#e2e8f0', fontWeight: 500 }}>
             {userEmail.split('@')[0]}
           </span>
         </div>
@@ -195,7 +196,7 @@ export default function Navbar({ onLogout, userEmail = 'admin@example.com', acti
           }}
         >
           <LogOut size={16} />
-          Logout
+          <span className="dashboard-logout-label">Logout</span>
         </button>
       </div>
     </header>
