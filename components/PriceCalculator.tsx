@@ -3,6 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -119,6 +120,7 @@ function formatMoney(value: number) {
 }
 
 export default function PriceCalculator() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [mode, setMode] = useState<CalculatorMode>('residential');
@@ -302,12 +304,17 @@ export default function PriceCalculator() {
 
   const modeLabel = mode === 'residential' ? 'Residential Cleaning' : 'Mobile Detailing';
 
+  if (pathname === '/login' || pathname.startsWith('/dashboard')) {
+    return null;
+  }
+
   return (
     <>
       <motion.button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-40 flex items-center gap-2 rounded-full px-4 py-3 text-sm font-bold text-white shadow-2xl sm:bottom-6 sm:right-6 sm:px-5 sm:py-3.5"
+        className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-2xl sm:bottom-6 sm:right-6 sm:h-auto sm:w-auto sm:gap-2 sm:px-5 sm:py-3.5 sm:text-sm sm:font-bold"
         style={{ backgroundColor: 'var(--theme-primary)' }}
+        aria-label={loading ? 'Loading price calculator' : 'Open price calculator'}
         whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
         whileTap={{ scale: 0.95 }}
         initial={{ scale: 0, opacity: 0 }}
@@ -316,7 +323,6 @@ export default function PriceCalculator() {
       >
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Calculator className="h-5 w-5" />}
         <span className="hidden sm:inline">{loading ? 'Loading...' : 'Calculate Price'}</span>
-        <span className="sm:hidden">Price</span>
       </motion.button>
 
       <AnimatePresence>
@@ -548,7 +554,7 @@ export default function PriceCalculator() {
                   >
                     Close
                   </button>
-                  <motion.button
+                  {/* <motion.button
                     onClick={handleBookNow}
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold text-white transition-all"
                     style={{ backgroundColor: 'var(--theme-primary)' }}
@@ -557,7 +563,7 @@ export default function PriceCalculator() {
                   >
                     Book Now
                     <ArrowRight className="h-4 w-4" />
-                  </motion.button>
+                  </motion.button> */}
                 </div>
               </div>
             </motion.div>
