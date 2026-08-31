@@ -11,14 +11,12 @@ import {
   Calendar,
   Minus,
   Plus,
-  Sparkles,
-  ChevronDown,
-  CheckCircle,
   Package,
   ShoppingBag,
   Check,
   X,
   AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -61,6 +59,49 @@ interface AddOn {
   price: string;
   description: string;
   category: string;
+}
+
+interface ToastMessage {
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
+interface ToastProps {
+  toast: ToastMessage | null;
+  onClose: () => void;
+}
+
+function Toast({ toast, onClose }: ToastProps) {
+  if (!toast) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-md mx-4"
+    >
+      <div
+        className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 ${
+          toast.type === 'success'
+            ? 'bg-green-500 text-white'
+            : toast.type === 'error'
+              ? 'bg-red-500 text-white'
+              : 'bg-blue-500 text-white'
+        }`}
+      >
+        {toast.type === 'success' && <Check className="w-5 h-5 flex-shrink-0" />}
+        {toast.type === 'error' && <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+        <span className="text-sm font-medium flex-1">{toast.message}</span>
+        <button
+          onClick={onClose}
+          className="text-white/70 hover:text-white transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </motion.div>
+  );
 }
 
 // Add-ons data with full details
@@ -127,7 +168,7 @@ export default function BookingSection() {
   const [addOnsSummary, setAddOnsSummary] = useState<string>('');
   const [addOnsList, setAddOnsList] = useState<string[]>([]);
   const [addOnsWithPrices, setAddOnsWithPrices] = useState<{ name: string; price: string; count: number }[]>([]);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -140,39 +181,6 @@ export default function BookingSection() {
   });
 
   const supabase = createClient();
-
-  // Toast component
-  const Toast = () => {
-    if (!toast) return null;
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-md mx-4"
-      >
-        <div
-          className={`px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 ${
-            toast.type === 'success' 
-              ? 'bg-green-500 text-white' 
-              : toast.type === 'error' 
-                ? 'bg-red-500 text-white' 
-                : 'bg-blue-500 text-white'
-          }`}
-        >
-          {toast.type === 'success' && <Check className="w-5 h-5 flex-shrink-0" />}
-          {toast.type === 'error' && <AlertCircle className="w-5 h-5 flex-shrink-0" />}
-          <span className="text-sm font-medium flex-1">{toast.message}</span>
-          <button
-            onClick={() => setToast(null)}
-            className="text-white/70 hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </motion.div>
-    );
-  };
 
   // Fetch contact info from Supabase
   useEffect(() => {
@@ -289,6 +297,30 @@ export default function BookingSection() {
     }
 
     router.push('/#pricing');
+  };
+
+  const handleResetBooking = () => {
+    clearLocalStorage();
+    setFormData({
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: '',
+      address: '',
+      suburb: '',
+      preferredDate: '',
+      specialInstructions: '',
+    });
+    setBedrooms(2);
+    setBathrooms(1);
+    setBookingData(null);
+    setAddOnsSummary('');
+    setAddOnsList([]);
+    setAddOnsWithPrices([]);
+    setToast({
+      message: 'Booking details reset.',
+      type: 'info',
+    });
   };
 
   const calculatePrice = (serviceType: string, bedrooms: number, bathrooms: number) => {
@@ -417,7 +449,7 @@ export default function BookingSection() {
       };
 
       // Send email via API
-      const response = await fetch('/api/send-residential-email', {
+      await fetch('/api/send-residential-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -519,11 +551,25 @@ export default function BookingSection() {
       id="booking"
       style={{ backgroundColor: 'var(--theme-primary)' }}
     >
-      <Toast />
+      <Toast toast={toast} onClose={() => setToast(null)} />
       
       <div className="max-w-6xl mx-auto space-y-10">
         {/* Header */}
-        <div className="text-center space-y-2">
+        <div className="relative flex flex-col items-center gap-2 text-center">
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleResetBooking}
+            className="self-end sm:absolute sm:right-0 sm:top-0 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold text-white shadow-md transition-colors duration-200"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.16)',
+            }}
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </motion.button>
           <span
             className="font-semibold tracking-widest text-xs uppercase"
             style={{ color: 'var(--theme-secondary)' }}
@@ -714,7 +760,6 @@ export default function BookingSection() {
             <form
               onSubmit={handleSubmit}
               className={`space-y-4 transition-opacity ${bookingData ? '' : 'opacity-45'}`}
-              aria-disabled={!bookingData}
             >
               <fieldset disabled={!bookingData || submitting} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -305,9 +305,35 @@ SELECT * from addons   -- ============================================
 -- ============================================
 
 -- ============================================
--- 1. VEHICLE CATEGORIES
+-- DROP EXISTING TABLES (with correct order)
 -- ============================================
+
+-- Drop tables in correct order to avoid foreign key constraint errors
+DROP TABLE IF EXISTS vehicle_service_exterior_items CASCADE;
+DROP TABLE IF EXISTS vehicle_service_interior_items CASCADE;
+DROP TABLE IF EXISTS vehicle_add_on_options CASCADE;
+DROP TABLE IF EXISTS vehicle_conditions CASCADE;
+DROP TABLE IF EXISTS vehicle_arrival_windows CASCADE;
+DROP TABLE IF EXISTS vehicle_australian_postcodes CASCADE;
+DROP TABLE IF EXISTS vehicle_bookings CASCADE;
+DROP TABLE IF EXISTS vehicle_services CASCADE;
+DROP TABLE IF EXISTS vehicle_body_types CASCADE;
+DROP TABLE IF EXISTS vehicle_models CASCADE;
+DROP TABLE IF EXISTS vehicle_makes CASCADE;
 DROP TABLE IF EXISTS vehicle_categories CASCADE;
+
+-- Drop views
+DROP VIEW IF EXISTS vehicle_booking_dashboard CASCADE;
+DROP VIEW IF EXISTS vehicle_booking_statistics CASCADE;
+
+-- Drop functions
+DROP FUNCTION IF EXISTS update_updated_at_column CASCADE;
+DROP FUNCTION IF EXISTS update_vehicle_booking_status CASCADE;
+DROP FUNCTION IF EXISTS get_vehicle_available_dates CASCADE;
+
+-- ============================================
+-- 1. VEHICLE CATEGORIES (Car, Truck, Van, SUV)
+-- ============================================
 CREATE TABLE vehicle_categories (
     id TEXT PRIMARY KEY,
     label TEXT NOT NULL,
@@ -322,52 +348,39 @@ INSERT INTO vehicle_categories (id, label, icon_name) VALUES
     ('suv', 'SUVs', 'Bus');
 
 -- ============================================
--- 2. VEHICLE MAKES
+-- 2. VEHICLE BRANDS
 -- ============================================
-DROP TABLE IF EXISTS vehicle_makes CASCADE;
-CREATE TABLE vehicle_makes (
+CREATE TABLE vehicle_brands (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-INSERT INTO vehicle_makes (name) VALUES
-    ('Acura'), ('Audi'), ('BMW'), ('Buick'), ('Cadillac'), 
-    ('Chevrolet'), ('Chrysler'), ('Dodge'), ('Ford'), ('GMC'), 
-    ('Genesis'), ('Honda'), ('Hyundai'), ('INFINITI'), ('Jaguar'), 
-    ('Jeep'), ('Kia'), ('Land Rover'), ('Lexus'), ('Lincoln'), 
-    ('Lotus'), ('MINI'), ('Mazda'), ('Mercedes-Benz'), ('Mitsubishi'), 
-    ('Nissan'), ('Ram'), ('Rivian'), ('Subaru'), ('Tesla'), 
-    ('Toyota'), ('Volkswagen');
-
 -- ============================================
--- 3. VEHICLE MODELS
+-- 3. VEHICLE MODELS (belongs to Brand via brand_id)
 -- ============================================
-DROP TABLE IF EXISTS vehicle_models CASCADE;
 CREATE TABLE vehicle_models (
     id SERIAL PRIMARY KEY,
-    make_id INTEGER REFERENCES vehicle_makes(id) ON DELETE CASCADE,
+    brand_id INTEGER REFERENCES vehicle_brands(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(make_id, name)
+    UNIQUE(brand_id, name)
 );
 
 -- ============================================
--- 4. VEHICLE BODY TYPES
+-- 4. VEHICLE BODY TYPES (belongs to Brand via brand_id)
 -- ============================================
-DROP TABLE IF EXISTS vehicle_body_types CASCADE;
 CREATE TABLE vehicle_body_types (
     id SERIAL PRIMARY KEY,
-    make_id INTEGER REFERENCES vehicle_makes(id) ON DELETE CASCADE,
+    brand_id INTEGER REFERENCES vehicle_brands(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(make_id, name)
+    UNIQUE(brand_id, name)
 );
 
 -- ============================================
--- 5. VEHICLE SERVICES (was "services")
+-- 5. VEHICLE SERVICES (Detailing Packages)
 -- ============================================
-DROP TABLE IF EXISTS vehicle_services CASCADE;
 CREATE TABLE vehicle_services (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -382,17 +395,9 @@ CREATE TABLE vehicle_services (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-INSERT INTO vehicle_services (name, price, rating, reviews, popular, description, vehicle_type, estimated_time) VALUES
-    ('PLATINUM Detailing Package', 299.00, 4.72, 23782, TRUE, 'Our signature auto detailing package with comprehensive INTERIOR and EXTERIOR services including shampoo and high quality wax.', 'car', '180 minutes'),
-    ('GOLD Detailing Package', 219.00, 4.76, 11966, FALSE, 'Combines the complete EXTERIOR detail and hand wax with Interior vacuum, wipe down, and leather/vinyl dressings', 'car', '120 minutes'),
-    ('TITANIUM Detailing Package', 545.00, 4.68, 1648, FALSE, 'Our most thorough detailing package! A complete exterior detail with single pass compounding/buffing paint correction combined with a full interior detailing.', 'car', '240 minutes'),
-    ('TITANIUM Exterior Only', 455.00, 4.67, 467, FALSE, 'All of the exterior services in the FULL Titanium detail package.', 'truck', '120 minutes'),
-    ('INTERIOR Only Detailing', 219.00, 4.73, 13782, FALSE, 'INTERIOR ONLY detailing package including vacuum, shampoo, deep cleaning and leather/vinyl dressings.', 'car', '120 minutes');
-
 -- ============================================
 -- 6. VEHICLE SERVICE EXTERIOR ITEMS
 -- ============================================
-DROP TABLE IF EXISTS vehicle_service_exterior_items CASCADE;
 CREATE TABLE vehicle_service_exterior_items (
     id SERIAL PRIMARY KEY,
     service_id INTEGER REFERENCES vehicle_services(id) ON DELETE CASCADE,
@@ -404,7 +409,6 @@ CREATE TABLE vehicle_service_exterior_items (
 -- ============================================
 -- 7. VEHICLE SERVICE INTERIOR ITEMS
 -- ============================================
-DROP TABLE IF EXISTS vehicle_service_interior_items CASCADE;
 CREATE TABLE vehicle_service_interior_items (
     id SERIAL PRIMARY KEY,
     service_id INTEGER REFERENCES vehicle_services(id) ON DELETE CASCADE,
@@ -416,7 +420,6 @@ CREATE TABLE vehicle_service_interior_items (
 -- ============================================
 -- 8. VEHICLE ADD-ON OPTIONS
 -- ============================================
-DROP TABLE IF EXISTS vehicle_add_on_options CASCADE;
 CREATE TABLE vehicle_add_on_options (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -428,39 +431,18 @@ CREATE TABLE vehicle_add_on_options (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-INSERT INTO vehicle_add_on_options (id, name, price, description, details, per_seat) VALUES
-    ('pet-hair', 'Pet Hair Removal', 70.00, 'Remove all visible pet hair from interior', 'Complete removal of pet hair from all surfaces', FALSE),
-    ('super-interior', 'Super Interior', 140.00, 'Double shampoo, stain pre-treatment, pet hair removal', 'Deep clean with stain removal and pet hair extraction', FALSE),
-    ('interior-sanitizing', 'Interior Sanitizing', 60.00, 'Sanitize/disinfect all interior surfaces', 'Anti-microbial treatment for all surfaces', FALSE),
-    ('rain-x', 'Rain X Treatment', 30.00, 'Treat all exterior glass with water repellent', 'Hydrophobic coating for all exterior glass', FALSE),
-    ('polymer-sealant', 'Polymer Sealant', 35.00, 'Extend paint protection for up to 6 months', 'Synthetic sealant for long-lasting protection', FALSE),
-    ('headlight-restoration', 'Headlight Restoration', 105.00, 'Restore headlights to bright and brilliant shine', 'Professional headlight restoration service', FALSE),
-    ('child-seat', 'Child Seat Cleaning', 35.00, 'Vacuum, wipe down, and shampoo child seat', 'Deep clean and sanitize child safety seats', TRUE);
-
 -- ============================================
 -- 9. VEHICLE CONDITIONS
 -- ============================================
-DROP TABLE IF EXISTS vehicle_conditions CASCADE;
 CREATE TABLE vehicle_conditions (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-INSERT INTO vehicle_conditions (name) VALUES
-    ('Excessive pet hair'),
-    ('Mold/mildew'),
-    ('Human or animal biological waste'),
-    ('Heavy soilage/stains'),
-    ('Foul odors'),
-    ('Tree sap'),
-    ('Exterior hard water spots'),
-    ('Overspray (paint, concrete, tar, chemical, etc)');
-
 -- ============================================
 -- 10. VEHICLE ARRIVAL WINDOWS
 -- ============================================
-DROP TABLE IF EXISTS vehicle_arrival_windows CASCADE;
 CREATE TABLE vehicle_arrival_windows (
     id SERIAL PRIMARY KEY,
     window_time TEXT UNIQUE NOT NULL,
@@ -468,16 +450,9 @@ CREATE TABLE vehicle_arrival_windows (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-INSERT INTO vehicle_arrival_windows (window_time, display_order) VALUES
-    ('8am - 11am', 1),
-    ('10am - 1pm', 2),
-    ('12pm - 3pm', 3),
-    ('2pm - 5pm', 4);
-
 -- ============================================
 -- 11. VEHICLE AUSTRALIAN POSTCODES
 -- ============================================
-DROP TABLE IF EXISTS vehicle_australian_postcodes CASCADE;
 CREATE TABLE vehicle_australian_postcodes (
     id SERIAL PRIMARY KEY,
     state TEXT NOT NULL,
@@ -486,20 +461,9 @@ CREATE TABLE vehicle_australian_postcodes (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-INSERT INTO vehicle_australian_postcodes (state, min_postcode, max_postcode) VALUES
-    ('VIC', 3000, 3999),
-    ('NSW', 2000, 2999),
-    ('QLD', 4000, 4999),
-    ('SA', 5000, 5999),
-    ('WA', 6000, 6999),
-    ('TAS', 7000, 7999),
-    ('NT', 800, 999),
-    ('ACT', 2600, 2618);
-
 -- ============================================
 -- 12. VEHICLE BOOKINGS (MAIN TABLE)
 -- ============================================
-DROP TABLE IF EXISTS vehicle_bookings CASCADE;
 CREATE TABLE vehicle_bookings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
@@ -515,12 +479,12 @@ CREATE TABLE vehicle_bookings (
     address_unit TEXT,
     city TEXT NOT NULL,
     state TEXT NOT NULL,
-    zip_code TEXT NOT NULL, -- Info step zip code
-    service_area_zip TEXT, -- Initial service area zip code
+    zip_code TEXT NOT NULL,
+    service_area_zip TEXT,
     
-    -- Vehicle Information
+    -- Vehicle Information (stored as text for historical records)
     vehicle_year TEXT NOT NULL,
-    vehicle_make TEXT NOT NULL,
+    vehicle_brand TEXT NOT NULL,
     vehicle_model TEXT NOT NULL,
     vehicle_body TEXT NOT NULL,
     vehicle_category TEXT REFERENCES vehicle_categories(id),
@@ -537,7 +501,7 @@ CREATE TABLE vehicle_bookings (
     other_condition TEXT,
     
     -- Selected Add-ons
-    add_ons JSONB DEFAULT '{}', -- Stores {add_on_id: count}
+    add_ons JSONB DEFAULT '{}',
     add_ons_total DECIMAL(10,2) DEFAULT 0,
     
     -- Date & Time
@@ -567,122 +531,7 @@ CREATE TABLE vehicle_bookings (
 );
 
 -- ============================================
--- 13. VEHICLE SERVICE DATA (INSERT EXTERIOR/INTERIOR ITEMS)
--- ============================================
-
--- PLATINUM Detailing Package (id: 1) - Exterior
-INSERT INTO vehicle_service_exterior_items (service_id, item, display_order) VALUES
-    (1, 'Complete outside wash (including truck beds)', 1),
-    (1, 'Hand dry with clean microfiber towels to protect your paint', 2),
-    (1, 'Clean and degrease wheels and tires', 3),
-    (1, 'Dress tires, trim and moldings', 4),
-    (1, 'Clean all door jambs and trunk seals', 5),
-    (1, 'Clean exterior windows', 6),
-    (1, 'Clay prep all painted surfaces to remove harmful contaminants', 7),
-    (1, 'Apply high quality wax by hand to all painted surfaces', 8),
-    (1, 'Wipe down engine bay', 9);
-
--- PLATINUM Detailing Package (id: 1) - Interior
-INSERT INTO vehicle_service_interior_items (service_id, item, display_order) VALUES
-    (1, 'Vacuum entire interior and trunk', 1),
-    (1, 'Wipe down all interior surfaces', 2),
-    (1, 'Apply UV protector to all hard surfaces', 3),
-    (1, 'Shampoo OR Steam interior carpets, trunk and floor mats', 4),
-    (1, 'Shampoo Or Steam leather OR cloth seats', 5),
-    (1, 'Wipe down any leather surfaces and apply a conditioner', 6),
-    (1, 'Spot clean head liner', 7),
-    (1, 'Clean vents', 8),
-    (1, 'Clean all interior cup holders', 9),
-    (1, 'Clean interior compartments (emptied)', 10),
-    (1, 'Clean interior windows', 11);
-
--- GOLD Detailing Package (id: 2) - Exterior
-INSERT INTO vehicle_service_exterior_items (service_id, item, display_order) VALUES
-    (2, 'We come to you!', 1),
-    (2, 'Complete outside wash (including bed for trucks)', 2),
-    (2, 'Hand dry with clean microfiber towels to protect your paint', 3),
-    (2, 'Clean and degrease wheels and tires', 4),
-    (2, 'Apply tire and wheel dressing', 5),
-    (2, 'Clean all door jambs and trunk seals', 6),
-    (2, 'Clean exterior windows', 7),
-    (2, 'Exterior dressing of plastics', 8),
-    (2, 'Clay prep all painted surfaces to remove harmful contaminants', 9),
-    (2, 'Apply high quality wax by hand to all painted surfaces', 10);
-
--- GOLD Detailing Package (id: 2) - Interior
-INSERT INTO vehicle_service_interior_items (service_id, item, display_order) VALUES
-    (2, 'Vacuum seats, carpets, trunk and floor mats', 1),
-    (2, 'Wipe down all interior surfaces', 2),
-    (2, 'Clean all vents, cup holders, door panels, etc.', 3),
-    (2, 'Clean interior compartments (emptied)', 4),
-    (2, 'Apply UV protectant to all hard interior surfaces', 5),
-    (2, 'Clean and condition leather, vinyl and plastics', 6),
-    (2, 'Clean interior windows', 7);
-
--- TITANIUM Detailing Package (id: 3) - Exterior
-INSERT INTO vehicle_service_exterior_items (service_id, item, display_order) VALUES
-    (3, 'We come to you!', 1),
-    (3, 'Complete outside wash (including truck beds)', 2),
-    (3, 'Hand dry with clean microfiber towels to protect your paint', 3),
-    (3, 'Clean all door jambs and trunk seals', 4),
-    (3, 'Clean exterior windows', 5),
-    (3, 'Clay prep all painted surfaces to remove harmful contaminants', 6),
-    (3, 'Single pass compounding and buffing to remove surface defects.', 7),
-    (3, 'Apply high quality wax by hand to all painted surfaces', 8),
-    (3, 'Dress exterior plastics', 9),
-    (3, 'Clean and degrease wheels and tires', 10),
-    (3, 'Polish Wheels', 11),
-    (3, 'Apply tire and wheel dressing', 12),
-    (3, 'Engine compartment wipe-down', 13);
-
--- TITANIUM Detailing Package (id: 3) - Interior
-INSERT INTO vehicle_service_interior_items (service_id, item, display_order) VALUES
-    (3, 'Vacuum entire interior and trunk', 1),
-    (3, 'Complete wipe down', 2),
-    (3, 'Apply UV protector to all hard surfaces', 3),
-    (3, 'Shampoo OR steam interior carpets, trunk and floor mats', 4),
-    (3, 'Shampoo Or Steam leather OR cloth seats', 5),
-    (3, 'Wipe down any leather surfaces and apply a conditioner', 6),
-    (3, 'Spot clean head liner', 7),
-    (3, 'Clean vents', 8),
-    (3, 'Clean door jambs', 9),
-    (3, 'Clean all cup holders', 10),
-    (3, 'Clean emptied interior compartments', 11),
-    (3, 'Clean interior windows', 12);
-
--- TITANIUM Exterior Only (id: 4) - Exterior
-INSERT INTO vehicle_service_exterior_items (service_id, item, display_order) VALUES
-    (4, 'We come to you!', 1),
-    (4, 'Complete outside wash', 2),
-    (4, 'Hand dry with clean microfiber towels to protect your paint', 3),
-    (4, 'Clean exterior windows', 4),
-    (4, 'Clay prep all painted surfaces to remove harmful contaminants', 5),
-    (4, 'Single pass compounding and buffing to remove surface defects.', 6),
-    (4, 'Apply high quality wax by hand to all painted surfaces', 7),
-    (4, 'Dress exterior plastics', 8),
-    (4, 'Clean and degrease wheels and tires', 9),
-    (4, 'Polish Wheels', 10),
-    (4, 'Apply tire and wheel dressing', 11),
-    (4, 'Engine compartment wipe-down', 12);
-
--- INTERIOR Only Detailing (id: 5) - Interior
-INSERT INTO vehicle_service_interior_items (service_id, item, display_order) VALUES
-    (5, 'We come to you!', 1),
-    (5, 'Vacuum entire interior and trunk', 2),
-    (5, 'Wipe down/deep clean hard surfaces', 3),
-    (5, 'Clean interior windows', 4),
-    (5, 'Apply UV protector to all hard surfaces', 5),
-    (5, 'Shampoo OR steam interior carpets, trunk and floor mats', 6),
-    (5, 'Deep clean and condition leather seats OR deep clean and shampoo cloth seats', 7),
-    (5, 'Wipe down/deep clean any leather surfaces and apply a conditioner', 8),
-    (5, 'Spot clean head liner', 9),
-    (5, 'Clean vents', 10),
-    (5, 'Clean door jambs', 11),
-    (5, 'Clean all cup holders', 12),
-    (5, 'Clean interior compartments (emptied)', 13);
-
--- ============================================
--- 14. INDEXES FOR PERFORMANCE
+-- INDEXES FOR PERFORMANCE
 -- ============================================
 CREATE INDEX idx_vehicle_bookings_email ON vehicle_bookings(email);
 CREATE INDEX idx_vehicle_bookings_phone ON vehicle_bookings(phone);
@@ -690,11 +539,14 @@ CREATE INDEX idx_vehicle_bookings_appointment_date ON vehicle_bookings(appointme
 CREATE INDEX idx_vehicle_bookings_status ON vehicle_bookings(status);
 CREATE INDEX idx_vehicle_bookings_created_at ON vehicle_bookings(created_at);
 CREATE INDEX idx_vehicle_bookings_zip_code ON vehicle_bookings(zip_code);
-CREATE INDEX idx_vehicle_bookings_vehicle_make ON vehicle_bookings(vehicle_make);
+CREATE INDEX idx_vehicle_bookings_vehicle_brand ON vehicle_bookings(vehicle_brand);
 CREATE INDEX idx_vehicle_bookings_vehicle_model ON vehicle_bookings(vehicle_model);
 
+CREATE INDEX idx_vehicle_models_brand_id ON vehicle_models(brand_id);
+CREATE INDEX idx_vehicle_body_types_brand_id ON vehicle_body_types(brand_id);
+
 -- ============================================
--- 15. TRIGGERS FOR UPDATED_AT
+-- TRIGGERS FOR UPDATED_AT
 -- ============================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -704,617 +556,750 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
-DROP TRIGGER IF EXISTS update_vehicle_bookings_updated_at ON vehicle_bookings;
 CREATE TRIGGER update_vehicle_bookings_updated_at 
     BEFORE UPDATE ON vehicle_bookings 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
-DROP TRIGGER IF EXISTS update_vehicle_services_updated_at ON vehicle_services;
 CREATE TRIGGER update_vehicle_services_updated_at 
     BEFORE UPDATE ON vehicle_services 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
-DROP TRIGGER IF EXISTS update_vehicle_add_on_options_updated_at ON vehicle_add_on_options;
 CREATE TRIGGER update_vehicle_add_on_options_updated_at 
     BEFORE UPDATE ON vehicle_add_on_options 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
--- 16. ROW LEVEL SECURITY (RLS) POLICIES
+-- INSERT VEHICLE BRANDS
 -- ============================================
-
--- Enable RLS on all tables
-ALTER TABLE vehicle_bookings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_add_on_options ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_makes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_models ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_body_types ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_conditions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_arrival_windows ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_australian_postcodes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_service_exterior_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE vehicle_service_interior_items ENABLE ROW LEVEL SECURITY;
-
--- Public read access for reference tables
-CREATE POLICY "Public read access for vehicle_services" ON vehicle_services
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_add_ons" ON vehicle_add_on_options
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_categories" ON vehicle_categories
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_makes" ON vehicle_makes
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_models" ON vehicle_models
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_body_types" ON vehicle_body_types
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_conditions" ON vehicle_conditions
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_arrival_windows" ON vehicle_arrival_windows
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_australian_postcodes" ON vehicle_australian_postcodes
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_service_exterior_items" ON vehicle_service_exterior_items
-    FOR SELECT USING (true);
-
-CREATE POLICY "Public read access for vehicle_service_interior_items" ON vehicle_service_interior_items
-    FOR SELECT USING (true);
-
--- Bookings policies
-CREATE POLICY "Users can insert vehicle_bookings" ON vehicle_bookings
-    FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Users can view own vehicle_bookings" ON vehicle_bookings
-    FOR SELECT USING (email = current_user);
-
--- Admin policies (requires service role)
-CREATE POLICY "Admin can view all vehicle_bookings" ON vehicle_bookings
-    FOR SELECT USING (auth.role() = 'service_role');
-
-CREATE POLICY "Admin can update vehicle_bookings" ON vehicle_bookings
-    FOR UPDATE USING (auth.role() = 'service_role');
-
-CREATE POLICY "Admin can delete vehicle_bookings" ON vehicle_bookings
-    FOR DELETE USING (auth.role() = 'service_role');
+INSERT INTO vehicle_brands (name) VALUES
+    ('Acura'), ('Audi'), ('BMW'), ('Buick'), ('Cadillac'), 
+    ('Chevrolet'), ('Chrysler'), ('Dodge'), ('Ford'), ('GMC'), 
+    ('Genesis'), ('Honda'), ('Hyundai'), ('INFINITI'), ('Jaguar'), 
+    ('Jeep'), ('Kia'), ('Land Rover'), ('Lexus'), ('Lincoln'), 
+    ('Lotus'), ('MINI'), ('Mazda'), ('Mercedes-Benz'), ('Mitsubishi'), 
+    ('Nissan'), ('Ram'), ('Rivian'), ('Subaru'), ('Tesla'), 
+    ('Toyota'), ('Volkswagen');
 
 -- ============================================
--- 17. ADMIN VIEWS FOR DASHBOARD
+-- INSERT VEHICLE MODELS (with brand_id)
 -- ============================================
 
--- View for booking dashboard
-CREATE OR REPLACE VIEW vehicle_booking_dashboard AS
+-- Acura Models (5 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Acura'), 'Integra'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Acura'), 'TLX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Acura'), 'MDX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Acura'), 'RDX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Acura'), 'NSX');
+
+-- Audi Models (18 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'A3'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'A4'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'A5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'A6'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'A7'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'A8'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'Q3'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'Q5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'Q7'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'Q8'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'e-tron'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'RS5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'RS7'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'S4'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'S5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'S6'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'S7'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'S8');
+
+-- BMW Models (21 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), '1 Series'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), '2 Series'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), '3 Series'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), '4 Series'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), '5 Series'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), '6 Series'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), '7 Series'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), '8 Series'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'X1'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'X2'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'X3'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'X4'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'X5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'X6'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'X7'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'i3'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'i4'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'i5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'i7'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'iX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'Z4');
+
+-- Buick Models (4 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Buick'), 'Encore'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Buick'), 'Envision'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Buick'), 'Enclave'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Buick'), 'Regal');
+
+-- Cadillac Models (7 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'CT4'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'CT5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'XT4'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'XT5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'XT6'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'Escalade'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'Lyriq');
+
+-- Chevrolet Models (12 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Silverado'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Equinox'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Tahoe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Suburban'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Traverse'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Trailblazer'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Colorado'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Blazer'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Malibu'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Camaro'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Corvette'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Bolt EUV');
+
+-- Chrysler Models (3 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chrysler'), '300'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chrysler'), 'Pacifica'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chrysler'), 'Voyager');
+
+-- Dodge Models (4 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Dodge'), 'Challenger'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Dodge'), 'Charger'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Dodge'), 'Durango'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Dodge'), 'Hornet');
+
+-- Ford Models (12 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'F-150'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Mustang'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Explorer'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Escape'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Bronco'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Bronco Sport'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Edge'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Expedition'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Ranger'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Maverick'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Mustang Mach-E'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Transit');
+
+-- GMC Models (6 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'GMC'), 'Sierra'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'GMC'), 'Yukon'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'GMC'), 'Terrain'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'GMC'), 'Acadia'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'GMC'), 'Canyon'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'GMC'), 'Hummer EV');
+
+-- Genesis Models (6 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Genesis'), 'G70'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Genesis'), 'G80'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Genesis'), 'G90'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Genesis'), 'GV60'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Genesis'), 'GV70'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Genesis'), 'GV80');
+
+-- Honda Models (10 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Accord'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Civic'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'CR-V'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'HR-V'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Passport'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Pilot'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Odyssey'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Ridgeline'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Insight'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Clarity');
+
+-- Hyundai Models (9 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Elantra'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Sonata'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Tucson'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Santa Fe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Palisade'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Kona'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Ioniq 5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Ioniq 6'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Venue');
+
+-- INFINITI Models (6 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'INFINITI'), 'Q50'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'INFINITI'), 'Q60'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'INFINITI'), 'QX50'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'INFINITI'), 'QX55'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'INFINITI'), 'QX60'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'INFINITI'), 'QX80');
+
+-- Jaguar Models (6 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'XE'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'XF'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'F-Type'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'E-Pace'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'F-Pace'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'I-Pace');
+
+-- Jeep Models (8 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'Wrangler'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'Grand Cherokee'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'Cherokee'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'Compass'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'Renegade'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'Gladiator'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'Wagoneer'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'Grand Wagoneer');
+
+-- Kia Models (10 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Sportage'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Sorento'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Telluride'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'K5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Forte'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Rio'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Soul'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'EV6'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'EV9'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Niro');
+
+-- Land Rover Models (7 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Land Rover'), 'Range Rover'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Land Rover'), 'Range Rover Sport'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Land Rover'), 'Range Rover Evoque'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Land Rover'), 'Discovery'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Land Rover'), 'Discovery Sport'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Land Rover'), 'Defender'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Land Rover'), 'Velar');
+
+-- Lexus Models (10 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'ES'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'IS'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'LS'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'RX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'NX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'GX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'LX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'UX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'RZ'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'LC');
+
+-- Lincoln Models (4 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lincoln'), 'Corsair'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lincoln'), 'Nautilus'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lincoln'), 'Aviator'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lincoln'), 'Navigator');
+
+-- Lotus Models (3 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lotus'), 'Emira'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lotus'), 'Evija'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lotus'), 'Eletre');
+
+-- Mazda Models (8 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'Mazda3'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'Mazda6'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'CX-3'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'CX-5'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'CX-9'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'MX-5 Miata'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'CX-50'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'CX-90');
+
+-- Mercedes-Benz Models (18 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'A-Class'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'B-Class'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'C-Class'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'CLA'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'CLS'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'E-Class'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'EQE'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'EQS'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'G-Class'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'GLA'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'GLB'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'GLC'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'GLE'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'GLS'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'GT'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'S-Class'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'SL'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'AMG GT');
+
+-- MINI Models (3 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'MINI'), 'Cooper'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'MINI'), 'Clubman'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'MINI'), 'Countryman');
+
+-- Mitsubishi Models (4 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mitsubishi'), 'Outlander'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mitsubishi'), 'Eclipse Cross'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mitsubishi'), 'Mirage'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mitsubishi'), 'Outlander Sport');
+
+-- Nissan Models (11 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Altima'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Maxima'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Sentra'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Rogue'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Pathfinder'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Armada'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Frontier'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Titan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Leaf'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Ariya'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Z');
+
+-- Ram Models (5 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ram'), '1500'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ram'), '2500'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ram'), '3500'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ram'), 'ProMaster'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ram'), 'ProMaster City');
+
+-- Rivian Models (2 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Rivian'), 'R1T'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Rivian'), 'R1S');
+
+-- Subaru Models (8 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'Outback'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'Forester'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'Crosstrek'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'Ascent'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'Legacy'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'Impreza'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'WRX'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'BRZ');
+
+-- Tesla Models (6 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Tesla'), 'Model 3'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Tesla'), 'Model S'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Tesla'), 'Model X'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Tesla'), 'Model Y'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Tesla'), 'Cybertruck'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Tesla'), 'Roadster');
+
+-- Toyota Models (15 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Camry'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Corolla'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'RAV4'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Highlander'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Tacoma'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Tundra'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Sienna'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Prius'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), '4Runner'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Land Cruiser'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Sequoia'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Avalon'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'C-HR'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'GR Supra'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'GR86');
+
+-- Volkswagen Models (10 models)
+INSERT INTO vehicle_models (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Golf'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Jetta'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Passat'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Tiguan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Atlas'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'ID.4'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Taos'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Arteon'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'GTI'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'R');
+
+-- ============================================
+-- INSERT VEHICLE BODY TYPES (with brand_id)
+-- ============================================
+
+-- Acura Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Acura'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Acura'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Acura'), 'Coupe');
+
+-- Audi Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'Convertible'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'Wagon'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Audi'), 'Hatchback');
+
+-- BMW Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'Convertible'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'Wagon'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'BMW'), 'Hatchback');
+
+-- Buick Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Buick'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Buick'), 'Sedan');
+
+-- Cadillac Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Cadillac'), 'Coupe');
+
+-- Chevrolet Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Truck'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chevrolet'), 'Convertible');
+
+-- Chrysler Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chrysler'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Chrysler'), 'Minivan');
+
+-- Dodge Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Dodge'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Dodge'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Dodge'), 'Coupe');
+
+-- Ford Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Truck'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Convertible'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ford'), 'Minivan');
+
+-- GMC Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'GMC'), 'Truck'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'GMC'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'GMC'), 'Van');
+
+-- Genesis Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Genesis'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Genesis'), 'SUV');
+
+-- Honda Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Minivan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Truck'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Honda'), 'Hatchback');
+
+-- Hyundai Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Hatchback'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Hyundai'), 'Coupe');
+
+-- INFINITI Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'INFINITI'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'INFINITI'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'INFINITI'), 'Coupe');
+
+-- Jaguar Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jaguar'), 'Convertible');
+
+-- Jeep Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Jeep'), 'Truck');
+
+-- Kia Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Hatchback'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Kia'), 'Coupe');
+
+-- Land Rover Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Land Rover'), 'SUV');
+
+-- Lexus Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lexus'), 'Convertible');
+
+-- Lincoln Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lincoln'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lincoln'), 'Sedan');
+
+-- Lotus Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lotus'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Lotus'), 'SUV');
+
+-- Mazda Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mazda'), 'Convertible');
+
+-- Mercedes-Benz Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'Convertible'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'Wagon'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mercedes-Benz'), 'Hatchback');
+
+-- MINI Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'MINI'), 'Hatchback'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'MINI'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'MINI'), 'Wagon');
+
+-- Mitsubishi Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mitsubishi'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mitsubishi'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Mitsubishi'), 'Hatchback');
+
+-- Nissan Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Truck'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Nissan'), 'Hatchback');
+
+-- Ram Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ram'), 'Truck'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Ram'), 'Van');
+
+-- Rivian Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Rivian'), 'Truck'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Rivian'), 'SUV');
+
+-- Subaru Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'Hatchback'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Subaru'), 'Coupe');
+
+-- Tesla Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Tesla'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Tesla'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Tesla'), 'Truck');
+
+-- Toyota Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Truck'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Minivan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Coupe'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Toyota'), 'Hatchback');
+
+-- Volkswagen Body Types
+INSERT INTO vehicle_body_types (brand_id, name) VALUES 
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Sedan'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'SUV'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Hatchback'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Wagon'),
+    ((SELECT id FROM vehicle_brands WHERE name = 'Volkswagen'), 'Convertible');
+
+-- ============================================
+-- INSERT VEHICLE SERVICES (Detailing Packages)
+-- ============================================
+INSERT INTO vehicle_services (name, price, rating, reviews, popular, description, vehicle_type, estimated_time) VALUES
+    ('PLATINUM Detailing Package', 299.00, 4.72, 23782, TRUE, 'Our signature auto detailing package with comprehensive INTERIOR and EXTERIOR services including shampoo and high quality wax.', 'car', '180 minutes'),
+    ('GOLD Detailing Package', 219.00, 4.76, 11966, FALSE, 'Combines the complete EXTERIOR detail and hand wax with Interior vacuum, wipe down, and leather/vinyl dressings', 'car', '120 minutes'),
+    ('TITANIUM Detailing Package', 545.00, 4.68, 1648, FALSE, 'Our most thorough detailing package! A complete exterior detail with single pass compounding/buffing paint correction combined with a full interior detailing.', 'car', '240 minutes'),
+    ('TITANIUM Exterior Only', 455.00, 4.67, 467, FALSE, 'All of the exterior services in the FULL Titanium detail package.', 'truck', '120 minutes'),
+    ('INTERIOR Only Detailing', 219.00, 4.73, 13782, FALSE, 'INTERIOR ONLY detailing package including vacuum, shampoo, deep cleaning and leather/vinyl dressings.', 'car', '120 minutes');
+
+-- ============================================
+-- INSERT VEHICLE ADD-ON OPTIONS
+-- ============================================
+INSERT INTO vehicle_add_on_options (id, name, price, description, details, per_seat) VALUES
+    ('pet-hair', 'Pet Hair Removal', 70.00, 'Remove all visible pet hair from interior', 'Complete removal of pet hair from all surfaces', FALSE),
+    ('super-interior', 'Super Interior', 140.00, 'Double shampoo, stain pre-treatment, pet hair removal', 'Deep clean with stain removal and pet hair extraction', FALSE),
+    ('interior-sanitizing', 'Interior Sanitizing', 60.00, 'Sanitize/disinfect all interior surfaces', 'Anti-microbial treatment for all surfaces', FALSE),
+    ('rain-x', 'Rain X Treatment', 30.00, 'Treat all exterior glass with water repellent', 'Hydrophobic coating for all exterior glass', FALSE),
+    ('polymer-sealant', 'Polymer Sealant', 35.00, 'Extend paint protection for up to 6 months', 'Synthetic sealant for long-lasting protection', FALSE),
+    ('headlight-restoration', 'Headlight Restoration', 105.00, 'Restore headlights to bright and brilliant shine', 'Professional headlight restoration service', FALSE),
+    ('child-seat', 'Child Seat Cleaning', 35.00, 'Vacuum, wipe down, and shampoo child seat', 'Deep clean and sanitize child safety seats', TRUE);
+
+-- ============================================
+-- INSERT VEHICLE CONDITIONS
+-- ============================================
+INSERT INTO vehicle_conditions (name) VALUES
+    ('Excessive pet hair'),
+    ('Mold/mildew'),
+    ('Human or animal biological waste'),
+    ('Heavy soilage/stains'),
+    ('Foul odors'),
+    ('Tree sap'),
+    ('Exterior hard water spots'),
+    ('Overspray (paint, concrete, tar, chemical, etc)');
+
+-- ============================================
+-- INSERT VEHICLE ARRIVAL WINDOWS
+-- ============================================
+INSERT INTO vehicle_arrival_windows (window_time, display_order) VALUES
+    ('8am - 11am', 1),
+    ('10am - 1pm', 2),
+    ('12pm - 3pm', 3),
+    ('2pm - 5pm', 4);
+
+-- ============================================
+-- INSERT VEHICLE AUSTRALIAN POSTCODES
+-- ============================================
+INSERT INTO vehicle_australian_postcodes (state, min_postcode, max_postcode) VALUES
+    ('VIC', 3000, 3999),
+    ('NSW', 2000, 2999),
+    ('QLD', 4000, 4999),
+    ('SA', 5000, 5999),
+    ('WA', 6000, 6999),
+    ('TAS', 7000, 7999),
+    ('NT', 800, 999),
+    ('ACT', 2600, 2618);
+
+-- ============================================
+-- VERIFY DATA
+-- ============================================
+
+-- Check Brands
+SELECT * FROM vehicle_brands ORDER BY name;
+
+-- Check Models with Brand names
 SELECT 
-    b.id,
-    b.first_name,
-    b.last_name,
-    b.email,
-    b.phone,
-    b.appointment_date,
-    b.selected_windows,
-    b.package_name,
-    b.total_price,
-    b.status,
-    b.created_at,
-    b.vehicle_make,
-    b.vehicle_model,
-    b.vehicle_year,
-    b.city,
-    b.state,
-    b.zip_code,
-    b.add_ons
-FROM vehicle_bookings b
-ORDER BY b.created_at DESC;
+    vm.id,
+    vb.name as brand_name,
+    vm.name as model_name
+FROM vehicle_models vm
+JOIN vehicle_brands vb ON vm.brand_id = vb.id
+ORDER BY vb.name, vm.name;
 
--- View for monthly statistics
-CREATE OR REPLACE VIEW vehicle_booking_statistics AS
+-- Check Body Types with Brand names
 SELECT 
-    DATE_TRUNC('month', created_at) as month,
-    COUNT(*) as total_bookings,
-    SUM(total_price) as total_revenue,
-    AVG(total_price) as avg_booking_value,
-    COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
-    COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled,
-    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending
-FROM vehicle_bookings
-GROUP BY DATE_TRUNC('month', created_at)
-ORDER BY month DESC;
+    vbt.id,
+    vb.name as brand_name,
+    vbt.name as body_type_name
+FROM vehicle_body_types vbt
+JOIN vehicle_brands vb ON vbt.brand_id = vb.id
+ORDER BY vb.name, vbt.name;
 
--- ============================================
--- 18. STORED PROCEDURES
--- ============================================
-
--- Procedure to update booking status
-CREATE OR REPLACE FUNCTION update_vehicle_booking_status(
-    booking_id UUID,
-    new_status TEXT
-)
-RETURNS VOID AS $$
-BEGIN
-    UPDATE vehicle_bookings 
-    SET 
-        status = new_status,
-        updated_at = NOW(),
-        confirmed_at = CASE WHEN new_status = 'confirmed' THEN NOW() ELSE confirmed_at END,
-        completed_at = CASE WHEN new_status = 'completed' THEN NOW() ELSE completed_at END,
-        cancelled_at = CASE WHEN new_status = 'cancelled' THEN NOW() ELSE cancelled_at END
-    WHERE id = booking_id;
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to get available dates
-CREATE OR REPLACE FUNCTION get_vehicle_available_dates(
-    start_date DATE DEFAULT CURRENT_DATE,
-    days_ahead INTEGER DEFAULT 14
-)
-RETURNS TABLE(
-    available_date DATE,
-    day_of_week TEXT,
-    is_available BOOLEAN
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        generate_series(start_date, start_date + days_ahead, INTERVAL '1 day')::DATE as available_date,
-        TO_CHAR(generate_series(start_date, start_date + days_ahead, INTERVAL '1 day'), 'Day') as day_of_week,
-        true as is_available;
-END;
-$$ LANGUAGE plpgsql;
-
--- ============================================
--- 19. SAMPLE QUERIES
--- ============================================
-
--- Get all bookings with package details
-/*
+-- Count Models per Brand
 SELECT 
-    b.*,
-    s.name as service_name,
-    s.price as service_price
-FROM vehicle_bookings b
-LEFT JOIN vehicle_services s ON b.package_id = s.id
-ORDER BY b.created_at DESC;
-*/
+    vb.name as brand_name,
+    COUNT(vm.id) as model_count
+FROM vehicle_brands vb
+LEFT JOIN vehicle_models vm ON vb.id = vm.brand_id
+GROUP BY vb.id, vb.name
+ORDER BY model_count DESC;
 
--- Get bookings by date range
-/*
-SELECT * FROM vehicle_bookings 
-WHERE appointment_date BETWEEN '2024-01-01' AND '2024-12-31'
-ORDER BY appointment_date;
-*/
-
--- Get bookings by status
-/*
-SELECT * FROM vehicle_bookings WHERE status = 'pending';
-*/
-
--- Get revenue by month
-/*
-SELECT * FROM vehicle_booking_statistics;
-*/
-
--- Get all add-ons for a booking
-/*
+-- Count Body Types per Brand
 SELECT 
-    b.id,
-    b.first_name,
-    b.last_name,
-    jsonb_each_text(b.add_ons) as add_on
-FROM vehicle_bookings b;
-*/
+    vb.name as brand_name,
+    COUNT(vbt.id) as body_type_count
+FROM vehicle_brands vb
+LEFT JOIN vehicle_body_types vbt ON vb.id = vbt.brand_id
+GROUP BY vb.id, vb.name
+ORDER BY body_type_count DESC;
 
 -- ============================================
--- 20. INSERT VEHICLE MAKES WITH MODELS AND BODY TYPES
+-- SAMPLE QUERIES FOR ADMIN DASHBOARD
 -- ============================================
 
--- Audi
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'A3'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'A4'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'A5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'A6'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'A7'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'A8'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'Q3'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'Q5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'Q7'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'Q8'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'e-tron'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'RS5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'RS7'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'S4'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'S5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'S6'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'S7'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'S8');
+-- Get all models grouped by Brand (for dashboard)
+SELECT 
+    vb.name as brand_name,
+    json_agg(vm.name ORDER BY vm.name) as models
+FROM vehicle_brands vb
+LEFT JOIN vehicle_models vm ON vb.id = vm.brand_id
+GROUP BY vb.id, vb.name
+ORDER BY vb.name;
 
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'Coupe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'Convertible'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'Wagon'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Audi'), 'Hatchback');
+-- Get all body types grouped by Brand
+SELECT 
+    vb.name as brand_name,
+    json_agg(vbt.name ORDER BY vbt.name) as body_types
+FROM vehicle_brands vb
+LEFT JOIN vehicle_body_types vbt ON vb.id = vbt.brand_id
+GROUP BY vb.id, vb.name
+ORDER BY vb.name;
 
--- BMW
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), '1 Series'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), '2 Series'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), '3 Series'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), '4 Series'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), '5 Series'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), '6 Series'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), '7 Series'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), '8 Series'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'X1'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'X2'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'X3'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'X4'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'X5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'X6'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'X7'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'i3'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'i4'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'i5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'i7'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'iX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'Z4');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'Coupe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'Convertible'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'Wagon'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'BMW'), 'Hatchback');
-
--- Toyota
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Camry'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Corolla'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'RAV4'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Highlander'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Tacoma'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Tundra'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Sienna'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Prius'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), '4Runner'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Land Cruiser'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Sequoia'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Avalon'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'C-HR'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'GR Supra'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'GR86');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Truck'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Minivan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Coupe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Toyota'), 'Hatchback');
-
--- Tesla
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Tesla'), 'Model 3'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Tesla'), 'Model S'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Tesla'), 'Model X'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Tesla'), 'Model Y'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Tesla'), 'Cybertruck'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Tesla'), 'Roadster');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Tesla'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Tesla'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Tesla'), 'Truck');
-
--- Ford
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'F-150'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Mustang'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Explorer'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Escape'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Bronco'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Bronco Sport'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Edge'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Expedition'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Ranger'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Maverick'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Mustang Mach-E'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Transit');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Truck'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Coupe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Convertible'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ford'), 'Minivan');
-
--- Honda
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Accord'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Civic'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'CR-V'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'HR-V'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Passport'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Pilot'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Odyssey'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Ridgeline'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Insight'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Clarity');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Minivan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Truck'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Honda'), 'Hatchback');
-
--- Chevrolet
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Silverado'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Equinox'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Tahoe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Suburban'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Traverse'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Trailblazer'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Colorado'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Blazer'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Malibu'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Camaro'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Corvette'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Bolt EUV');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Truck'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Coupe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Chevrolet'), 'Convertible');
-
--- Mercedes-Benz
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'A-Class'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'B-Class'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'C-Class'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'CLA'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'CLS'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'E-Class'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'EQE'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'EQS'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'G-Class'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'GLA'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'GLB'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'GLC'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'GLE'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'GLS'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'GT'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'S-Class'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'SL'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'AMG GT');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'Coupe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'Convertible'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'Wagon'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mercedes-Benz'), 'Hatchback');
-
--- Volkswagen
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Golf'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Jetta'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Passat'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Tiguan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Atlas'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'ID.4'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Taos'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Arteon'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'GTI'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'R');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Hatchback'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Wagon'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Volkswagen'), 'Convertible');
-
--- Hyundai
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Elantra'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Sonata'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Tucson'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Santa Fe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Palisade'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Kona'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Ioniq 5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Ioniq 6'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Venue');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Hatchback'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Hyundai'), 'Coupe');
-
--- Kia
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Sportage'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Sorento'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Telluride'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'K5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Forte'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Rio'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Soul'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'EV6'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'EV9'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Niro');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Hatchback'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Kia'), 'Coupe');
-
--- Nissan
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Altima'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Maxima'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Sentra'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Rogue'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Pathfinder'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Armada'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Frontier'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Titan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Leaf'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Ariya'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Z');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Truck'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Coupe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Nissan'), 'Hatchback');
-
--- Subaru
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'Outback'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'Forester'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'Crosstrek'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'Ascent'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'Legacy'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'Impreza'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'WRX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'BRZ');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'Hatchback'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Subaru'), 'Coupe');
-
--- Lexus
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'ES'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'IS'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'LS'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'RX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'NX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'GX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'LX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'UX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'RZ'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'LC');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'Coupe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Lexus'), 'Convertible');
-
--- Jeep
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'Wrangler'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'Grand Cherokee'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'Cherokee'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'Compass'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'Renegade'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'Gladiator'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'Wagoneer'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'Grand Wagoneer');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Jeep'), 'Truck');
-
--- Ram
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ram'), '1500'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ram'), '2500'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ram'), '3500'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ram'), 'ProMaster'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ram'), 'ProMaster City');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ram'), 'Truck'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Ram'), 'Van');
-
--- GMC
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'GMC'), 'Sierra'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'GMC'), 'Yukon'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'GMC'), 'Terrain'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'GMC'), 'Acadia'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'GMC'), 'Canyon'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'GMC'), 'Hummer EV');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'GMC'), 'Truck'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'GMC'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'GMC'), 'Van');
-
--- Mazda
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'Mazda3'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'Mazda6'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'CX-3'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'CX-5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'CX-9'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'MX-5 Miata'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'CX-50'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'CX-90');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'Coupe'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Mazda'), 'Convertible');
-
--- Acura
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Acura'), 'Integra'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Acura'), 'TLX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Acura'), 'MDX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Acura'), 'RDX'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Acura'), 'NSX');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Acura'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Acura'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Acura'), 'Coupe');
-
--- Cadillac
-INSERT INTO vehicle_models (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'CT4'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'CT5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'XT4'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'XT5'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'XT6'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'Escalade'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'Lyriq');
-
-INSERT INTO vehicle_body_types (make_id, name) VALUES 
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'Sedan'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'SUV'),
-    ((SELECT id FROM vehicle_makes WHERE name = 'Cadillac'), 'Coupe');
-
--- Add more makes as needed...
+-- Get brand with its models and body types
+SELECT 
+    vb.name as brand_name,
+    (SELECT json_agg(vm.name) FROM vehicle_models vm WHERE vm.brand_id = vb.id) as models,
+    (SELECT json_agg(vbt.name) FROM vehicle_body_types vbt WHERE vbt.brand_id = vb.id) as body_types
+FROM vehicle_brands vb
+ORDER BY vb.name;
 
 
+-- Disable RLS on all vehicle tables
+ALTER TABLE vehicle_categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_brands DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_models DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_body_types DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_services DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_service_exterior_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_service_interior_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_add_on_options DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_conditions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_arrival_windows DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_australian_postcodes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vehicle_bookings DISABLE ROW LEVEL SECURITY;

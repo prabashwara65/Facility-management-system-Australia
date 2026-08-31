@@ -103,11 +103,11 @@ export default function DashboardPage() {
         return <PromiseContent />;
       case 'Testimonials':
         return <TestimonialsContent />;
-      case 'ServiceAreas':
+      case 'Service Areas':
         return <ServiceAreasContent />;
       case 'Bookings':
         return <BookingSection />;
-      case 'MobileDetailing':
+      case 'Mobile Detailing':
         return <MobileDetailing />;
       default:
         return <HomeContent />;
