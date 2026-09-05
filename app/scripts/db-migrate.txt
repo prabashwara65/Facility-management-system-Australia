@@ -1,0 +1,83 @@
+node -e "
+const { Client } = require('pg');
+const fs = require('fs');
+const path = require('path');
+
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: false
+});
+
+async function run() {
+  try {
+    await client.connect();
+    console.log('✅ Connected to Railway PostgreSQL');
+    console.log('🚀 Running migrations...');
+
+    // Check in app/database/migrations
+    const migrationsDir = 'app/database/migrations';
+    if (fs.existsSync(migrationsDir)) {
+      const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+      console.log(\`📁 Found \${files.length} migration files in app/database/migrations/\`);
+      for (const file of files) {
+        console.log(\`  → Applying \${file}...\`);
+        const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+        await client.query(sql);
+      }
+    } else {
+      console.log('❌ Migrations directory not found at app/database/migrations/');
+      console.log('Checking alternative locations...');
+      
+      // Try alternative locations
+      const altDirs = ['database/migrations', 'migrations', 'app/migrations'];
+      for (const dir of altDirs) {
+        if (fs.existsSync(dir)) {
+          console.log(\`✅ Found migrations in \${dir}\`);
+          const files = fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort();
+          for (const file of files) {
+            console.log(\`  → Applying \${file}...\`);
+            const sql = fs.readFileSync(path.join(dir, file), 'utf8');
+            await client.query(sql);
+          }
+          break;
+        }
+      }
+    }
+
+    // Check seeders
+    const seedersDir = 'app/database/seeders';
+    if (fs.existsSync(seedersDir)) {
+      console.log('🌱 Running seeders...');
+      const files = fs.readdirSync(seedersDir).filter(f => f.endsWith('.sql')).sort();
+      console.log(\`📁 Found \${files.length} seeder files in app/database/seeders/\`);
+      for (const file of files) {
+        console.log(\`  → Seeding \${file}...\`);
+        const sql = fs.readFileSync(path.join(seedersDir, file), 'utf8');
+        await client.query(sql);
+      }
+    } else {
+      console.log('⚠️  No seeders directory found at app/database/seeders/');
+    }
+
+    console.log('✅ Migration complete!');
+    
+    // Show tables
+    const result = await client.query(\`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_type = 'BASE TABLE'
+      ORDER BY table_name;
+    \`);
+    console.log('\n📊 Tables created:');
+    result.rows.forEach(row => console.log(\`  ✓ \${row.table_name}\`));
+
+    await client.end();
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+    process.exit(1);
+  }
+}
+
+run();
+"

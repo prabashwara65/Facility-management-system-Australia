@@ -1,29 +1,19 @@
-// lib/supabase/server.ts
-import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { SESSION_COOKIE, verifySessionToken } from '@/lib/auth/session';
 
 export async function createClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Server Components cannot always write refreshed auth cookies.
-            // Supabase will still read the current request cookies correctly.
-          }
-        },
+  return {
+    auth: {
+      async getUser() {
+        return {
+          data: {
+            user: verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value),
+          },
+          error: null,
+        };
       },
-    }
-  );
+    },
+  };
 }

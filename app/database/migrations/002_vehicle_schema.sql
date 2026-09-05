@@ -2,6 +2,8 @@
 -- MIGRATION 002: Vehicle Detailing Schema
 -- ============================================
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Drop tables in correct order
 DROP TABLE IF EXISTS vehicle_service_exterior_items CASCADE;
 DROP TABLE IF EXISTS vehicle_service_interior_items CASCADE;
@@ -28,6 +30,7 @@ CREATE TABLE vehicle_categories (
 CREATE TABLE vehicle_brands (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE NOT NULL,
+    category_id TEXT REFERENCES vehicle_categories(id),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

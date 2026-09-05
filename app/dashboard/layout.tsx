@@ -1,29 +1,17 @@
 import type { ReactNode } from 'react';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { SESSION_COOKIE, verifySessionToken } from '@/lib/auth/session';
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export default async function DashboardLayout({ children }: DashboardLayoutProps) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const cookieStore = await cookies();
+  const user = verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value);
 
-  if (userError || !user) {
-    redirect('/login');
-  }
-
-  const { data: adminUser, error: adminError } = await supabase
-    .from('admin_users')
-    .select('id')
-    .eq('id', user.id)
-    .single();
-
-  if (adminError || !adminUser) {
+  if (!user) {
     redirect('/login');
   }
 

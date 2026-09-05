@@ -14,7 +14,7 @@ echo "🚀 Starting migration to Railway PostgreSQL..."
 
 # Run migrations (schema only)
 echo "📦 Running migrations..."
-for migration in database/migrations/*.sql; do
+for migration in app/database/migrations/*.sql; do
     echo "  → Applying $(basename $migration)..."
     psql "$DB_URL" -f "$migration"
     if [ $? -ne 0 ]; then
@@ -25,7 +25,7 @@ done
 
 # Run seeders (data only)
 echo "🌱 Running seeders..."
-for seeder in database/seeders/*.sql; do
+for seeder in app/database/seeders/*.sql; do
     echo "  → Seeding $(basename $seeder)..."
     psql "$DB_URL" -f "$seeder"
     if [ $? -ne 0 ]; then

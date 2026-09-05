@@ -10,6 +10,15 @@ INSERT INTO bookings (phone, email, service_area, hours) VALUES (
   'Mon–Sat, 7am–6pm'
 );
 
+INSERT INTO contact_info (phone, email, service_area, hours, guarantee_title, guarantee_description) VALUES (
+  '1800 123 456',
+  'hello@sparkwell.com.au',
+  'Melbourne, VIC',
+  'Mon–Sat, 7am–6pm',
+  'Bond-Back Guarantee',
+  'If your property manager is not satisfied, we return free of charge. That is our promise.'
+);
+
 -- Insert services
 INSERT INTO services (icon, title, price, description, sort_order) VALUES
   ('Home', 'End of Lease Clean', 'From $280', 'Bond-back guarantee with our comprehensive end-of-tenancy deep clean. We cover every corner.', 1),

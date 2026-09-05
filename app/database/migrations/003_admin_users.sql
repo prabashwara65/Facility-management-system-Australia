@@ -9,6 +9,7 @@ CREATE TABLE admin_users (
   email TEXT UNIQUE NOT NULL,
   full_name TEXT,
   role TEXT DEFAULT 'admin',
+  password_hash TEXT,
   is_active BOOLEAN DEFAULT true,
   last_login TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
