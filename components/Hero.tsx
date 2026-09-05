@@ -1,11 +1,14 @@
 'use client';
 
+import Image from "next/image";
+import Link from "next/link";
 import {
   ShieldCheck,
   Flag,
   BadgeCheck,
   Star,
   Recycle,
+  LogIn,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -35,6 +38,51 @@ export default function Hero({ onScrollTrigger }: HeroProps) {
 
   return (
     <section className="relative h-[60svh] min-h-[480px] w-full overflow-hidden rounded-lg lg:h-screen">
+      <Link
+        href="/"
+        className="absolute left-4 top-4 z-30 flex max-w-[calc(100%-5.5rem)] items-center gap-2 rounded-[14px] border px-2.5 py-2 shadow-lg backdrop-blur-md lg:hidden"
+        style={{
+          backgroundColor: 'color-mix(in srgb, var(--theme-surface) 82%, transparent)',
+          borderColor: 'rgba(255,255,255,0.55)',
+          color: 'var(--theme-primary)',
+          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.08)',
+        }}
+        aria-label="Shining Property Service home"
+      >
+        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
+          <Image
+            src="/img/02.png"
+            alt="Shining Property Service"
+            width={28}
+            height={28}
+            className="h-full w-full object-cover"
+            priority
+          />
+        </span>
+        <span className="min-w-0 font-serif text-[13px] font-bold leading-tight">
+          <span style={{ color: 'var(--theme-primary)' }}>SHINING</span>
+          <span className="block truncate text-[10px]" style={{ color: 'var(--theme-secondary)' }}>
+            PROPERTY SERVICE
+          </span>
+        </span>
+      </Link>
+
+      <Link
+        href="/login"
+        className="absolute right-4 top-4 z-30 flex h-11 w-11 items-center justify-center rounded-[14px] border shadow-lg backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 lg:hidden"
+        style={{
+          backgroundColor: '#F6D961',
+          borderColor: 'rgba(255,255,255,0.55)',
+          color: '#111827',
+          outlineColor: 'var(--theme-secondary)',
+          boxShadow: '0 4px 15px rgba(246, 217, 97, 0.3)',
+        }}
+        aria-label="Login"
+        title="Login"
+      >
+        <LogIn className="h-5 w-5 flex-shrink-0" />
+      </Link>
+
       {/* Background Image */}
       <img
         src="/img/cleaning_lady.avif"
@@ -72,7 +120,7 @@ export default function Hero({ onScrollTrigger }: HeroProps) {
             transition={{ delay: 0.2, duration: 0.5 }}
           >
             <span className="text-[8px] sm:text-[10px] font-semibold tracking-[0.08em] sm:text-xs" style={{ color: 'var(--hero-text)' }}>
-              MELBOURNE'S MOST TRUSTED
+              MELBOURNE&apos;S MOST TRUSTED
             </span>
           </motion.div>
 

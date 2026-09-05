@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { isSafePasswordInput, isValidEmail, sanitizeEmail, validateSafeFields } from '@/lib/security/input';
 
@@ -127,8 +128,35 @@ export default function AdminLoginPage() {
         justifyContent: 'center',
         background: '#f5f7fa',
         padding: '20px',
+        position: 'relative',
       }}
     >
+      <button
+        type="button"
+        onClick={() => router.back()}
+        aria-label="Go back"
+        style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          border: '1px solid #d1d5db',
+          borderRadius: '12px',
+          background: 'white',
+          color: '#1a1a2e',
+          padding: '10px 14px',
+          fontSize: '14px',
+          fontWeight: 600,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+          cursor: 'pointer',
+        }}
+      >
+        <ArrowLeft size={18} />
+        Back
+      </button>
+
       <div
         style={{
           width: '100%',

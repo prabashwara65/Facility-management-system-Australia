@@ -294,10 +294,10 @@ export default function Navbar({
       )}
     </AnimatePresence>
 
-    {/* Mobile Bottom Navigation Bar - Using var(--theme-surface) */}
-    <div className="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 w-full overflow-hidden px-2 lg:hidden">
+    {/* Mobile Floating Navigation */}
+    <div className="fixed bottom-[calc(1.125rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 w-full overflow-hidden px-3 lg:hidden">
       <motion.nav
-        className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border px-1.5 py-2 shadow-2xl backdrop-blur-md sm:px-2"
+        className="mx-auto flex w-full max-w-[360px] items-center justify-center gap-2 rounded-3xl border p-2.5 shadow-2xl backdrop-blur-md"
         initial={{ y: 96 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.45, ease: 'easeOut' }}
@@ -308,54 +308,44 @@ export default function Navbar({
         }}
         aria-label="Primary navigation"
       >
-        <div className="grid min-w-0 grid-cols-7 gap-0.5 sm:gap-1">
-          {navLinks.map(({ href, shortLabel, icon }) => (
-            <a
-              key={href}
-              href={href}
-              onClick={(e) => scrollToSection(e, href)}
-              className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 text-[9px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 min-[380px]:text-[10px] sm:px-1 sm:text-xs"
-              style={{
-                color: 'var(--theme-text)',
-                outlineColor: 'var(--theme-secondary)',
-              }}
-            >
-              <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center opacity-70">{icon}</span>
-              <span className="block max-w-full truncate leading-none">{shortLabel}</span>
-            </a>
-          ))}
-
-          <button
-            type="button"
-            onClick={() => setIsThemeDropdownOpen((open) => !open)}
-            className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 text-[9px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 min-[380px]:text-[10px] sm:px-1 sm:text-xs"
+        {navLinks.map(({ href, label, icon }) => (
+          <a
+            key={href}
+            href={href}
+            onClick={(e) => scrollToSection(e, href)}
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px] border transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
             style={{
-              backgroundColor: isThemeDropdownOpen
-                ? 'color-mix(in srgb, var(--theme-secondary) 12%, transparent)'
-                : 'transparent',
+              backgroundColor: 'color-mix(in srgb, var(--theme-surface) 86%, transparent)',
+              borderColor: 'var(--theme-border)',
               color: 'var(--theme-text)',
               outlineColor: 'var(--theme-secondary)',
             }}
-            aria-label="Choose theme"
-            aria-expanded={isThemeDropdownOpen}
+            aria-label={label}
+            title={label}
           >
-            <Palette className="h-4 w-4 flex-shrink-0 opacity-70" />
-            <span className="block max-w-full truncate leading-none">Theme</span>
-          </button>
+            <span className="flex h-5 w-5 items-center justify-center opacity-75">{icon}</span>
+          </a>
+        ))}
 
-          <Link
-            href="/login"
-            className="flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 text-[9px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 min-[380px]:text-[10px] sm:px-1 sm:text-xs"
-            style={{
-              color: 'var(--theme-text)',
-              outlineColor: 'var(--theme-secondary)',
-            }}
-            aria-label="Login"
-          >
-            <LogIn className="h-4 w-4 flex-shrink-0 opacity-70" />
-            <span className="block max-w-full truncate leading-none">Login</span>
-          </Link>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsThemeDropdownOpen((open) => !open)}
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[14px] border transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{
+            backgroundColor: isThemeDropdownOpen
+              ? 'color-mix(in srgb, var(--theme-secondary) 16%, var(--theme-surface))'
+              : 'color-mix(in srgb, var(--theme-surface) 86%, transparent)',
+            borderColor: isThemeDropdownOpen ? 'var(--theme-secondary)' : 'var(--theme-border)',
+            color: 'var(--theme-text)',
+            outlineColor: 'var(--theme-secondary)',
+          }}
+          aria-label="Choose theme"
+          aria-expanded={isThemeDropdownOpen}
+          title="Theme"
+        >
+          <Palette className="h-5 w-5 flex-shrink-0 opacity-75" />
+        </button>
+
       </motion.nav>
     </div>
 
@@ -367,7 +357,21 @@ export default function Navbar({
         }
 
         body {
-          padding-bottom: calc(82px + env(safe-area-inset-bottom));
+          padding-bottom: calc(92px + env(safe-area-inset-bottom));
+        }
+      }
+
+      @media (max-width: 420px) {
+        nav[aria-label="Primary navigation"] {
+          max-width: 320px !important;
+          gap: 8px !important;
+          padding: 8px !important;
+        }
+
+        nav[aria-label="Primary navigation"] a,
+        nav[aria-label="Primary navigation"] button {
+          width: 42px !important;
+          height: 42px !important;
         }
       }
     `}</style>
