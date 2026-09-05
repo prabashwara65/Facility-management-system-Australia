@@ -224,6 +224,7 @@ export default function PricingSection() {
   const [activeCategory, setActiveCategory] = useState<ServiceCategory>('Residential');
   const [selectedTier, setSelectedTier] = useState<string>('');
   const [direction, setDirection] = useState(0);
+  const [isFaqSectionOpen, setIsFaqSectionOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [hoveredTier, setHoveredTier] = useState<string | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
@@ -388,6 +389,7 @@ export default function PricingSection() {
     if (tiers.length > 0) {
       setSelectedTier(tiers[0].label);
     }
+    setIsFaqSectionOpen(false);
     setOpenFaqIndex(null);
   };
 
@@ -552,7 +554,10 @@ export default function PricingSection() {
                   data={residentialData}
                   selectedTier={selectedTier}
                   setSelectedTier={setSelectedTier}
+                  isFaqSectionOpen={isFaqSectionOpen}
+                  setIsFaqSectionOpen={setIsFaqSectionOpen}
                   openFaqIndex={openFaqIndex}
+                  setOpenFaqIndex={setOpenFaqIndex}
                   toggleFaq={toggleFaq}
                   hoveredTier={hoveredTier}
                   setHoveredTier={setHoveredTier}
@@ -581,7 +586,10 @@ function ResidentialContent({
   data, 
   selectedTier, 
   setSelectedTier, 
+  isFaqSectionOpen,
+  setIsFaqSectionOpen,
   openFaqIndex, 
+  setOpenFaqIndex,
   toggleFaq,
   hoveredTier,
   setHoveredTier,
@@ -644,11 +652,11 @@ function ResidentialContent({
       </div>
 
       {/* Swiper Carousel for Tiers */}
-      <div className="relative px-12 sm:px-14 md:px-0">
-        {/* Navigation Arrows - Only visible on mobile/tablet */}
+      <div className="relative px-12 sm:px-14">
+        {/* Navigation Arrows */}
         <button
           onClick={() => swiperRef?.slidePrev()}
-          className={`md:hidden absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+          className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
             isBeginning 
               ? 'opacity-30 cursor-not-allowed' 
               : 'opacity-80 hover:opacity-100 hover:scale-110'
@@ -667,7 +675,7 @@ function ResidentialContent({
 
         <button
           onClick={() => swiperRef?.slideNext()}
-          className={`md:hidden absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+          className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
             isEnd 
               ? 'opacity-30 cursor-not-allowed' 
               : 'opacity-80 hover:opacity-100 hover:scale-110'
@@ -716,7 +724,7 @@ function ResidentialContent({
                   onClick={() => setSelectedTier(tier.label)}
                   onMouseEnter={() => setHoveredTier(tier.label)}
                   onMouseLeave={() => setHoveredTier(null)}
-                  className="relative cursor-pointer rounded-xl p-6 flex flex-col transition-all duration-300 border backdrop-blur-sm h-full min-h-[320px]"
+                  className={`relative cursor-pointer rounded-xl p-6 ${tier.isPopular ? 'pt-11' : ''} flex flex-col transition-all duration-300 border backdrop-blur-sm h-full min-h-[320px]`}
                   style={{
                     backgroundColor: isSelected ? 'var(--theme-secondary)' : 'rgba(255,255,255,0.08)',
                     borderColor: isSelected ? 'var(--theme-secondary)' : isHovered ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
@@ -728,10 +736,12 @@ function ResidentialContent({
                     <motion.span
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-[10px] font-bold tracking-wider uppercase px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap"
+                      className="absolute left-1/2 top-4 z-10 -translate-x-1/2 whitespace-nowrap rounded-full px-3.5 py-1 text-[11px] font-bold uppercase shadow-lg"
                       style={{
-                        backgroundColor: 'var(--theme-secondary)',
-                        color: 'white',
+                        backgroundColor: '#F6D961',
+                        border: '1px solid rgba(255,255,255,0.55)',
+                        color: '#111827',
+                        boxShadow: '0 8px 22px rgba(246, 217, 97, 0.32)',
                       }}
                     >
                       Most Popular
@@ -938,65 +948,103 @@ function ResidentialContent({
           border: '1px solid rgba(255,255,255,0.08)',
         }}
       >
-        <h2 className="text-xl font-serif font-semibold text-white text-center">
-          Frequently Asked Questions
-        </h2>
-        
-        <div className="space-y-3 max-w-3xl mx-auto">
-          {data.faqs.map((faq: any, index: number) => {
-            const isOpen = openFaqIndex === index;
-            
-            return (
-              <motion.div
-                key={faq.id}
-                className="rounded-lg overflow-hidden"
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                }}
-                initial={false}
-                animate={{ 
-                  borderColor: isOpen ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.06)',
-                }}
-              >
-                <button
-                  onClick={() => toggleFaq(index)}
-                  className="w-full px-5 py-4 flex items-center justify-between text-left transition-all duration-200 hover:bg-white/5"
-                >
-                  <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
-                    {faq.question}
-                  </span>
-                  <motion.span
-                    className="text-xl flex-shrink-0 ml-4"
-                    style={{ color: 'var(--theme-secondary)' }}
-                    animate={{ rotate: isOpen ? 45 : 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {isOpen ? '−' : '+'}
-                  </motion.span>
-                </button>
-                
-                <AnimatePresence>
-                  {isOpen && (
+        <button
+          type="button"
+          onClick={() => {
+            setIsFaqSectionOpen((isOpen: boolean) => !isOpen);
+            setOpenFaqIndex(null);
+          }}
+          className="mx-auto flex w-full max-w-3xl items-center justify-between rounded-lg px-5 py-4 text-left transition-all duration-200 hover:bg-white/5"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
+          aria-expanded={isFaqSectionOpen}
+          aria-controls="pricing-faq-list"
+        >
+          <span className="text-xl font-serif font-semibold text-white">
+            Frequently Asked Questions
+          </span>
+          <span
+            className="ml-4 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              color: 'var(--theme-secondary)',
+            }}
+          >
+            {isFaqSectionOpen ? <Minus size={18} /> : <Plus size={18} />}
+          </span>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {isFaqSectionOpen && (
+            <motion.div
+              id="pricing-faq-list"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <div className="space-y-3 max-w-3xl mx-auto">
+                {data.faqs.map((faq: any, index: number) => {
+                  const isOpen = openFaqIndex === index;
+
+                  return (
                     <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="overflow-hidden"
+                      key={faq.id}
+                      className="rounded-lg overflow-hidden"
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                      initial={false}
+                      animate={{
+                        borderColor: isOpen ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.06)',
+                      }}
                     >
-                      <div className="px-5 pb-4">
-                        <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                          {faq.answer}
-                        </p>
-                      </div>
+                      <button
+                        onClick={() => toggleFaq(index)}
+                        className="w-full px-5 py-4 flex items-center justify-between text-left transition-all duration-200 hover:bg-white/5"
+                        aria-expanded={isOpen}
+                      >
+                        <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>
+                          {faq.question}
+                        </span>
+                        <motion.span
+                          className="text-xl flex-shrink-0 ml-4"
+                          style={{ color: 'var(--theme-secondary)' }}
+                          animate={{ rotate: isOpen ? 45 : 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          {isOpen ? '-' : '+'}
+                        </motion.span>
+                      </button>
+
+                      <AnimatePresence>
+                        {isOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-5 pb-4">
+                              <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                                {faq.answer}
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
