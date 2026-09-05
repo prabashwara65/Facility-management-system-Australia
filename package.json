@@ -1,12 +1,16 @@
 {
-  "name": "sparkwell",
+  "name": "shiningpropertyservices",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:migrate": "node scripts/db-migrate.js",
+    "db:seed": "node scripts/db-migrate.js --seed",
+    "db:reset": "node scripts/db-migrate.js --reset",
+    "db:rollback": "node scripts/db-migrate.js --rollback"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
@@ -19,6 +23,7 @@
     "lucide-react": "^1.31.0",
     "next": "16.3.0",
     "nodemailer": "^9.0.5",
+    "pg": "^8.13.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-redux": "^9.3.0",
