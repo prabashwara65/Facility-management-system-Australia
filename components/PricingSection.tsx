@@ -652,11 +652,11 @@ function ResidentialContent({
       </div>
 
       {/* Swiper Carousel for Tiers */}
-      <div className="relative px-12 sm:px-14">
-        {/* Navigation Arrows */}
+      <div className="relative px-12 sm:px-14 md:px-0">
+        {/* Navigation Arrows - Only visible on mobile/tablet */}
         <button
           onClick={() => swiperRef?.slidePrev()}
-          className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+          className={`md:hidden absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
             isBeginning 
               ? 'opacity-30 cursor-not-allowed' 
               : 'opacity-80 hover:opacity-100 hover:scale-110'
@@ -675,7 +675,7 @@ function ResidentialContent({
 
         <button
           onClick={() => swiperRef?.slideNext()}
-          className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+          className={`md:hidden absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
             isEnd 
               ? 'opacity-30 cursor-not-allowed' 
               : 'opacity-80 hover:opacity-100 hover:scale-110'

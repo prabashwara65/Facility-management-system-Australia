@@ -142,6 +142,12 @@ export default function Navbar({
       </button>
 
       <style jsx>{`
+        @media (min-width: 1025px) {
+          .dashboard-topbar {
+            display: none !important;
+          }
+        }
+
         @media (max-width: 420px) {
           .dashboard-topbar {
             width: min(320px, calc(100vw - 20px)) !important;
@@ -159,6 +165,12 @@ export default function Navbar({
       <style jsx global>{`
         .dashboard-content {
           padding-bottom: 92px;
+        }
+
+        @media (min-width: 1025px) {
+          .dashboard-content {
+            padding-bottom: 0;
+          }
         }
       `}</style>
     </header>
