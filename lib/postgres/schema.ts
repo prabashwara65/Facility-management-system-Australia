@@ -30,6 +30,7 @@ export const tableColumns = {
   ],
   vehicle_brands: ['id', 'name', 'category_id', 'created_at'],
   vehicle_categories: ['id', 'label', 'icon_name', 'created_at'],
+  vehicle_conditions: ['id', 'name', 'created_at'],
   vehicle_models: ['id', 'brand_id', 'make_id', 'name', 'created_at'],
   vehicle_service_exterior_items: ['id', 'service_id', 'item', 'display_order', 'created_at'],
   vehicle_service_interior_items: ['id', 'service_id', 'item', 'display_order', 'created_at'],
