@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import {
+  isValidEmail,
+  sanitizeEmail,
+  sanitizeInputValue,
+  validateSafePayload,
+} from '@/lib/security/input';
 
 interface AddOnOption {
   id: string;
@@ -180,7 +186,14 @@ function formatAddOns(addOns: SelectedAddOn[] | Record<string, number>): Formatt
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as BookingEmailData;
+    const unsafeBody = (await request.json()) as BookingEmailData;
+    const unsafeMessage = validateSafePayload(unsafeBody, 'Booking');
+
+    if (unsafeMessage) {
+      return NextResponse.json({ success: false, error: unsafeMessage }, { status: 400 });
+    }
+
+    const body = sanitizeInputValue(unsafeBody) as BookingEmailData;
     const {
       firstName,
       lastName,
@@ -216,6 +229,12 @@ export async function POST(request: Request) {
       addOnsTotal,
       backupDate,
     } = body;
+
+    const safeEmail = sanitizeEmail(email || '');
+
+    if (!isValidEmail(safeEmail)) {
+      return NextResponse.json({ success: false, error: 'Please enter a valid email address.' }, { status: 400 });
+    }
 
     const cleanedName = cleanName(firstName, lastName);
     const formattedAddOns = formatAddOns(selectedAddOns || []);
@@ -457,7 +476,7 @@ export async function POST(request: Request) {
                 </div>
                 <div class="row">
                   <span class="label">Email</span>
-                  <span class="value">${escapeHtml(email)}</span>
+                  <span class="value">${escapeHtml(safeEmail)}</span>
                 </div>
                 <div class="row">
                   <span class="label">Phone</span>
@@ -674,7 +693,7 @@ export async function POST(request: Request) {
       to: 'shiningpropertyofficial@gmail.com',
       subject: `Mobile Detailing Booking: ${selectedPackage?.name || 'Booking'} - ${cleanedName.firstName} ${cleanedName.lastName}`,
       html,
-      replyTo: email,
+      replyTo: safeEmail,
     });
 
     return NextResponse.json({

@@ -8,6 +8,7 @@ import {
   tableColumns,
   type PublicTable,
 } from '@/lib/postgres/schema';
+import { sanitizeInputValue, validateSafePayload } from '@/lib/security/input';
 
 type Filter = {
   column: string;
@@ -100,7 +101,7 @@ function buildInsertSql(table: PublicTable, body: RequestBody, values: unknown[]
   const records = (Array.isArray(body.values) ? body.values : [body.values]).filter(Boolean) as Record<string, unknown>[];
   if (!records.length) throw new Error('Insert requires values.');
 
-  const mappedRecords = records.map((record) => mapInputRecord(table, record));
+  const mappedRecords = records.map((record) => mapInputRecord(table, sanitizeInputValue(record) as Record<string, unknown>));
   const columns = Object.keys(mappedRecords[0]);
   columns.forEach((column) => resolveColumnName(table, column));
 
@@ -122,7 +123,7 @@ function buildInsertSql(table: PublicTable, body: RequestBody, values: unknown[]
 
 function buildUpdateSql(table: PublicTable, body: RequestBody, values: unknown[]) {
   if (!body.values || Array.isArray(body.values)) throw new Error('Update requires one values object.');
-  const mappedRecord = mapInputRecord(table, body.values);
+  const mappedRecord = mapInputRecord(table, sanitizeInputValue(body.values) as Record<string, unknown>);
   const entries = Object.entries(mappedRecord);
   if (!entries.length) throw new Error('Update requires at least one value.');
 
@@ -153,6 +154,14 @@ export async function POST(request: Request, context: { params: Promise<{ table:
 
     if (!(table in tableColumns)) {
       throw new Error(`Table is not allowed: ${requestedTable}`);
+    }
+
+    const unsafeMessage = validateSafePayload(body, 'Request');
+    if (unsafeMessage) {
+      return NextResponse.json(
+        { data: null, error: { message: unsafeMessage } },
+        { status: 400 }
+      );
     }
 
     let sql = '';

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { query } from '@/lib/postgres/server';
 import { createSessionToken, SESSION_COOKIE, type AdminSessionUser } from '@/lib/auth/session';
-import { sanitizeEmail } from '@/lib/security/input';
+import { isSafePasswordInput, isValidEmail, sanitizeEmail, validateSafeFields } from '@/lib/security/input';
 
 type AdminRow = {
   id: string;
@@ -18,6 +18,11 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { email?: string; password?: string };
     const email = sanitizeEmail(body.email || '');
     const password = body.password || '';
+    const unsafeMessage = validateSafeFields({ Email: email });
+
+    if (!isValidEmail(email) || unsafeMessage || !isSafePasswordInput(password)) {
+      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+    }
 
     const result = await query<AdminRow>(
       'SELECT id, email, full_name, role, password_hash, is_active FROM admin_users WHERE email = $1 LIMIT 1',

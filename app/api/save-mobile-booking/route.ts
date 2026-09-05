@@ -1,5 +1,15 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/postgres/server';
+import {
+  isValidEmail,
+  sanitizeEmail,
+  sanitizeInputValue,
+  sanitizeMultilineText,
+  sanitizePhone,
+  sanitizePostcode,
+  sanitizeText,
+  validateSafePayload,
+} from '@/lib/security/input';
 
 interface MobileBookingPayload {
   firstName?: string;
@@ -63,45 +73,58 @@ function toIsoDate(value: string | null | undefined): string {
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as MobileBookingPayload;
+    const unsafePayload = (await request.json()) as MobileBookingPayload;
+    const unsafeMessage = validateSafePayload(unsafePayload, 'Booking');
+
+    if (unsafeMessage) {
+      return NextResponse.json({ success: false, error: unsafeMessage }, { status: 400 });
+    }
+
+    const payload = sanitizeInputValue(unsafePayload) as MobileBookingPayload;
+    const email = sanitizeEmail(payload.email || '');
+
+    if (!isValidEmail(email)) {
+      return NextResponse.json({ success: false, error: 'Please enter a valid email address.' }, { status: 400 });
+    }
+
     const packageId = Number(payload.selectedPackage?.id);
     const vehicleCategory = payload.selectedCategory && payload.selectedCategory !== 'all'
-      ? payload.selectedCategory
+      ? sanitizeText(payload.selectedCategory, 80)
       : null;
 
     const record = {
-      first_name: payload.firstName ?? '',
-      last_name: payload.lastName ?? '',
-      email: payload.email ?? '',
-      phone: payload.phone ?? '',
-      address: payload.address ?? '',
-      address_unit: payload.addressUnit ?? '',
-      city: payload.city ?? '',
-      state: payload.state ?? '',
-      zip_code: payload.zipCode || payload.infoZipCode || '',
-      service_area_zip: payload.infoZipCode || payload.zipCode || '',
+      first_name: sanitizeText(payload.firstName || '', 80),
+      last_name: sanitizeText(payload.lastName || '', 80),
+      email,
+      phone: sanitizePhone(payload.phone || ''),
+      address: sanitizeText(payload.address || '', 180),
+      address_unit: sanitizeText(payload.addressUnit || '', 80),
+      city: sanitizeText(payload.city || '', 80),
+      state: sanitizeText(payload.state || '', 40),
+      zip_code: sanitizePostcode(payload.zipCode || payload.infoZipCode || ''),
+      service_area_zip: sanitizePostcode(payload.infoZipCode || payload.zipCode || ''),
       booking_type: 'mobile',
-      vehicle_year: payload.selectedYear ?? '',
-      vehicle_brand: payload.selectedMake ?? '',
-      vehicle_model: payload.selectedModel ?? '',
-      vehicle_body: payload.selectedBody ?? '',
+      vehicle_year: sanitizeText(payload.selectedYear || '', 10),
+      vehicle_brand: sanitizeText(payload.selectedMake || '', 80),
+      vehicle_model: sanitizeText(payload.selectedModel || '', 80),
+      vehicle_body: sanitizeText(payload.selectedBody || '', 80),
       vehicle_category: vehicleCategory,
       vehicle_count: payload.vehicleCount ?? 1,
       package_id: Number.isFinite(packageId) ? packageId : null,
-      package_name: payload.selectedPackage?.name ?? '',
+      package_name: sanitizeText(payload.selectedPackage?.name || '', 120),
       package_price: parseMoney(payload.selectedPackage?.price ?? payload.packagePrice),
-      package_description: payload.selectedPackage?.description ?? '',
-      conditions: payload.selectedConditions || [],
-      other_condition: payload.otherCondition ?? '',
-      add_ons: JSON.stringify(payload.selectedAddOns || []),
+      package_description: sanitizeText(payload.selectedPackage?.description || '', 300),
+      conditions: (payload.selectedConditions || []).map((condition) => sanitizeText(condition, 80)),
+      other_condition: sanitizeText(payload.otherCondition || '', 180),
+      add_ons: JSON.stringify(sanitizeInputValue(payload.selectedAddOns || [])),
       add_ons_total: parseMoney(payload.addonsTotal ?? payload.addOnsTotal),
       appointment_date: toDateOnly(payload.selectedDate),
-      selected_windows: payload.selectedArrivalWindows || [],
+      selected_windows: (payload.selectedArrivalWindows || []).map((window) => sanitizeText(window, 80)),
       backup_date: payload.backupDate ? toDateOnly(payload.backupDate) : null,
       covered_area: payload.coveredArea ?? null,
       electricity: payload.electricity ?? null,
       water_access: payload.waterAccess ?? null,
-      extra_info: payload.extraInfo ?? '',
+      extra_info: sanitizeMultilineText(payload.extraInfo || '', 1000),
       marketing_opt_in: Boolean(payload.marketingOptIn),
       total_price: parseMoney(payload.totalPrice),
       status: 'pending',

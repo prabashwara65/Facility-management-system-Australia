@@ -1,5 +1,15 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import {
+  escapeHtml,
+  isValidEmail,
+  sanitizeEmail,
+  sanitizeInputValue,
+  sanitizeMultilineText,
+  sanitizePhone,
+  sanitizeText,
+  validateSafePayload,
+} from '@/lib/security/input';
 
 // Add-ons data for reference (should match the frontend)
 const addOnsData = [
@@ -21,9 +31,36 @@ const addOnsData = [
   { id: '16', name: 'Garage Clean', price: '$50+', description: 'Starting from $50', category: 'Deep Detail' },
 ];
 
+type AddOnInput = {
+  name?: unknown;
+  price?: unknown;
+  category?: unknown;
+};
+
+type BookingDataInput = {
+  selectedAddOns?: unknown;
+};
+
+function asString(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return '';
+  return String(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const unsafeBody = await request.json();
+    const unsafeMessage = validateSafePayload(unsafeBody, 'Booking');
+
+    if (unsafeMessage) {
+      return NextResponse.json({ success: false, error: unsafeMessage }, { status: 400 });
+    }
+
+    const body = sanitizeInputValue(unsafeBody) as Record<string, unknown>;
     
     const {
       // Customer Info
@@ -48,7 +85,6 @@ export async function POST(request: Request) {
       // Add-ons
       addOns,
       addOnsTotal,
-      addOnsSummary,
       
       // Total
       totalPrice,
@@ -67,8 +103,17 @@ export async function POST(request: Request) {
     } = body;
 
     // Clean and format names
-    let firstNameClean = (firstName || '').trim();
-    let lastNameClean = (lastName || '').trim();
+    let firstNameClean = sanitizeText(asString(firstName), 80);
+    let lastNameClean = sanitizeText(asString(lastName), 80);
+    const safeEmail = sanitizeEmail(asString(email));
+    const safePhone = sanitizePhone(asString(phone));
+    const safeAddress = sanitizeText(asString(address), 180);
+    const safeSuburb = sanitizeText(asString(suburb), 80);
+    const safeSpecialInstructions = sanitizeMultilineText(asString(specialInstructions), 1000);
+
+    if (!isValidEmail(safeEmail)) {
+      return NextResponse.json({ success: false, error: 'Please enter a valid email address.' }, { status: 400 });
+    }
 
     // Remove "Name" prefix if it exists
     if (firstNameClean.toLowerCase().startsWith('name')) {
@@ -89,33 +134,53 @@ export async function POST(request: Request) {
     
     // Check if addOns is an array of objects (from the frontend)
     if (addOns && Array.isArray(addOns) && addOns.length > 0) {
-      formattedAddOns = addOns.map((addon: any) => ({
-        name: addon.name || 'Unknown',
-        price: addon.price || 'N/A',
-        category: addon.category || 'General',
+      formattedAddOns = addOns.map((addon: AddOnInput) => ({
+        name: sanitizeText(asString(addon.name) || 'Unknown', 120),
+        price: sanitizeText(asString(addon.price) || 'N/A', 40),
+        category: sanitizeText(asString(addon.category) || 'General', 80),
       }));
-    } else if (bookingData?.selectedAddOns && Array.isArray(bookingData.selectedAddOns)) {
+    } else if (isRecord(bookingData) && Array.isArray((bookingData as BookingDataInput).selectedAddOns)) {
       // If bookingData has selectedAddOns as IDs
-      formattedAddOns = bookingData.selectedAddOns.map((id: string) => {
-        const found = addOnsData.find(a => a.id === id);
-        return found ? { name: found.name, price: found.price, category: found.category } : { name: `Add-on ${id}`, price: 'N/A', category: 'General' };
+      formattedAddOns = ((bookingData as BookingDataInput).selectedAddOns as unknown[]).map((id) => {
+        const safeId = sanitizeText(asString(id), 60);
+        const found = addOnsData.find(a => a.id === safeId);
+        return found ? { name: found.name, price: found.price, category: found.category } : { name: `Add-on ${safeId}`, price: 'N/A', category: 'General' };
       });
     }
 
     // Build the add-ons list HTML
     const addOnsHtml = formattedAddOns.length > 0 
       ? formattedAddOns.map(addon => 
-          `<span class="addon-tag">${addon.name} (${addon.price})</span>`
+          `<span class="addon-tag">${escapeHtml(addon.name)} (${escapeHtml(addon.price)})</span>`
         ).join(' ')
       : '<span style="color: #94a3b8;">None selected</span>';
 
     // Build add-ons list for summary
     const addOnsNames = formattedAddOns.map(a => a.name);
     const addOnsSummaryText = addOnsNames.length > 0 ? addOnsNames.join(', ') : 'None';
+    const safePackageName = sanitizeText(asString(packageName), 120);
+    const safeServiceType = sanitizeText(asString(serviceType), 120);
+    const safePackagePrice = sanitizeText(asString(packagePrice), 40);
+    const safeAddOnsTotal = sanitizeText(asString(addOnsTotal), 40);
+    const safeTotalPrice = sanitizeText(asString(totalPrice), 40);
+    const safeBookingType = sanitizeText(asString(bookingType), 80);
+    const safeCategory = sanitizeText(asString(category), 80);
+    const safeAddOnsSummaryText = sanitizeText(addOnsSummaryText, 500);
+    const safeTimestamp = asString(timestamp);
+    const submittedAt = safeTimestamp && !Number.isNaN(new Date(safeTimestamp).getTime())
+      ? new Date(safeTimestamp)
+      : new Date();
+    const selectedAddOnIds = isRecord(bookingData) && Array.isArray((bookingData as BookingDataInput).selectedAddOns)
+      ? ((bookingData as BookingDataInput).selectedAddOns as unknown[])
+        .map((id) => sanitizeText(asString(id), 60))
+        .filter(Boolean)
+        .join(', ')
+      : 'None';
 
     // Format date
-    const formattedDate = preferredDate 
-      ? new Date(preferredDate).toLocaleDateString('en-AU', {
+    const safePreferredDate = asString(preferredDate);
+    const formattedDate = safePreferredDate && !Number.isNaN(new Date(safePreferredDate).getTime())
+      ? new Date(safePreferredDate).toLocaleDateString('en-AU', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
@@ -294,21 +359,14 @@ export async function POST(request: Request) {
           <!-- Header -->
           <div class="header">
             <h1>New Residential Booking</h1>
-            <p>${timestamp ? new Date(timestamp).toLocaleString('en-AU', { 
+            <p>${escapeHtml(submittedAt.toLocaleString('en-AU', {
               weekday: 'long', 
               year: 'numeric', 
               month: 'long', 
               day: 'numeric',
               hour: '2-digit',
               minute: '2-digit'
-            }) : new Date().toLocaleString('en-AU', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}</p>
+            }))}</p>
             <div>
               <span class="badge">● Pending Confirmation</span>
               <span class="badge-residential">🧹 Residential Cleaning</span>
@@ -324,27 +382,27 @@ export async function POST(request: Request) {
               <div class="grid">
                 <div class="row">
                   <span class="label">Name</span>
-                  <span class="value">${firstNameClean} ${lastNameClean}</span>
+                  <span class="value">${escapeHtml(`${firstNameClean} ${lastNameClean}`.trim())}</span>
                 </div>
                 <div class="row">
                   <span class="label">Email</span>
-                  <span class="value">${email}</span>
+                  <span class="value">${escapeHtml(safeEmail)}</span>
                 </div>
                 <div class="row">
                   <span class="label">Phone</span>
-                  <span class="value">${phone}</span>
+                  <span class="value">${escapeHtml(safePhone)}</span>
                 </div>
                 <div class="row row-full">
                   <span class="label">Address</span>
-                  <span class="value">${address || 'Not specified'}</span>
+                  <span class="value">${escapeHtml(safeAddress || 'Not specified')}</span>
                 </div>
                 <div class="row">
                   <span class="label">Suburb</span>
-                  <span class="value">${suburb || 'Not specified'}</span>
+                  <span class="value">${escapeHtml(safeSuburb || 'Not specified')}</span>
                 </div>
                 <div class="row">
                   <span class="label">Category</span>
-                  <span class="value"><span class="highlight">${category || 'Residential'}</span></span>
+                  <span class="value"><span class="highlight">${escapeHtml(safeCategory || 'Residential')}</span></span>
                 </div>
               </div>
             </div>
@@ -357,24 +415,24 @@ export async function POST(request: Request) {
               <div class="grid">
                 <div class="row">
                   <span class="label">Service Type</span>
-                  <span class="value value-highlight">${serviceType || packageName}</span>
+                  <span class="value value-highlight">${escapeHtml(safeServiceType || safePackageName)}</span>
                 </div>
                 <div class="row">
                   <span class="label">Bedrooms</span>
-                  <span class="value">${bedrooms}</span>
+                  <span class="value">${escapeHtml(bedrooms)}</span>
                 </div>
                 <div class="row">
                   <span class="label">Bathrooms</span>
-                  <span class="value">${bathrooms}</span>
+                  <span class="value">${escapeHtml(bathrooms)}</span>
                 </div>
                 <div class="row">
                   <span class="label">Preferred Date</span>
-                  <span class="value">${formattedDate}</span>
+                  <span class="value">${escapeHtml(formattedDate)}</span>
                 </div>
-                ${specialInstructions ? `
+                ${safeSpecialInstructions ? `
                   <div class="row row-full">
                     <span class="label">Special Instructions</span>
-                    <span class="value">${specialInstructions}</span>
+                    <span class="value">${escapeHtml(safeSpecialInstructions)}</span>
                   </div>
                 ` : ''}
               </div>
@@ -388,11 +446,11 @@ export async function POST(request: Request) {
               <div class="grid">
                 <div class="row row-full">
                   <span class="label">Package</span>
-                  <span class="value value-highlight">${packageName || serviceType}</span>
+                  <span class="value value-highlight">${escapeHtml(safePackageName || safeServiceType)}</span>
                 </div>
                 <div class="row">
                   <span class="label">Package Price</span>
-                  <span class="value value-highlight">${packagePrice}</span>
+                  <span class="value value-highlight">${escapeHtml(safePackagePrice)}</span>
                 </div>
               </div>
             </div>
@@ -407,12 +465,12 @@ export async function POST(request: Request) {
               </div>
               <div class="row">
                 <span class="label">Add-ons Summary</span>
-                <span class="value">${addOnsSummaryText}</span>
+                <span class="value">${escapeHtml(safeAddOnsSummaryText)}</span>
               </div>
-              ${addOnsTotal ? `
+              ${safeAddOnsTotal ? `
                 <div class="row">
                   <span class="label">Add-ons Total</span>
-                  <span class="value value-highlight">${addOnsTotal}</span>
+                  <span class="value value-highlight">${escapeHtml(safeAddOnsTotal)}</span>
                 </div>
               ` : ''}
             </div>
@@ -422,7 +480,7 @@ export async function POST(request: Request) {
               <div class="total-box">
                 <div class="total-row">
                   <span class="total-label">Total Amount</span>
-                  <span class="total-amount">${totalPrice}</span>
+                  <span class="total-amount">${escapeHtml(safeTotalPrice)}</span>
                 </div>
                 <div style="margin-top: 6px; text-align: right; font-size: 11px; color: #94a3b8;">
                   Includes package + add-ons
@@ -438,19 +496,19 @@ export async function POST(request: Request) {
               <div class="grid">
                 <div class="row">
                   <span class="label">Booking Type</span>
-                  <span class="value">${bookingType || 'Residential Cleaning'}</span>
+                  <span class="value">${escapeHtml(safeBookingType || 'Residential Cleaning')}</span>
                 </div>
                 <div class="row">
                   <span class="label">Booking Reference</span>
-                  <span class="value" style="font-size: 11px; color: #64748b;">${timestamp ? new Date(timestamp).getTime().toString().slice(-8) : 'N/A'}</span>
+                  <span class="value" style="font-size: 11px; color: #64748b;">${escapeHtml(submittedAt.getTime().toString().slice(-8))}</span>
                 </div>
                 <div class="row">
                   <span class="label">Category</span>
-                  <span class="value">${category || 'Residential'}</span>
+                  <span class="value">${escapeHtml(safeCategory || 'Residential')}</span>
                 </div>
                 <div class="row">
                   <span class="label">Selected Add-ons (IDs)</span>
-                  <span class="value" style="font-size: 11px;">${bookingData?.selectedAddOns?.join(', ') || 'None'}</span>
+                  <span class="value" style="font-size: 11px;">${escapeHtml(selectedAddOnIds)}</span>
                 </div>
               </div>
             </div>
@@ -479,9 +537,9 @@ export async function POST(request: Request) {
     const mailOptions = {
       from: `"Shining Property Service" <${process.env.GMAIL_USER}>`,
       to: 'shiningpropertyofficial@gmail.com',
-      subject: `Residential Booking: ${packageName || serviceType} - ${firstNameClean} ${lastNameClean}`,
+      subject: `Residential Booking: ${safePackageName || safeServiceType} - ${firstNameClean} ${lastNameClean}`,
       html: html,
-      replyTo: email,
+      replyTo: safeEmail,
     };
 
     await transporter.sendMail(mailOptions);
