@@ -276,18 +276,34 @@ export default function BookingSection() {
     };
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    const nextValue = name === 'email'
-      ? sanitizeEmail(value)
-      : name === 'phone'
-        ? sanitizePhone(value)
-        : name === 'specialInstructions'
-          ? sanitizeMultilineText(value, 1000)
-          : sanitizeText(value, 160);
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  //   const { name, value } = e.target;
+  //   const nextValue = name === 'email'
+  //     ? sanitizeEmail(value)
+  //     : name === 'phone'
+  //       ? sanitizePhone(value)
+  //       : name === 'specialInstructions'
+  //         ? sanitizeMultilineText(value, 1000)
+  //         : sanitizeText(value, 160);
 
-    setFormData({ ...formData, [name]: nextValue });
-  };
+  //   setFormData({ ...formData, [name]: nextValue });
+  // };
+  const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+) => {
+  const { name, value } = e.target;
+
+  let nextValue = value;
+
+  if (name === 'phone') {
+    nextValue = sanitizePhone(value);
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    [name]: nextValue,
+  }));
+};
 
   const handleChoosePackage = () => {
     const pricingSection = document.querySelector('#pricing');
