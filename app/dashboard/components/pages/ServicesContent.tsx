@@ -75,14 +75,26 @@ export default function ServicesContent() {
 
       if (error) {
         console.error('Error loading services:', error);
-        showToast('error', 'Failed to load services');
+        showToast('error', error.message || 'Failed to load services');
         return;
       }
 
-      setServices(data || []);
+      const normalized: Service[] = (data || []).map((s: any) => ({
+        id: s.id,
+        title: s.title || '',
+        price: s.price || '',
+        description: s.description || '',
+        icon: s.icon || 'Home',
+        category: s.category || 'Deep Clean',
+        duration: s.duration || '2-3 hours',
+        status: s.status || (s.is_active !== false ? 'Active' : 'Inactive'),
+        bookings: Number(s.bookings || 0),
+      }));
+
+      setServices(normalized);
     } catch (error) {
       console.error('Error:', error);
-      showToast('error', 'Error loading services');
+      showToast('error', error instanceof Error ? error.message : 'Error loading services');
     } finally {
       setIsLoading(false);
     }
@@ -96,27 +108,45 @@ export default function ServicesContent() {
   const handleCreate = async (data: Partial<Service>) => {
     setSaving(true);
     try {
+      const payload = {
+        title: data.title?.trim() || '',
+        price: data.price?.trim() || '',
+        description: data.description?.trim() || '',
+        icon: data.icon || 'Home',
+        is_active: true,
+        sort_order: services.length + 1,
+      };
+
       const { data: inserted, error } = await supabase
         .from('services')
-        .insert([{
-          ...data,
-          status: 'Active',
-          bookings: 0,
-          sort_order: services.length + 1,
-        }])
+        .insert([payload])
         .select()
         .single();
 
       if (error) {
-        showToast('error', 'Failed to create service');
+        showToast('error', error.message || 'Failed to create service');
         return;
       }
 
-      setServices([...services, inserted]);
-      showToast('success', 'Service created!');
-      setShowModal(false);
+      if (inserted) {
+        const newService: Service = {
+          id: inserted.id,
+          title: inserted.title || payload.title,
+          price: inserted.price || payload.price,
+          description: inserted.description || payload.description,
+          icon: inserted.icon || payload.icon,
+          category: data.category || 'Deep Clean',
+          duration: data.duration || '2-3 hours',
+          status: inserted.status || (inserted.is_active !== false ? 'Active' : 'Inactive'),
+          bookings: Number(inserted.bookings || 0),
+        };
+
+        setServices([...services, newService]);
+        showToast('success', 'Service created!');
+        setShowModal(false);
+      }
     } catch (error) {
-      showToast('error', 'Failed to create service');
+      showToast('error', error instanceof Error ? error.message : 'Failed to create service');
     } finally {
       setSaving(false);
     }
@@ -128,24 +158,46 @@ export default function ServicesContent() {
 
     setSaving(true);
     try {
+      const payload = {
+        title: data.title?.trim() || editingService.title,
+        price: data.price?.trim() || editingService.price,
+        description: data.description?.trim() || editingService.description,
+        icon: data.icon || editingService.icon || 'Home',
+      };
+
       const { data: updated, error } = await supabase
         .from('services')
-        .update(data)
+        .update(payload)
         .eq('id', editingService.id)
         .select()
         .single();
 
       if (error) {
-        showToast('error', 'Failed to update service');
+        showToast('error', error.message || 'Failed to update service');
         return;
       }
 
-      setServices(services.map(s => s.id === updated.id ? updated : s));
-      showToast('success', 'Service updated!');
-      setShowModal(false);
-      setEditingService(null);
+      if (updated) {
+        const updatedService: Service = {
+          ...editingService,
+          id: updated.id,
+          title: updated.title || payload.title,
+          price: updated.price || payload.price,
+          description: updated.description || payload.description,
+          icon: updated.icon || payload.icon,
+          category: data.category || editingService.category || 'Deep Clean',
+          duration: data.duration || editingService.duration || '2-3 hours',
+          status: updated.status || editingService.status || 'Active',
+          bookings: Number(updated.bookings ?? editingService.bookings ?? 0),
+        };
+
+        setServices(services.map((s) => (s.id === updatedService.id ? updatedService : s)));
+        showToast('success', 'Service updated!');
+        setShowModal(false);
+        setEditingService(null);
+      }
     } catch (error) {
-      showToast('error', 'Failed to update service');
+      showToast('error', error instanceof Error ? error.message : 'Failed to update service');
     } finally {
       setSaving(false);
     }
