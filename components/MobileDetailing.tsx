@@ -1317,13 +1317,19 @@ useEffect(() => {
 
       try {
         // Send email via API
-        await fetch('/api/send-mobile-booking-email', {
+        const response = await fetch('/api/send-mobile-booking-email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(emailData),
         });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || (result && !result.success)) {
+          throw new Error(result?.error || 'Failed to submit booking. Please check your details and try again.');
+        }
 
         // Clear local storage
         clearLocalStorage();
@@ -1367,7 +1373,7 @@ useEffect(() => {
         setMarketingOptIn(false);
 
         setToast({ 
-          message: 'Booking confirmed! We will contact you shortly.', 
+          message: `Booking confirmed! A confirmation email has been sent to ${safeCustomerData.email}.`, 
           type: 'success' 
         });
 
@@ -1377,13 +1383,12 @@ useEffect(() => {
       } catch (error) {
         console.error('Error sending email:', error);
         
-        // Still clear local storage and reset
-        clearLocalStorage();
-        
         setToast({ 
-          message: 'Booking confirmed! We will contact you shortly.', 
-          type: 'success' 
+          message: error instanceof Error ? error.message : 'Failed to submit booking. Please try again.', 
+          type: 'error' 
         });
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         
       } finally {
         setIsSubmitting(false);
