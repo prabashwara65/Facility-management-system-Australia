@@ -525,6 +525,50 @@ export async function POST(request: Request) {
       </html>
     `;
 
+    const bookingReference = submittedAt.getTime().toString().slice(-8);
+    const clientHtml = html
+      .replace('<title>New Residential Booking</title>', '<title>Residential Cleaning Booking Confirmation</title>')
+      .replace('<h1>New Residential Booking</h1>', '<h1>Booking Confirmation</h1>')
+      .replace('<span class="badge">● Pending Confirmation</span>', '<span class="badge">Booking Confirmed</span>')
+      .replace('<span class="badge-residential">🧹 Residential Cleaning</span>', '<span class="badge-residential">Residential Cleaning</span>')
+      .replace(
+        '<p>${escapeHtml(submittedAt.toLocaleString(\'en-AU\', {',
+        '<p style="margin-bottom: 6px;">Thank you for choosing Shining Property Service for your residential cleaning needs.</p>\n            <p style="font-weight: 600; color: #ffffff;">Ref: #${bookingReference}</p>\n            <p>${escapeHtml(submittedAt.toLocaleString(\'en-AU\', {',
+      )
+      .replace(
+        '<div class="content">',
+        `<div class="content">
+          <div class="section" style="margin-bottom: 24px;">
+            <p style="color: #334155; font-size: 14px; line-height: 1.7; margin-bottom: 10px;">
+              Dear ${escapeHtml(firstNameClean)},
+            </p>
+
+            <p style="color: #475569; font-size: 13px; line-height: 1.7;">
+              Thank you for choosing <strong style="color: #1a3a6b;">Shining Property Service!</strong>
+            </p>
+
+            <p style="color: #475569; font-size: 13px; line-height: 1.7; margin-top: 10px;">
+              We are pleased to confirm that your <strong style="color: #1a3a6b;">residential cleaning booking</strong>
+              has been <strong style="color: #059669;">successfully confirmed.</strong>
+            </p>
+
+            <p style="color: #475569; font-size: 13px; line-height: 1.7; margin-top: 10px;">
+              Please find your <strong style="color: #1a3a6b;">confirmed booking details</strong> below.
+              We look forward to providing you with our cleaning services.
+            </p>
+
+            <p style="display: inline-block; background: #dbeafe; color: #1a3a6b; font-size: 14px; margin-top: 15px; padding: 8px 12px; border-radius: 5px; border: 1px solid #93c5fd;">
+              <strong>Booking Reference: #${bookingReference}</strong>
+            </p>
+          </div>`,
+      )
+      .replace('Selected Add-ons (IDs)', 'Selected Add-ons')
+      .replace(escapeHtml(selectedAddOnIds), escapeHtml(safeAddOnsSummaryText))
+      .replace(
+        'This residential booking was submitted from the Shining Property Service website.',
+        'For more details or assistance, please call us on 1800 123 456 or reply to this email. Please keep this confirmation and reference number for your records.',
+      );
+
     // Create transporter with Gmail
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -543,6 +587,14 @@ export async function POST(request: Request) {
     };
 
     await transporter.sendMail(mailOptions);
+
+    await transporter.sendMail({
+      from: `"Shining Property Service" <${process.env.GMAIL_USER}>`,
+      to: safeEmail,
+      subject: `Booking confirmation - ${safePackageName || safeServiceType}`,
+      html: clientHtml,
+      replyTo: process.env.GMAIL_USER,
+    });
 
     return NextResponse.json({ 
       success: true, 
