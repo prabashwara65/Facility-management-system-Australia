@@ -43,6 +43,12 @@ export default function ServicesSection() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                document.querySelector('#booking')?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                });
+              }}
               className="font-medium px-8 py-3 rounded-md transition-colors duration-200"
               style={{ backgroundColor: 'var(--theme-secondary)', color: 'white' }}
             >

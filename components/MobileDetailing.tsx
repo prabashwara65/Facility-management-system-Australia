@@ -40,9 +40,12 @@ import {
   isValidEmail,
   sanitizeEmail,
   sanitizeMultilineText,
+  sanitizeMultilineTextWhileTyping,
   sanitizePhone,
+  sanitizePhoneWhileTyping,
   sanitizePostcode,
   sanitizeText,
+  sanitizeTextWhileTyping,
   validateSafeFields,
 } from '@/lib/security/input';
 
@@ -2114,7 +2117,7 @@ useEffect(() => {
                                       type="text"
                                       placeholder="Other (describe below)"
                                       value={otherCondition}
-                                      onChange={(e) => setOtherCondition(sanitizeText(e.target.value, 180))}
+                                      onChange={(e) => setOtherCondition(sanitizeTextWhileTyping(e.target.value, 180))}
                                       className="w-full p-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white focus:outline-none focus:border-[var(--theme-secondary)] transition-colors text-sm"
                                       style={{ borderColor: otherCondition ? secondaryColor : 'var(--theme-border)' }}
                                     />
@@ -2605,7 +2608,7 @@ useEffect(() => {
                             <input
                               type="text"
                               value={firstName}
-                              onChange={(e) => setFirstName(sanitizeText(e.target.value, 80))}
+                              onChange={(e) => setFirstName(sanitizeTextWhileTyping(e.target.value, 80))}
                               maxLength={80}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="First Name"
@@ -2620,7 +2623,7 @@ useEffect(() => {
                             <input
                               type="text"
                               value={lastName}
-                              onChange={(e) => setLastName(sanitizeText(e.target.value, 80))}
+                              onChange={(e) => setLastName(sanitizeTextWhileTyping(e.target.value, 80))}
                               maxLength={80}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="Last Name"
@@ -2650,7 +2653,7 @@ useEffect(() => {
                             <input
                               type="tel"
                               value={phone}
-                              onChange={(e) => setPhone(sanitizePhone(e.target.value))}
+                              onChange={(e) => setPhone(sanitizePhoneWhileTyping(e.target.value))}
                               maxLength={32}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="555-123-4567"
@@ -2665,7 +2668,7 @@ useEffect(() => {
                             <input
                               type="text"
                               value={address}
-                              onChange={(e) => setAddress(sanitizeText(e.target.value, 180))}
+                              onChange={(e) => setAddress(sanitizeTextWhileTyping(e.target.value, 180))}
                               maxLength={180}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="Start typing your address..."
@@ -2680,7 +2683,7 @@ useEffect(() => {
                             <input
                               type="text"
                               value={addressUnit}
-                              onChange={(e) => setAddressUnit(sanitizeText(e.target.value, 80))}
+                              onChange={(e) => setAddressUnit(sanitizeTextWhileTyping(e.target.value, 80))}
                               maxLength={80}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="Apt / Suite"
@@ -2695,7 +2698,7 @@ useEffect(() => {
                             <input
                               type="text"
                               value={city}
-                              onChange={(e) => setCity(sanitizeText(e.target.value, 80))}
+                              onChange={(e) => setCity(sanitizeTextWhileTyping(e.target.value, 80))}
                               maxLength={80}
                               className="w-full rounded-xl border border-white/10 bg-white/[0.08] px-4 py-2.5 text-white outline-none transition-colors placeholder:text-white/35 focus:border-[var(--theme-secondary)] focus:ring-2 focus:ring-[var(--theme-secondary)]/20"
                               placeholder="City"
@@ -2862,7 +2865,7 @@ useEffect(() => {
                           <p className="text-xs text-white/55 mb-3">Any extra information you would like to share with us?</p>
                           <textarea
                             value={extraInfo}
-                            onChange={(e) => setExtraInfo(sanitizeMultilineText(e.target.value, 1000))}
+                            onChange={(e) => setExtraInfo(sanitizeMultilineTextWhileTyping(e.target.value, 1000))}
                             maxLength={1000}
                             rows={3}
                             className="w-full px-4 py-2.5 rounded-xl border-2 border-white/10 bg-white/[0.06] text-white focus:outline-none focus:border-[var(--theme-secondary)] transition-colors resize-none"
