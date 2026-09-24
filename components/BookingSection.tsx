@@ -189,8 +189,8 @@ export default function BookingSection() {
         const { data, error } = await supabase
           .from('contact_info')
           .select('*')
-          .limit(1)
-          .single();
+          .order('id', { ascending: true })
+          .limit(1);
 
         if (error) {
           console.error('Error fetching contact info:', error);
@@ -203,8 +203,8 @@ export default function BookingSection() {
             guarantee_title: 'Bond-Back Guarantee',
             guarantee_description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
           });
-        } else if (data) {
-          setContactInfo(data);
+        } else if (data && data.length > 0) {
+          setContactInfo(data[0]);
         } else {
           setContactInfo({
             id: 1,
