@@ -63,49 +63,23 @@ export default function ContactContent() {
   // READ: Load contact info
   const loadContactInfo = async () => {
     try {
-      setLoading(true);
-      //('🔵 Loading contact info...');
-
-      // Try to get existing record
+      // Try to get existing record from contact_info
       const { data, error } = await supabase
-        .from('bookings')
+        .from('contact_info')
         .select('id, phone, email, service_area, hours')
+        .order('id', { ascending: true })
         .limit(1);
 
-      //('📊 Data:', data);
-      //('❌ Error:', error);
-
       if (error) {
-        console.error('Error loading:', error);
-        // If no data exists, create default
-        if (error.code === 'PGRST116' || !data || data.length === 0) {
-          //('📝 No record found, creating default...');
-          const { data: inserted, error: insertError } = await supabase
-            .from('bookings')
-            .insert([defaultContactInfo])
-            .select('id, phone, email, service_area, hours');
+        console.error('Error loading contact info:', error);
+      }
 
-          //('📊 Insert result:', inserted);
-          //('❌ Insert error:', insertError);
-
-          if (insertError) {
-            console.error('Insert error:', insertError);
-            setContactInfo({ id: 0, ...defaultContactInfo });
-          } else if (inserted && inserted.length > 0) {
-            setContactInfo(inserted[0]);
-          } else {
-            setContactInfo({ id: 0, ...defaultContactInfo });
-          }
-        } else {
-          setContactInfo({ id: 0, ...defaultContactInfo });
-        }
-      } else if (data && data.length > 0) {
-        //('✅ Data loaded:', data[0]);
+      if (data && data.length > 0) {
         setContactInfo(data[0]);
       } else {
-        //('📝 No data found, creating default...');
+        // No record found, create default
         const { data: inserted, error: insertError } = await supabase
-          .from('bookings')
+          .from('contact_info')
           .insert([defaultContactInfo])
           .select('id, phone, email, service_area, hours');
 
@@ -127,7 +101,10 @@ export default function ContactContent() {
   };
 
   useEffect(() => {
-    loadContactInfo();
+    const init = async () => {
+      await loadContactInfo();
+    };
+    init();
   }, []);
 
   const getValue = (key: string) => {
@@ -149,18 +126,14 @@ export default function ContactContent() {
 
   const handleSave = async () => {
     if (!editingField || !contactInfo) {
-      //('❌ No field or contact info');
       return;
     }
 
-    //(`🟡 Updating ${editingField} to:`, formData[editingField]);
-
     // If no id, insert new record
     if (contactInfo.id === 0) {
-      //('📝 Creating new record...');
       const { data, error } = await supabase
-        .from('bookings')
-        .insert([{ [editingField]: formData[editingField] }])
+        .from('contact_info')
+        .insert([{ ...defaultContactInfo, [editingField]: formData[editingField] }])
         .select('id, phone, email, service_area, hours');
 
       if (error) {
@@ -173,13 +146,17 @@ export default function ContactContent() {
         setContactInfo(data[0]);
         showToast('success', 'Record created successfully!');
       }
+
+      setShowEditModal(false);
+      setEditingField(null);
+      setFormData({});
       return;
     }
 
     setSaving(true);
     try {
       const { data, error } = await supabase
-        .from('bookings')
+        .from('contact_info')
         .update({ [editingField]: formData[editingField] })
         .eq('id', contactInfo.id)
         .select('id, phone, email, service_area, hours');
@@ -189,8 +166,6 @@ export default function ContactContent() {
         showToast('error', 'Failed to update');
         return;
       }
-
-      //('✅ Update successful:', data);
 
       if (data && data.length > 0) {
         setContactInfo(data[0]);
@@ -213,6 +188,7 @@ export default function ContactContent() {
   };
 
   const handleRefresh = () => {
+    setLoading(true);
     loadContactInfo();
   };
 
