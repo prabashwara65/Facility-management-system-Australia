@@ -1368,8 +1368,11 @@ export default function AdminDashboard() {
               setSelectedItem(null);
               setShowAddModal(true);
             }}
-            className="mt-4 px-4 py-2 rounded-xl text-white text-sm font-medium transition-all hover:opacity-90 flex items-center gap-2"
-            style={{ backgroundColor: primaryColor }}
+            className="mt-4 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:opacity-90 flex items-center gap-2"
+            style={{
+              backgroundColor: primaryColor,
+              color: dashboardTheme.isNightMode ? '#0f172a' : '#ffffff',
+            }}
           >
             <Plus className="w-4 h-4" />
             Add New Model
@@ -1440,8 +1443,11 @@ export default function AdminDashboard() {
                       setSelectedItem(null);
                       setShowAddModal(true);
                     }}
-                    className="px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 flex items-center gap-1"
-                    style={{ backgroundColor: primaryColor }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90 flex items-center gap-1"
+                    style={{
+                      backgroundColor: primaryColor,
+                      color: dashboardTheme.isNightMode ? '#0f172a' : '#ffffff',
+                    }}
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add Model
@@ -1613,8 +1619,11 @@ export default function AdminDashboard() {
               setSelectedItem(null);
               setShowAddModal(true);
             }}
-            className="mt-4 px-4 py-2 rounded-xl text-white text-sm font-medium transition-all hover:opacity-90 flex items-center gap-2"
-            style={{ backgroundColor: primaryColor }}
+            className="mt-4 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:opacity-90 flex items-center gap-2"
+            style={{
+              backgroundColor: primaryColor,
+              color: dashboardTheme.isNightMode ? '#0f172a' : '#ffffff',
+            }}
           >
             <Plus className="w-4 h-4" />
             Add New Body Type
@@ -1685,8 +1694,11 @@ export default function AdminDashboard() {
                       setSelectedItem(null);
                       setShowAddModal(true);
                     }}
-                    className="px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 flex items-center gap-1"
-                    style={{ backgroundColor: primaryColor }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-90 flex items-center gap-1"
+                    style={{
+                      backgroundColor: primaryColor,
+                      color: dashboardTheme.isNightMode ? '#0f172a' : '#ffffff',
+                    }}
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add Body Type
@@ -2243,8 +2255,11 @@ export default function AdminDashboard() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 px-6 py-3 rounded-xl text-white font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-2"
-              style={{ backgroundColor: primaryColor }}
+              className="flex-1 px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-2"
+              style={{
+                backgroundColor: primaryColor,
+                color: dashboardTheme.isNightMode ? '#0f172a' : '#ffffff',
+              }}
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? 'Saving...' : 'Save Changes'}
@@ -2426,8 +2441,11 @@ export default function AdminDashboard() {
             </div>
             <button
               onClick={fetchAllData}
-              className="px-4 py-2 rounded-xl text-white font-semibold transition-all hover:opacity-90 flex items-center gap-2"
-              style={{ backgroundColor: primaryColor }}
+              className="px-4 py-2 rounded-xl font-semibold transition-all hover:opacity-90 flex items-center gap-2"
+              style={{
+                backgroundColor: primaryColor,
+                color: dashboardTheme.isNightMode ? '#0f172a' : '#ffffff',
+              }}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
@@ -2504,8 +2522,11 @@ export default function AdminDashboard() {
 
           <button
             onClick={() => openAddModal(getEmptyFormForTab(activeTab))}
-            className="px-4 py-2.5 rounded-xl text-white font-semibold transition-all hover:opacity-90 flex items-center gap-2 whitespace-nowrap"
-            style={{ backgroundColor: secondaryColor }}
+            className="px-4 py-2.5 rounded-xl font-semibold transition-all hover:opacity-90 flex items-center gap-2 whitespace-nowrap"
+            style={{
+              backgroundColor: secondaryColor,
+              color: dashboardTheme.isNightMode ? '#0f172a' : '#ffffff',
+            }}
           >
             <Plus className="w-4 h-4" />
             Add New

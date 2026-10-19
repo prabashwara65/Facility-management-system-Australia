@@ -71,8 +71,7 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: absoluteUrl(siteConfig.logo),
-    apple: absoluteUrl(siteConfig.logo),
+    icon: '/favicon.ico',
   },
 };
 

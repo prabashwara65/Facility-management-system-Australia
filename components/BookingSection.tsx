@@ -145,6 +145,14 @@ const clearLocalStorage = () => {
   }
 };
 
+const getTodayDate = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const isSelectedAddOn = (addOn: { name: string; price: string } | null): addOn is { name: string; price: string } => addOn !== null;
 
 const containerVariants: Variants = {
@@ -189,8 +197,8 @@ export default function BookingSection() {
         const { data, error } = await supabase
           .from('contact_info')
           .select('*')
-          .limit(1)
-          .single();
+          .order('id', { ascending: true })
+          .limit(1);
 
         if (error) {
           console.error('Error fetching contact info:', error);
@@ -203,8 +211,8 @@ export default function BookingSection() {
             guarantee_title: 'Bond-Back Guarantee',
             guarantee_description: "If your property manager isn't satisfied, we return free of charge. That's our promise.",
           });
-        } else if (data) {
-          setContactInfo(data);
+        } else if (data && data.length > 0) {
+          setContactInfo(data[0]);
         } else {
           setContactInfo({
             id: 1,
@@ -276,18 +284,34 @@ export default function BookingSection() {
     };
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    const nextValue = name === 'email'
-      ? sanitizeEmail(value)
-      : name === 'phone'
-        ? sanitizePhone(value)
-        : name === 'specialInstructions'
-          ? sanitizeMultilineText(value, 1000)
-          : sanitizeText(value, 160);
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  //   const { name, value } = e.target;
+  //   const nextValue = name === 'email'
+  //     ? sanitizeEmail(value)
+  //     : name === 'phone'
+  //       ? sanitizePhone(value)
+  //       : name === 'specialInstructions'
+  //         ? sanitizeMultilineText(value, 1000)
+  //         : sanitizeText(value, 160);
 
-    setFormData({ ...formData, [name]: nextValue });
-  };
+  //   setFormData({ ...formData, [name]: nextValue });
+  // };
+  const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+) => {
+  const { name, value } = e.target;
+
+  let nextValue = value;
+
+  if (name === 'phone') {
+    nextValue = sanitizePhone(value);
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    [name]: nextValue,
+  }));
+};
 
   const handleChoosePackage = () => {
     const pricingSection = document.querySelector('#pricing');
@@ -374,6 +398,11 @@ export default function BookingSection() {
 
       if (unsafeMessage) {
         setToast({ message: unsafeMessage, type: 'error' });
+        return;
+      }
+
+      if (safeFormData.preferredDate && safeFormData.preferredDate < getTodayDate()) {
+        setToast({ message: 'Please choose today or a future date.', type: 'error' });
         return;
       }
 
@@ -992,19 +1021,28 @@ export default function BookingSection() {
                 >
                   Preferred Date
                 </label>
-                <div className="relative">
+                <div className="group relative">
                   <input
                     type="text"
                     name="preferredDate"
                     placeholder="mm/dd/yyyy"
-                    onFocus={(e) => (e.target.type = 'date')}
+                    onClick={(e) => {
+                    const input = e.currentTarget;
+                    input.type = 'date';
+                    if (typeof input.showPicker === 'function') {
+                      input.showPicker();
+                    }
+                    }}
                     onBlur={(e) => {
-                      if (!e.target.value) e.target.type = 'text';
+                    if (!e.currentTarget.value) {
+                    e.currentTarget.type = 'text';
+                    }
                     }}
                     value={formData.preferredDate}
                     onChange={handleChange}
+                    min={getTodayDate()}
                     maxLength={40}
-                    className="w-full rounded-xl px-4 py-2.5 text-sm transition-colors pr-10 focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40"
+                    className="w-full cursor-pointer rounded-xl px-4 py-2.5 pr-10 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)] placeholder:text-white/40 [&::-webkit-calendar-picker-indicator]:opacity-0"
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.08)',
                       border: '1px solid rgba(255,255,255,0.08)',
@@ -1012,8 +1050,7 @@ export default function BookingSection() {
                     }}
                   />
                   <Calendar 
-                    className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                    style={{ color: 'rgba(255,255,255,0.6)' }}
+                    className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/60 transition-transform duration-150 group-hover:scale-110 group-focus-within:text-white group-active:scale-95"
                   />
                 </div>
               </div>

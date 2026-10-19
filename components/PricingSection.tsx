@@ -1069,6 +1069,9 @@ function CommercialContent({ data }: any) {
         </p>
         <div>
           <button
+            onClick={() => {
+              document.querySelector('#booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
             className="px-8 py-3 rounded-lg font-semibold text-sm transition-colors hover:opacity-90"
             style={{
               backgroundColor: 'var(--theme-secondary)',
@@ -1124,6 +1127,9 @@ function CommercialContent({ data }: any) {
         </p>
         <div className="text-center mt-4">
           <button
+            onClick={() => {
+              document.querySelector('#booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
             className="px-6 py-2 rounded-lg text-sm font-semibold transition-colors hover:opacity-90"
             style={{
               backgroundColor: 'var(--theme-secondary)',
@@ -1172,6 +1178,9 @@ function CommercialContent({ data }: any) {
         </p>
         <div className="text-center mt-4">
           <button
+            onClick={() => {
+              document.querySelector('#booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
             className="px-6 py-2 rounded-lg text-sm font-semibold transition-colors hover:opacity-90"
             style={{
               backgroundColor: 'var(--theme-secondary)',
@@ -1224,6 +1233,9 @@ function CommercialContent({ data }: any) {
         </p>
         <div className="text-center mt-4">
           <button
+            onClick={() => {
+              document.querySelector('#booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
             className="px-6 py-2 rounded-lg text-sm font-semibold transition-colors hover:opacity-90"
             style={{
               backgroundColor: 'var(--theme-secondary)',

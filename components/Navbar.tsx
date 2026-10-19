@@ -103,7 +103,7 @@ export default function Navbar({
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-6 xl:gap-7">
+        <nav className="hidden lg:flex items-center gap-8 xl:gap-10">
           {navLinks.map((link) => (
             <NavLink key={link.href} href={link.href} onClick={scrollToSection}>
               {link.label}
@@ -161,15 +161,6 @@ export default function Navbar({
               aria-label="Change theme"
             >
               <Palette className="h-3.5 w-3.5" />
-              <div className="flex gap-0.5">
-                {currentColors.slice(0, 3).map((color, i) => (
-                  <div
-                    key={i}
-                    className="h-2.5 w-2.5 md:h-3 md:w-3 rounded-full border border-gray-200"
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
               <ChevronDown className="h-3 w-3 md:h-3.5 md:w-3.5 opacity-60" />
             </motion.button>
 

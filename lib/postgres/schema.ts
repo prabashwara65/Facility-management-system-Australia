@@ -64,7 +64,17 @@ export function resolveColumnName(table: PublicTable, column: string): string {
 export function mapInputRecord(table: PublicTable, record: Record<string, unknown>) {
   const next: Record<string, unknown> = {};
 
+  if (table === 'services') {
+    if ('status' in record && !('is_active' in record)) {
+      next.is_active = record.status === 'Active';
+    }
+  }
+
   for (const [key, value] of Object.entries(record)) {
+    if (table === 'services' && ['category', 'duration', 'status', 'bookings'].includes(key)) {
+      continue;
+    }
+
     const column = resolveColumnName(table, key);
     next[column] = value;
   }
@@ -74,6 +84,13 @@ export function mapInputRecord(table: PublicTable, record: Record<string, unknow
 
 export function mapOutputRow(table: PublicTable, row: Record<string, unknown>) {
   const next = { ...row };
+
+  if (table === 'services') {
+    next.status = row.is_active !== false ? 'Active' : 'Inactive';
+    next.category ??= 'Deep Clean';
+    next.duration ??= '2-3 hours';
+    next.bookings ??= 0;
+  }
 
   if (table === 'vehicle_brands') {
     next.category_id ??= null;

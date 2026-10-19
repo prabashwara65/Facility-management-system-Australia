@@ -14,11 +14,25 @@ export function sanitizeText(value: string, maxLength = 300): string {
     .slice(0, maxLength);
 }
 
+export function sanitizeTextWhileTyping(value: string, maxLength = 300): string {
+  return value
+    .replace(CONTROL_CHARS, '')
+    .replace(HTML_TAG_CHARS, '')
+    .slice(0, maxLength);
+}
+
 export function sanitizeMultilineText(value: string, maxLength = 1000): string {
   return value
     .replace(CONTROL_CHARS, '')
     .replace(HTML_TAG_CHARS, '')
     .trim()
+    .slice(0, maxLength);
+}
+
+export function sanitizeMultilineTextWhileTyping(value: string, maxLength = 1000): string {
+  return value
+    .replace(CONTROL_CHARS, '')
+    .replace(HTML_TAG_CHARS, '')
     .slice(0, maxLength);
 }
 
@@ -28,6 +42,10 @@ export function sanitizeEmail(value: string): string {
 
 export function sanitizePhone(value: string): string {
   return value.replace(/[^\d+()\s-]/g, '').trim().slice(0, 32);
+}
+
+export function sanitizePhoneWhileTyping(value: string, maxLength = 32): string {
+  return value.replace(/[^\d+()\s-]/g, '').slice(0, maxLength);
 }
 
 export function sanitizePostcode(value: string): string {

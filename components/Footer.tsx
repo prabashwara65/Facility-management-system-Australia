@@ -48,7 +48,7 @@ export default function Footer() {
             <Link href="/" className="inline-flex items-center space-x-4 group">
               <motion.div 
                 className="flex h-28 w-28 lg:h-32 lg:w-32 items-center justify-center rounded-full overflow-hidden flex-shrink-0 grayscale"
-                whileHover={{ rotate: 360, scale: 1.05 }}
+                whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.6 }}
               >
                 <Image
