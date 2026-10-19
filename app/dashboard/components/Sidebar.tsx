@@ -8,6 +8,7 @@ import {
   DollarSign,
   MapPin,
   Calendar,
+  LogOut,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useDashboardTheme } from '../context/DashboardThemeContext';
@@ -15,6 +16,7 @@ import { useDashboardTheme } from '../context/DashboardThemeContext';
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onLogout: () => void;
 }
 
 interface NavItem {
@@ -33,7 +35,7 @@ const navItems: NavItem[] = [
   { icon: Calendar, label: 'Mobile Detailing' },
 ];
 
-export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, onLogout }: SidebarProps) {
   const theme = useDashboardTheme();
   const sidebarBackground = theme.isNightMode ? 'rgba(15, 23, 42, 0.86)' : theme.panel;
   const borderColor = theme.border;
@@ -148,6 +150,34 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           })}
         </div>
       </div>
+      <button
+        type="button"
+        className="dashboard-sidebar-item"
+        onClick={onLogout}
+        aria-label="Logout"
+        title="Logout"
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          border: `1px solid ${borderColor}`,
+          borderRadius: '14px',
+          padding: '12px',
+          marginTop: '16px',
+          flexShrink: 0,
+          background: activeBackground,
+          color: activeColor,
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'background 0.2s ease',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = hoverBackground)}
+        onMouseLeave={(e) => (e.currentTarget.style.background = activeBackground)}
+      >
+        <LogOut size={18} aria-hidden="true" />
+        <span className="dashboard-sidebar-item-label">Logout</span>
+      </button>
     </aside>
   );
 }

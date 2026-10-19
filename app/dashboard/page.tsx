@@ -148,7 +148,7 @@ export default function DashboardPage() {
             minHeight: 'calc(100vh - 80px)',
           }}
         >
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
           
           <section className="dashboard-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
             <Navbar
@@ -281,6 +281,7 @@ export default function DashboardPage() {
           .dashboard-sidebar-item {
             width: auto !important;
             flex: 0 0 auto !important;
+            margin-top: 0 !important;
             margin-bottom: 0 !important;
             padding: 10px 12px !important;
             white-space: nowrap !important;
